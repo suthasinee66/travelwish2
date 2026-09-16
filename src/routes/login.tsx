@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plane } from "lucide-react";
 import { signIn, signInWithGoogle } from "@/services/auth";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/lib/supabase";
@@ -57,8 +56,8 @@ function LoginPage() {
             <CardDescription>กรอกอีเมลและรหัสผ่านของคุณเพื่อเริ่มต้น</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="email">อีเมล</Label>
                 <Input
                   className={inputClass}

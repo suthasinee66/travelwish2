@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plane, UserPlus } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signInWithGoogle } from "@/services/auth";
 import TravelPageShell, { formCardClass, inputClass, primaryButtonClass } from "@/components/TravelPageShell";
@@ -48,8 +48,8 @@ function RegisterPage() {
             <CardDescription>กรอกข้อมูลเพื่อสร้างบัญชีใหม่</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
                 <Label htmlFor="name">ชื่อ</Label>
                 <Input
                   className={inputClass}

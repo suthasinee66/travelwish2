@@ -113,7 +113,8 @@ function Index() {
 
       <TravelTipsSection />
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </main>
   );
 }
