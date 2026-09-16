@@ -68,189 +68,240 @@ function ProfileSetup() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+    <div className="profile-page relative min-h-screen overflow-hidden text-[#302b43]">
+
+      {/* Aurora background */}
+      <div className="profile-aurora profile-aurora-1" />
+      <div className="profile-aurora profile-aurora-2" />
+      <div className="profile-aurora profile-aurora-3" />
+      <div className="profile-aurora profile-aurora-4" />
 
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 lg:px-40 py-4 sticky top-0 z-50">
+      <header className="profile-header sticky top-0 z-50">
 
-        <div className="flex items-center gap-2">
-          <div className="flex items-center justify-center text-primary">
-            <Compass className="h-8 w-8" />
+        <div className="profile-header-inner">
+
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="profile-logo">
+              <Compass className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h2 className="text-lg font-bold tracking-tight text-[#302b43]">
+                TravelWise
+              </h2>
+
+              <p className="text-[10px] font-medium tracking-[0.16em] uppercase text-[#8b7894]">
+                Your journey
+              </p>
+            </div>
           </div>
 
-          <h2 className="text-slate-900 dark:text-white text-xl font-bold tracking-tight">
-            TravelWise
-          </h2>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex items-center justify-center rounded-full h-10 w-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-            <User className="h-5 w-5" />
+          {/* User icon */}
+          <div className="profile-user">
+            <User className="h-[18px] w-[18px]" />
           </div>
+
         </div>
 
       </header>
 
       {/* Main */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 lg:p-20">
+      <main className="relative z-10 flex min-h-[calc(100vh-73px)] items-center justify-center px-5 py-12 sm:px-8 lg:py-16">
 
-        <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-8 lg:p-12">
+        <div className="w-full max-w-[560px]">
 
-          {/* Title */}
-          <div className="mb-10 text-center">
+          {/* Progress */}
+          <div className="mb-6 flex items-center justify-center gap-2">
 
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-6">
-              <ClipboardPenLine className="h-8 w-8" />
+            <div className="profile-progress profile-progress-active">
+              1
             </div>
 
-            <h1 className="text-slate-900 dark:text-white text-3xl font-extrabold tracking-tight mb-3">
-              ปรับแต่งการเดินทางของคุณ
-            </h1>
+            <div className="profile-progress-line" />
 
-            <p className="text-slate-500 dark:text-slate-400 text-base leading-relaxed">
-              บอกข้อมูลเกี่ยวกับตัวคุณเล็กน้อย
-              เพื่อให้ AI ของเราสร้างแผนการเดินทางที่เหมาะกับคุณ
-            </p>
+            <div className="profile-progress">
+              2
+            </div>
+
 
           </div>
 
-          {/* Form */}
-          <form
-            className="space-y-6"
-            onSubmit={handleSave}
-          >
+          {/* Card */}
+          <div className="profile-card">
 
-            {/* Name */}
-            <div className="flex flex-col gap-2">
-
-              <label
-                className="text-slate-700 dark:text-slate-300 text-sm font-semibold"
-                htmlFor="full_name"
-              >
-                ชื่อ - นามสกุล
-              </label>
-
-              <div className="relative">
-
-                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
-                  <Badge className="h-5 w-5" />
-                </span>
-
-                <input
-                  id="full_name"
-                  type="text"
-                  placeholder="เช่น สมชาย ใจดี"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-primary focus:border-primary transition-all placeholder:text-slate-400"
-                />
-
+            {/* Icon */}
+            <div className="flex justify-center">
+              <div className="profile-title-icon">
+                <ClipboardPenLine className="h-7 w-7" />
               </div>
+            </div>
+
+            {/* Title */}
+            <div className="mt-6 text-center">
+
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#a56b99]">
+                Tell us about you
+              </p>
+
+              <h1 className="text-[28px] font-extrabold tracking-tight text-[#302b43] sm:text-[32px]">
+                ปรับแต่งการเดินทางของคุณ
+              </h1>
+
+              <p className="mx-auto mt-3 max-w-[430px] text-sm leading-7 text-[#71697d]">
+                บอกข้อมูลเกี่ยวกับตัวคุณเล็กน้อย
+                <br className="hidden sm:block" />
+                เพื่อให้ AI สร้างแผนการเดินทางที่เหมาะกับคุณ
+              </p>
 
             </div>
 
-            {/* Age + Gender */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Form */}
+            <form
+              onSubmit={handleSave}
+              className="mt-9 space-y-5"
+            >
 
-              {/* Age */}
-              <div className="flex flex-col gap-2">
+              {/* Name */}
+              <div>
 
                 <label
-                  className="text-slate-700 dark:text-slate-300 text-sm font-semibold"
-                  htmlFor="age"
+                  htmlFor="full_name"
+                  className="profile-label"
                 >
-                  อายุ
+                  ชื่อ - นามสกุล
                 </label>
 
-                <div className="relative">
+                <div className="profile-input-wrapper">
 
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
-                    <CalendarDays className="h-5 w-5" />
-                  </span>
+                  <Badge className="profile-input-icon" />
 
                   <input
-                    id="age"
-                    type="number"
-                    min="1"
-                    max="120"
-                    placeholder="เช่น 25"
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-primary focus:border-primary transition-all placeholder:text-slate-400"
+                    id="full_name"
+                    type="text"
+                    placeholder="เช่น สมชาย ใจดี"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="profile-input"
                   />
 
                 </div>
 
               </div>
 
-              {/* Gender */}
-              <div className="flex flex-col gap-2">
+              {/* Age + Gender */}
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
-                <label
-                  className="text-slate-700 dark:text-slate-300 text-sm font-semibold"
-                  htmlFor="gender"
-                >
-                  เพศ
-                </label>
+                {/* Age */}
+                <div>
 
-                <div className="relative">
-
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 pointer-events-none">
-                    <VenusAndMars className="h-5 w-5" />
-                  </span>
-
-                  <select
-                    id="gender"
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="block w-full pl-11 pr-10 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:ring-primary focus:border-primary transition-all appearance-none"
+                  <label
+                    htmlFor="age"
+                    className="profile-label"
                   >
-                    <option value="">เลือกเพศ</option>
-                    <option value="male">ชาย</option>
-                    <option value="female">หญิง</option>
-                    <option value="non-binary">ไม่ระบุเพศ</option>
-                    <option value="prefer-not-to-say">
-                      ไม่ต้องการระบุ
-                    </option>
-                  </select>
+                    อายุ
+                  </label>
+
+                  <div className="profile-input-wrapper">
+
+                    <CalendarDays className="profile-input-icon" />
+
+                    <input
+                      id="age"
+                      type="number"
+                      min="1"
+                      max="120"
+                      placeholder="เช่น 25"
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      className="profile-input"
+                    />
+
+                  </div>
+
+                </div>
+
+                {/* Gender */}
+                <div>
+
+                  <label
+                    htmlFor="gender"
+                    className="profile-label"
+                  >
+                    เพศ
+                  </label>
+
+                  <div className="profile-input-wrapper">
+
+                    <VenusAndMars className="profile-input-icon" />
+
+                    <select
+                      id="gender"
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="profile-input profile-select"
+                    >
+                      <option value="">เลือกเพศ</option>
+                      <option value="male">ชาย</option>
+                      <option value="female">หญิง</option>
+                      <option value="non-binary">
+                        ไม่ระบุเพศ
+                      </option>
+                      <option value="prefer-not-to-say">
+                        ไม่ต้องการระบุ
+                      </option>
+                    </select>
+
+                  </div>
 
                 </div>
 
               </div>
 
-            </div>
+              {/* Submit */}
+              <div className="pt-3">
 
-            {/* Submit */}
-            <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="profile-submit"
+                >
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white font-bold py-4 rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
-              >
-                <span>
-                  {saving
-                    ? "กำลังบันทึก..."
-                    : "บันทึกและดำเนินการต่อ"}
-                </span>
+                  <span>
+                    {saving
+                      ? "กำลังบันทึก..."
+                      : "บันทึกและดำเนินการต่อ"}
+                  </span>
 
-                {!saving && (
-                  <ArrowRight className="h-5 w-5" />
-                )}
-              </button>
+                  {!saving && (
+                    <span className="profile-submit-icon">
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  )}
 
-            </div>
+                </button>
 
-          </form>
+              </div>
+
+              {/* Privacy note */}
+              <div className="flex items-center justify-center gap-2 pt-1 text-xs text-[#8b8391]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#b89bcb]" />
+                ข้อมูลของคุณจะใช้เพื่อปรับแต่งคำแนะนำการเดินทาง
+              </div>
+
+            </form>
+
+          </div>
+
+          {/* Bottom text */}
+          <p className="mt-6 text-center text-xs text-[#918899]">
+            Step 1 of 3 · Personal information
+          </p>
 
         </div>
 
       </main>
-
-      {/* Bottom decoration */}
-      <div className="h-24 w-full opacity-10 pointer-events-none overflow-hidden flex items-end">
-        <div className="flex-1 h-full bg-gradient-to-t from-primary to-transparent" />
-      </div>
 
     </div>
   );

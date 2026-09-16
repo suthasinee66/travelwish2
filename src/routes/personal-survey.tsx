@@ -1,7 +1,21 @@
+
 import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import {
+  Compass,
+  User,
+  ArrowRight,
+  Mountain,
+  Camera,
+  Map,
+  Sparkles,
+  Heart,
+  Wallet,
+  CalendarDays,
+  Check,
+} from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { Compass } from "lucide-react";
+
 export const Route = createFileRoute("/personal-survey")({
   component: PersonalSurvey,
 });
@@ -33,7 +47,6 @@ function PersonalSurvey() {
   };
 
   const handleSubmit = async () => {
-
     if (
       travelTypes.length === 0 ||
       activities.length === 0 ||
@@ -66,7 +79,7 @@ function PersonalSurvey() {
         {
           profile_id: profileId,
           travel_type: travelTypes,
-          activities: activities,
+          activities,
           atmosphere,
           travel_companion: travelCompanion,
           budget,
@@ -92,279 +105,481 @@ function PersonalSurvey() {
     });
   };
 
+  const travelTypeOptions = [
+    { value: "ภูเขา", icon: Mountain },
+    { value: "ทะเล", icon: Sparkles },
+    { value: "วัฒนธรรม", icon: Map },
+    { value: "คาเฟ่", icon: Heart },
+    { value: "ธรรมชาติ", icon: Sparkles },
+    { value: "เมือง", icon: Map },
+  ];
+
+  const activityOptions = [
+    "ถ่ายรูป",
+    "เดินป่า",
+    "อาหาร",
+    "ช้อปปิ้ง",
+    "พักผ่อน",
+  ];
+
+  const regionOptions = [
+    "เหนือ",
+    "กลาง",
+    "ใต้",
+    "อีสาน",
+  ];
+
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="survey-page relative min-h-screen overflow-x-hidden text-[#302b43]">
 
-      <header className="border-b border-primary/10 bg-white/80 backdrop-blur px-6 py-4 flex justify-between items-center">
+      {/* Aurora background */}
+      <div className="survey-aurora survey-aurora-1" />
+      <div className="survey-aurora survey-aurora-2" />
+      <div className="survey-aurora survey-aurora-3" />
+      <div className="survey-aurora survey-aurora-4" />
 
-        <div className="flex items-center gap-3">
+      {/* Header */}
+      <header className="survey-header sticky top-0 z-50">
 
-          <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white">
-  <Compass className="h-6 w-6" />
-</div>
+        <div className="survey-header-inner">
 
-          <h1 className="text-xl font-bold">
-            TravelWise
-          </h1>
+          <div className="flex items-center gap-3">
+
+            <div className="survey-logo">
+              <Compass className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h1 className="text-lg font-bold tracking-tight">
+                TravelWise
+              </h1>
+
+              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#8b7894]">
+                Your journey
+              </p>
+            </div>
+
+          </div>
+
+          <div className="survey-user">
+            <User className="h-[18px] w-[18px]" />
+          </div>
 
         </div>
 
       </header>
 
-      <main className="flex justify-center py-10 px-6">
+      {/* Main */}
+      <main className="relative z-10 mx-auto w-full max-w-[900px] px-5 py-10 sm:px-8 lg:py-14">
 
-        <div className="max-w-[800px] w-full space-y-10">
+        {/* Progress */}
+        <div className="mb-8 flex items-center justify-center">
 
-          <div className="space-y-2">
-
-            <h2 className="text-4xl font-extrabold">
-              บอกสไตล์การท่องเที่ยวของคุณ
-            </h2>
-
-            <p className="text-gray-500">
-              เราจะใช้ข้อมูลนี้เพื่อแนะนำสถานที่ที่เหมาะกับคุณ
-            </p>
-
+          <div className="survey-progress survey-progress-done">
+            <Check className="h-3.5 w-3.5" />
           </div>
 
-          {/* Travel Type */}
-          <section className="bg-white rounded-xl border border-primary/10 p-6 shadow-sm">
+          <div className="survey-progress-line survey-progress-line-active" />
 
-            <h3 className="text-xl font-bold mb-6">
-              ประเภทการท่องเที่ยว
-            </h3>
+          <div className="survey-progress survey-progress-active">
+            2
+          </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
 
-              {[
-                "ภูเขา",
-                "ทะเล",
-                "วัฒนธรรม",
-                "คาเฟ่",
-                "ธรรมชาติ",
-                "เมือง",
-              ].map((type) => (
 
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() =>
-                    toggleItem(
-                      type,
-                      travelTypes,
-                      setTravelTypes
-                    )
-                  }
-                  className={`cursor-pointer flex flex-col items-center gap-2 p-4 border-2 rounded-xl transition ${
-                    travelTypes.includes(type)
-                      ? "border-primary bg-primary/10"
-                      : "border-gray-200 hover:border-primary/50"
-                  }`}
-                >
-                  <span className="text-sm font-semibold">
-                    {type}
-                  </span>
-                </button>
+        </div>
 
-              ))}
+        {/* Heading */}
+        <div className="mb-10 text-center">
 
-            </div>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#a56b99]">
+            Your travel personality
+          </p>
 
-          </section>
+          <h2 className="text-3xl font-extrabold tracking-tight text-[#302b43] sm:text-4xl">
+            บอกสไตล์การท่องเที่ยวของคุณ
+          </h2>
 
-          {/* Activities */}
-          <section className="bg-white rounded-xl border border-primary/10 p-6 shadow-sm">
+          <p className="mx-auto mt-3 max-w-[560px] text-sm leading-7 text-[#71697d]">
+            เลือกสิ่งที่ตรงกับคุณมากที่สุด
+            <br className="hidden sm:block" />
+            เพื่อให้ TravelWise สร้างคำแนะนำที่เหมาะกับคุณ
+          </p>
 
-            <h3 className="text-xl font-bold mb-6">
-              กิจกรรมที่ชอบ
-            </h3>
+        </div>
 
-            <div className="flex flex-wrap gap-3">
+        <div className="space-y-6">
 
-              {[
-                "ถ่ายรูป",
-                "เดินป่า",
-                "อาหาร",
-                "ช้อปปิ้ง",
-                "พักผ่อน",
-              ].map((activity) => (
+          {/* ==================================================
+              Travel Type
+              ================================================== */}
+          <section className="survey-card">
 
-                <button
-                  key={activity}
-                  type="button"
-                  onClick={() =>
-                    toggleItem(
-                      activity,
-                      activities,
-                      setActivities
-                    )
-                  }
-                  className={`px-4 py-2 rounded-full border transition ${
-                    activities.includes(activity)
-                      ? "bg-primary text-white border-primary"
-                      : "bg-primary/5 border-primary/20 hover:bg-primary/10"
-                  }`}
-                >
-                  {activity}
-                </button>
+            <div className="survey-section-header">
 
-              ))}
+              <div className="survey-section-icon">
+                <Mountain className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="survey-section-title">
+                  ประเภทการท่องเที่ยว
+                </h3>
+
+                <p className="survey-section-description">
+                  เลือกได้มากกว่าหนึ่งประเภท
+                </p>
+              </div>
 
             </div>
 
-          </section>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
 
-          {/* Region */}
-          <section className="bg-white rounded-xl border border-primary/10 p-6 shadow-sm">
+              {travelTypeOptions.map((item) => {
+                const Icon = item.icon;
+                const selected = travelTypes.includes(item.value);
 
-            <h3 className="text-xl font-bold mb-6">
-              ภูมิภาคที่อยากไป
-            </h3>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-
-              {[
-                "เหนือ",
-                "กลาง",
-                "ใต้",
-                "อีสาน",
-              ].map((region) => (
-
-                <button
-                  key={region}
-                  type="button"
-                  onClick={() =>
-                    toggleItem(
-                      region,
-                      preferredRegion,
-                      setPreferredRegion
-                    )
-                  }
-                  className={`py-3 rounded-lg border transition ${
-                    preferredRegion.includes(region)
-                      ? "bg-primary text-white"
-                      : "hover:bg-primary/10"
-                  }`}
-                >
-                  {region}
-                </button>
-
-              ))}
-
-            </div>
-
-          </section>
-
-          {/* Details */}
-          <section className="bg-white rounded-xl border border-primary/10 p-6 shadow-sm grid md:grid-cols-2 gap-6">
-
-            <div>
-
-              <label className="font-semibold">
-                บรรยากาศ
-              </label>
-
-              <select
-                value={atmosphere}
-                onChange={(e) =>
-                  setAtmosphere(e.target.value)
-                }
-                className="w-full mt-2 border border-primary/20 rounded-lg p-3"
-              >
-                <option value="">เลือก</option>
-                <option value="คึกคัก">คึกคัก</option>
-                <option value="เงียบสงบ">เงียบสงบ</option>
-                <option value="ผจญภัย">ผจญภัย</option>
-                <option value="หรูหรา">หรูหรา</option>
-              </select>
-
-            </div>
-
-            <div>
-
-              <label className="font-semibold">
-                เดินทางกับใคร
-              </label>
-
-              <select
-                value={travelCompanion}
-                onChange={(e) =>
-                  setTravelCompanion(e.target.value)
-                }
-                className="w-full mt-2 border border-primary/20 rounded-lg p-3"
-              >
-                <option value="">เลือก</option>
-                <option value="คนเดียว">คนเดียว</option>
-                <option value="คู่รัก">คู่รัก</option>
-                <option value="ครอบครัว">ครอบครัว</option>
-                <option value="เพื่อน">เพื่อน</option>
-              </select>
-
-            </div>
-
-            <div>
-
-              <label className="font-semibold">
-                เป้าหมายการเดินทาง
-              </label>
-
-              <select
-                value={travelGoal}
-                onChange={(e) =>
-                  setTravelGoal(e.target.value)
-                }
-                className="w-full mt-2 border border-primary/20 rounded-lg p-3"
-              >
-                <option value="">เลือก</option>
-                <option value="พักผ่อน">พักผ่อน</option>
-                <option value="ผจญภัย">ผจญภัย</option>
-                <option value="วัฒนธรรม">วัฒนธรรม</option>
-                <option value="ความบันเทิง">ความบันเทิง</option>
-              </select>
-
-            </div>
-
-            <div>
-
-              <label className="font-semibold">
-                งบประมาณ
-              </label>
-
-              <div className="flex mt-2 border rounded-lg overflow-hidden">
-
-                {[
-                  { label: "ประหยัด", value: "ประหยัด" },
-                  { label: "ปานกลาง", value: "ปานกลาง" },
-                  { label: "หรูหรา", value: "หรูหรา" },
-                ].map((item) => (
-
+                return (
                   <button
                     key={item.value}
                     type="button"
-                    onClick={() => setBudget(item.value)}
-                    className={`flex-1 py-2 ${
-                      budget === item.value
-                        ? "bg-primary text-white"
-                        : "hover:bg-primary/10"
+                    onClick={() =>
+                      toggleItem(
+                        item.value,
+                        travelTypes,
+                        setTravelTypes
+                      )
+                    }
+                    className={`survey-choice ${
+                      selected
+                        ? "survey-choice-selected"
+                        : ""
                     }`}
                   >
-                    {item.label}
+
+                    <span className="survey-choice-icon">
+                      <Icon className="h-5 w-5" />
+                    </span>
+
+                    <span>{item.value}</span>
+
+                    {selected && (
+                      <span className="survey-check">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    )}
+
                   </button>
+                );
+              })}
 
-                ))}
+            </div>
 
+          </section>
+
+          {/* ==================================================
+              Activities
+              ================================================== */}
+          <section className="survey-card">
+
+            <div className="survey-section-header">
+
+              <div className="survey-section-icon survey-section-icon-pink">
+                <Camera className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="survey-section-title">
+                  กิจกรรมที่ชอบ
+                </h3>
+
+                <p className="survey-section-description">
+                  เลือกกิจกรรมที่คุณสนใจ
+                </p>
+              </div>
+
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+
+              {activityOptions.map((activity) => {
+                const selected =
+                  activities.includes(activity);
+
+                return (
+                  <button
+                    key={activity}
+                    type="button"
+                    onClick={() =>
+                      toggleItem(
+                        activity,
+                        activities,
+                        setActivities
+                      )
+                    }
+                    className={`survey-chip ${
+                      selected
+                        ? "survey-chip-selected"
+                        : ""
+                    }`}
+                  >
+                    {selected && (
+                      <Check className="h-3.5 w-3.5" />
+                    )}
+
+                    {activity}
+                  </button>
+                );
+              })}
+
+            </div>
+
+          </section>
+
+          {/* ==================================================
+              Region
+              ================================================== */}
+          <section className="survey-card">
+
+            <div className="survey-section-header">
+
+              <div className="survey-section-icon survey-section-icon-blue">
+                <Map className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="survey-section-title">
+                  ภูมิภาคที่อยากไป
+                </h3>
+
+                <p className="survey-section-description">
+                  เลือกได้มากกว่าหนึ่งภูมิภาค
+                </p>
+              </div>
+
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+
+              {regionOptions.map((region) => {
+                const selected =
+                  preferredRegion.includes(region);
+
+                return (
+                  <button
+                    key={region}
+                    type="button"
+                    onClick={() =>
+                      toggleItem(
+                        region,
+                        preferredRegion,
+                        setPreferredRegion
+                      )
+                    }
+                    className={`survey-region ${
+                      selected
+                        ? "survey-region-selected"
+                        : ""
+                    }`}
+                  >
+
+                    <span>{region}</span>
+
+                    {selected && (
+                      <Check className="h-4 w-4" />
+                    )}
+
+                  </button>
+                );
+              })}
+
+            </div>
+
+          </section>
+
+          {/* ==================================================
+              Details
+              ================================================== */}
+          <section className="survey-card">
+
+            <div className="survey-section-header">
+
+              <div className="survey-section-icon survey-section-icon-mint">
+                <Sparkles className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="survey-section-title">
+                  ความชอบเพิ่มเติม
+                </h3>
+
+                <p className="survey-section-description">
+                  ช่วยให้ AI เข้าใจสไตล์ของคุณมากขึ้น
+                </p>
+              </div>
+
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+
+              {/* Atmosphere */}
+              <div>
+                <label className="survey-label">
+                  บรรยากาศที่ชอบ
+                </label>
+
+                <div className="survey-select-wrapper">
+
+                  <Sparkles className="survey-select-icon" />
+
+                  <select
+                    value={atmosphere}
+                    onChange={(e) =>
+                      setAtmosphere(e.target.value)
+                    }
+                    className="survey-select"
+                  >
+                    <option value="">เลือกบรรยากาศ</option>
+                    <option value="คึกคัก">คึกคัก</option>
+                    <option value="เงียบสงบ">เงียบสงบ</option>
+                    <option value="ผจญภัย">ผจญภัย</option>
+                    <option value="หรูหรา">หรูหรา</option>
+                  </select>
+
+                </div>
+              </div>
+
+              {/* Companion */}
+              <div>
+                <label className="survey-label">
+                  เดินทางกับใคร
+                </label>
+
+                <div className="survey-select-wrapper">
+
+                  <User className="survey-select-icon" />
+
+                  <select
+                    value={travelCompanion}
+                    onChange={(e) =>
+                      setTravelCompanion(e.target.value)
+                    }
+                    className="survey-select"
+                  >
+                    <option value="">
+                      เลือกผู้ร่วมเดินทาง
+                    </option>
+                    <option value="คนเดียว">คนเดียว</option>
+                    <option value="คู่รัก">คู่รัก</option>
+                    <option value="ครอบครัว">ครอบครัว</option>
+                    <option value="เพื่อน">เพื่อน</option>
+                  </select>
+
+                </div>
+              </div>
+
+              {/* Goal */}
+              <div>
+                <label className="survey-label">
+                  เป้าหมายการเดินทาง
+                </label>
+
+                <div className="survey-select-wrapper">
+
+                  <Heart className="survey-select-icon" />
+
+                  <select
+                    value={travelGoal}
+                    onChange={(e) =>
+                      setTravelGoal(e.target.value)
+                    }
+                    className="survey-select"
+                  >
+                    <option value="">
+                      เลือกเป้าหมาย
+                    </option>
+                    <option value="พักผ่อน">พักผ่อน</option>
+                    <option value="ผจญภัย">ผจญภัย</option>
+                    <option value="วัฒนธรรม">วัฒนธรรม</option>
+                    <option value="ความบันเทิง">
+                      ความบันเทิง
+                    </option>
+                  </select>
+
+                </div>
+              </div>
+
+              {/* Budget */}
+              <div>
+                <label className="survey-label">
+                  งบประมาณ
+                </label>
+
+                <div className="survey-budget">
+
+                  {[
+                    {
+                      label: "ประหยัด",
+                      value: "ประหยัด",
+                    },
+                    {
+                      label: "ปานกลาง",
+                      value: "ปานกลาง",
+                    },
+                    {
+                      label: "หรูหรา",
+                      value: "หรูหรา",
+                    },
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() =>
+                        setBudget(item.value)
+                      }
+                      className={
+                        budget === item.value
+                          ? "survey-budget-active"
+                          : ""
+                      }
+                    >
+                      {budget === item.value && (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+
+                      {item.label}
+                    </button>
+                  ))}
+
+                </div>
               </div>
 
             </div>
 
           </section>
 
-          {/* Travel Time */}
-          <section className="bg-white rounded-xl border border-primary/10 p-6 shadow-sm">
+          {/* ==================================================
+              Travel Time
+              ================================================== */}
+          <section className="survey-card">
 
-            <h3 className="text-xl font-bold mb-4">
-              ช่วงเวลาเดินทาง
-            </h3>
+            <div className="survey-section-header">
+
+              <div className="survey-section-icon survey-section-icon-yellow">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+
+              <div>
+                <h3 className="survey-section-title">
+                  ช่วงเวลาเดินทาง
+                </h3>
+
+                <p className="survey-section-description">
+                  เลือกฤดูกาลที่คุณชอบ
+                </p>
+              </div>
+
+            </div>
 
             <div className="grid grid-cols-3 gap-3">
 
@@ -372,40 +587,63 @@ function PersonalSurvey() {
                 "ฤดูร้อน",
                 "ฤดูฝน",
                 "ฤดูหนาว",
-              ].map((time) => (
+              ].map((time) => {
+                const selected =
+                  travelTime === time;
 
-                <button
-                  key={time}
-                  type="button"
-                  onClick={() => setTravelTime(time)}
-                  className={`py-3 border rounded-lg ${
-                    travelTime === time
-                      ? "bg-primary text-white"
-                      : "hover:bg-primary/10"
-                  }`}
-                >
-                  {time}
-                </button>
+                return (
+                  <button
+                    key={time}
+                    type="button"
+                    onClick={() =>
+                      setTravelTime(time)
+                    }
+                    className={`survey-season ${
+                      selected
+                        ? "survey-season-selected"
+                        : ""
+                    }`}
+                  >
+                    {selected && (
+                      <Check className="h-4 w-4" />
+                    )}
 
-              ))}
+                    {time}
+                  </button>
+                );
+              })}
 
             </div>
 
           </section>
 
           {/* Submit */}
-          <div className="flex justify-end">
+          <div className="pt-2">
 
             <button
               type="button"
               onClick={handleSubmit}
               disabled={saving}
-              className="px-12 py-4 bg-primary text-white rounded-xl font-bold shadow-lg hover:scale-105 disabled:opacity-50 transition"
+              className="survey-submit"
             >
-              {saving
-                ? "กำลังบันทึก..."
-                : "บันทึกข้อมูล"}
+
+              <span>
+                {saving
+                  ? "กำลังบันทึก..."
+                  : "บันทึกและเริ่มต้นการเดินทาง"}
+              </span>
+
+              {!saving && (
+                <span className="survey-submit-icon">
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              )}
+
             </button>
+
+            <p className="mt-4 text-center text-xs text-[#8e8695]">
+              คุณสามารถปรับเปลี่ยนข้อมูลเหล่านี้ได้ภายหลัง
+            </p>
 
           </div>
 
