@@ -13,5 +13,7 @@ export default defineConfig({
     },
   },
 
-  nitro: true,
+  nitro: {
+    preset: "vercel",
+  },
 });
