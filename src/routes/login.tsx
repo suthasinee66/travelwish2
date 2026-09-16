@@ -16,6 +16,7 @@ import {
 import { Plane } from "lucide-react";
 import { signInWithGoogle } from "@/services/auth";
 import { supabase } from "@/lib/supabase";
+import { TravelPageShell } from "@/components/TravelPageShell";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -164,7 +165,7 @@ function LoginPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-sky-100 via-background to-emerald-50 px-4 py-12">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-12">
       <div className="pointer-events-none absolute inset-0 -z-10 opacity-60">
         <div className="absolute -left-24 -top-32 h-80 w-80 rounded-full bg-sky-300/40 blur-3xl" />
         <div className="absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-emerald-300/40 blur-3xl" />

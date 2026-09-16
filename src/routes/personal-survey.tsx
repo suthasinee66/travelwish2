@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/lib/supabase";
 import { Compass } from "lucide-react";
+import { TravelPageShell, TravelFormCard } from "@/components/TravelPageShell";
 export const Route = createFileRoute("/personal-survey")({
   component: PersonalSurvey,
 });
@@ -93,7 +94,7 @@ function PersonalSurvey() {
   };
 
   return (
-    <div className="min-h-screen bg-background-light dark:bg-background-dark">
+    <TravelPageShell eyebrow="Travel style"><div className="min-h-screen">
 
       <header className="border-b border-primary/10 bg-white/80 backdrop-blur px-6 py-4 flex justify-between items-center">
 
@@ -413,6 +414,6 @@ function PersonalSurvey() {
 
       </main>
 
-    </div>
+    </div></TravelPageShell>
   );
 }

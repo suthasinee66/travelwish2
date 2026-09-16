@@ -11,6 +11,7 @@ import {
   ClipboardPenLine,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { TravelPageShell, TravelFormCard, travelInputClass } from "@/components/TravelPageShell";
 
 export const Route = createFileRoute("/profile-setup")({
   component: ProfileSetup,
@@ -68,7 +69,7 @@ function ProfileSetup() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+    <TravelPageShell eyebrow="Your journey"><div className="min-h-screen w-full text-foreground antialiased">
 
       {/* Header */}
       <header className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 lg:px-40 py-4 sticky top-0 z-50">
@@ -252,6 +253,6 @@ function ProfileSetup() {
         <div className="flex-1 h-full bg-gradient-to-t from-primary to-transparent" />
       </div>
 
-    </div>
+    </div></TravelPageShell>
   );
 }
