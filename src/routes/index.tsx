@@ -83,8 +83,14 @@ function Index() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Navbar onSearch={handleSearch} />
+    <main className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -left-24 -top-28 size-96 rounded-full bg-[var(--aurora-pink)]/35 blur-3xl" />
+        <div className="absolute right-[-10rem] top-1/3 size-[30rem] rounded-full bg-[var(--aurora-blue)]/35 blur-3xl" />
+        <div className="absolute bottom-[-12rem] left-1/3 size-[28rem] rounded-full bg-[var(--aurora-lavender)]/25 blur-3xl" />
+      </div>
+      <div className="relative z-10">
+        <Navbar onSearch={handleSearch} />
 
       <HeroSection onStartExploring={handleStartExploring} />
 
