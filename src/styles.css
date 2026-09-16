@@ -77,6 +77,13 @@
  * ============================================================
  */
 :root {
+  --aurora-pink: #ef8fae;
+  --aurora-blue: #9dd9e8;
+  --aurora-lavender: #c9b8ee;
+  --aurora-ink: #243447;
+  --aurora-secondary: #526274;
+  --aurora-muted: #8391a0;
+  --aurora-shadow: 0 24px 70px rgba(67, 83, 108, 0.14);
   --radius: 0.625rem;
 
   --background: oklch(0.985 0.012 85);

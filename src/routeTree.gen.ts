@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TripsRouteImport } from './routes/trips'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
+import { Route as PersonalSurveyRouteImport } from './routes/personal-survey'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as Explore_recommend_allRouteImport } from './routes/explore_recommend_all'
@@ -40,6 +42,16 @@ const SavedRoute = SavedRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileSetupRoute = ProfileSetupRouteImport.update({
+  id: '/profile-setup',
+  path: '/profile-setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PersonalSurveyRoute = PersonalSurveyRouteImport.update({
+  id: '/personal-survey',
+  path: '/personal-survey',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -123,6 +135,8 @@ export interface FileRoutesByFullPath {
   '/explore_recommend_all': typeof Explore_recommend_allRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
+  '/personal-survey': typeof PersonalSurveyRoute
+  '/profile-setup': typeof ProfileSetupRoute
   '/register': typeof RegisterRoute
   '/saved': typeof SavedRoute
   '/trips': typeof TripsRoute
@@ -142,6 +156,8 @@ export interface FileRoutesByTo {
   '/explore_recommend_all': typeof Explore_recommend_allRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
+  '/personal-survey': typeof PersonalSurveyRoute
+  '/profile-setup': typeof ProfileSetupRoute
   '/register': typeof RegisterRoute
   '/saved': typeof SavedRoute
   '/trips': typeof TripsRoute
@@ -162,6 +178,8 @@ export interface FileRoutesById {
   '/explore_recommend_all': typeof Explore_recommend_allRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
+  '/personal-survey': typeof PersonalSurveyRoute
+  '/profile-setup': typeof ProfileSetupRoute
   '/register': typeof RegisterRoute
   '/saved': typeof SavedRoute
   '/trips': typeof TripsRoute
@@ -183,6 +201,8 @@ export interface FileRouteTypes {
     | '/explore_recommend_all'
     | '/home'
     | '/login'
+    | '/personal-survey'
+    | '/profile-setup'
     | '/register'
     | '/saved'
     | '/trips'
@@ -202,6 +222,8 @@ export interface FileRouteTypes {
     | '/explore_recommend_all'
     | '/home'
     | '/login'
+    | '/personal-survey'
+    | '/profile-setup'
     | '/register'
     | '/saved'
     | '/trips'
@@ -221,6 +243,8 @@ export interface FileRouteTypes {
     | '/explore_recommend_all'
     | '/home'
     | '/login'
+    | '/personal-survey'
+    | '/profile-setup'
     | '/register'
     | '/saved'
     | '/trips'
@@ -241,6 +265,8 @@ export interface RootRouteChildren {
   Explore_recommend_allRoute: typeof Explore_recommend_allRoute
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
+  PersonalSurveyRoute: typeof PersonalSurveyRoute
+  ProfileSetupRoute: typeof ProfileSetupRoute
   RegisterRoute: typeof RegisterRoute
   SavedRoute: typeof SavedRoute
   TripsRoute: typeof TripsRoute
@@ -272,6 +298,20 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile-setup': {
+      id: '/profile-setup'
+      path: '/profile-setup'
+      fullPath: '/profile-setup'
+      preLoaderRoute: typeof ProfileSetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/personal-survey': {
+      id: '/personal-survey'
+      path: '/personal-survey'
+      fullPath: '/personal-survey'
+      preLoaderRoute: typeof PersonalSurveyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -385,6 +425,8 @@ const rootRouteChildren: RootRouteChildren = {
   Explore_recommend_allRoute: Explore_recommend_allRoute,
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
+  PersonalSurveyRoute: PersonalSurveyRoute,
+  ProfileSetupRoute: ProfileSetupRoute,
   RegisterRoute: RegisterRoute,
   SavedRoute: SavedRoute,
   TripsRoute: TripsRoute,

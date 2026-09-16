@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Plane, UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signInWithGoogle } from "@/services/auth";
+import TravelPageShell, { formCardClass, inputClass, primaryButtonClass } from "@/components/TravelPageShell";
 export const Route = createFileRoute("/register")({
   head: () => ({
     meta: [
@@ -36,31 +37,12 @@ function RegisterPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-sky-100 via-background to-emerald-50 px-4 py-12">
-      <div className="pointer-events-none absolute inset-0 -z-10 opacity-60">
-        <div className="absolute -top-32 -left-24 h-80 w-80 rounded-full bg-sky-300/40 blur-3xl" />
-        <div className="absolute -bottom-32 -right-24 h-80 w-80 rounded-full bg-emerald-300/40 blur-3xl" />
-      </div>
-
-      <div className="grid w-full max-w-5xl gap-10 lg:grid-cols-2 lg:items-center">
-        <section className="space-y-6 text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-4 py-1.5 text-sm font-medium text-muted-foreground backdrop-blur">
-            <Plane className="h-4 w-4" />
-            Travel Planner
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            เริ่มต้นการเดินทาง
-            <br />
-            <span className="bg-gradient-to-r from-sky-600 to-emerald-600 bg-clip-text text-transparent">
-              ของคุณวันนี้
-            </span>
-          </h1>
-          <p className="mx-auto max-w-md text-base text-muted-foreground lg:mx-0">
-            สมัครสมาชิกฟรีเพื่อวางแผนทริป บันทึกสถานที่โปรด และแชร์ประสบการณ์เดินทางกับเพื่อนๆ
-          </p>
-        </section>
-
-        <Card className="border-border/60 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <TravelPageShell
+      eyebrow="A new adventure awaits"
+      title={<>เริ่มต้นการเดินทาง<br /><span className="text-[var(--aurora-pink)]">ของคุณวันนี้</span></>}
+      description="สมัครสมาชิกเพื่อวางแผนทริป บันทึกสถานที่โปรด และแชร์ประสบการณ์เดินทางกับเพื่อน ๆ"
+    >
+      <Card className={formCardClass}>
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl">สมัครสมาชิก</CardTitle>
             <CardDescription>กรอกข้อมูลเพื่อสร้างบัญชีใหม่</CardDescription>
@@ -70,6 +52,7 @@ function RegisterPage() {
               <div className="space-y-2">
                 <Label htmlFor="name">ชื่อ</Label>
                 <Input
+                  className={inputClass}
                   id="name"
                   type="text"
                   placeholder="ชื่อของคุณ"
@@ -81,6 +64,7 @@ function RegisterPage() {
               <div className="space-y-2">
                 <Label htmlFor="email">อีเมล</Label>
                 <Input
+                  className={inputClass}
                   id="email"
                   type="email"
                   placeholder="you@example.com"
@@ -92,6 +76,7 @@ function RegisterPage() {
               <div className="space-y-2">
                 <Label htmlFor="password">รหัสผ่าน</Label>
                 <Input
+                  className={inputClass}
                   id="password"
                   type="password"
                   placeholder="••••••••"
@@ -103,6 +88,7 @@ function RegisterPage() {
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">ยืนยันรหัสผ่าน</Label>
                 <Input
+                  className={inputClass}
                   id="confirm-password"
                   type="password"
                   placeholder="••••••••"
@@ -111,7 +97,7 @@ function RegisterPage() {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full">
+              <Button type="submit" className={`${primaryButtonClass} w-full`} >
                 <UserPlus className="h-4 w-4" />
                 สมัครสมาชิก
               </Button>
@@ -134,7 +120,6 @@ function RegisterPage() {
             </form>
           </CardContent>
         </Card>
-      </div>
-    </main>
+    </TravelPageShell>
   );
 }
