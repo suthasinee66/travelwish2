@@ -8,13 +8,13 @@ export const Route = createFileRoute("/auth/callback")({
     console.log("🔐 AUTH CALLBACK");
     console.log("=================================");
 
-    // 1. ตรวจสอบ code ที่ Supabase ส่งกลับมา
+    // 1. รับ OAuth code จาก Supabase
     const code = new URLSearchParams(window.location.search).get("code");
 
     console.log("OAuth code:", code ? "พบ code" : "ไม่พบ code");
     console.log("Current URL:", window.location.href);
 
-    // 2. ถ้ามี code ให้แลกเป็น session
+    // 2. แลก code เป็น session
     if (code) {
       console.log("🔄 Exchanging code for session...");
 
@@ -33,7 +33,7 @@ export const Route = createFileRoute("/auth/callback")({
       }
     }
 
-    // 3. ตรวจสอบ session หลังจาก exchange
+    // 3. ตรวจสอบ session
     const {
       data: { session },
       error: sessionError,
@@ -56,7 +56,10 @@ export const Route = createFileRoute("/auth/callback")({
 
     console.log("✅ User ID:", userId);
 
+    // =========================================
     // 4. ตรวจสอบ Profile
+    // =========================================
+
     const { data: profile, error: profileError } = await supabase
       .from("profile")
       .select("profile_id, name, age, gender")
@@ -67,18 +70,19 @@ export const Route = createFileRoute("/auth/callback")({
     console.log("Profile error:", profileError);
 
     if (profileError) {
-      console.error("❌ Profile query error");
+      console.error("❌ Profile query error:", profileError);
 
       throw redirect({
         to: "/profile-setup",
       });
     }
 
-    // ยังไม่มี profile หรือกรอกข้อมูลไม่ครบ
+    // ยังไม่มี Profile หรือข้อมูลไม่ครบ
     if (
       !profile ||
       !profile.name ||
-      !profile.age ||
+      profile.age === null ||
+      profile.age === undefined ||
       !profile.gender
     ) {
       console.log("➡️ ไป Profile Setup");
@@ -88,14 +92,17 @@ export const Route = createFileRoute("/auth/callback")({
       });
     }
 
+    // =========================================
     // 5. ตรวจสอบ User Preferences
+    // =========================================
+
     const { data: preferences, error: preferencesError } =
       await supabase
         .from("user_preferences")
         .select(`
           profile_id,
           travel_type,
-          activity,
+          activities,
           atmosphere,
           travel_companion,
           budget,
@@ -110,25 +117,36 @@ export const Route = createFileRoute("/auth/callback")({
     console.log("Preferences error:", preferencesError);
 
     if (preferencesError) {
-      console.error("❌ Preferences query error");
+      console.error(
+        "❌ Preferences query error:",
+        preferencesError
+      );
 
       throw redirect({
         to: "/personal-survey",
       });
     }
 
-    // ยังไม่มี preferences หรือกรอกไม่ครบ
-    if (
-      !preferences ||
-      !preferences.travel_type ||
-      !preferences.activities ||
-      !preferences.atmosphere ||
-      !preferences.travel_companion ||
-      !preferences.budget ||
-      !preferences.travel_time ||
-      !preferences.preferred_region ||
-      !preferences.travel_goal
-    ) {
+    // =========================================
+    // 6. ตรวจสอบว่ากรอก Preferences ครบหรือไม่
+    // =========================================
+
+    const preferencesComplete =
+      preferences &&
+      Array.isArray(preferences.travel_type) &&
+      preferences.travel_type.length > 0 &&
+      Array.isArray(preferences.activities) &&
+      preferences.activities.length > 0 &&
+      !!preferences.atmosphere &&
+      !!preferences.travel_companion &&
+      !!preferences.budget &&
+      !!preferences.travel_time &&
+      Array.isArray(preferences.preferred_region) &&
+      preferences.preferred_region.length > 0 &&
+      !!preferences.travel_goal;
+
+    if (!preferencesComplete) {
+      console.log("➡️ Preferences ยังไม่ครบ");
       console.log("➡️ ไป Personal Survey");
 
       throw redirect({
@@ -136,9 +154,14 @@ export const Route = createFileRoute("/auth/callback")({
       });
     }
 
-    // 6. ทุกอย่างครบแล้ว
+    // =========================================
+    // 7. ทุกอย่างครบแล้ว → Home
+    // =========================================
+
+    console.log("=================================");
     console.log("✅ Profile + Preferences complete");
     console.log("➡️ ไป Home");
+    console.log("=================================");
 
     throw redirect({
       to: "/home",
