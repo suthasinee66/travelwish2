@@ -1,10 +1,20 @@
+
 import { supabase } from "@/lib/supabase";
 
 export const signInWithGoogle = async () => {
-  return await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${window.location.origin}/home`,
+      redirectTo: `${window.location.origin}/auth/callback`,
     },
   });
+
+  if (error) {
+    console.error("Google OAuth error:", error);
+    throw error;
+  }
+
+  console.log("Google OAuth URL:", data.url);
+
+  return data;
 };

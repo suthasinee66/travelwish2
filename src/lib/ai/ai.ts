@@ -3,7 +3,12 @@ export type AIModel =
     | "gpt"
     | "gemini";
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Local = ใช้ Backend ในเครื่อง
+// Production = ใช้ Backend ที่ Deploy
+const API_URL =
+    import.meta.env.DEV
+        ? "http://localhost:5000"
+        : import.meta.env.VITE_API_URL;
 
 export async function generateWithSelectedModel(
     selectedModel: AIModel,
