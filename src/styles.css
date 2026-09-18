@@ -2640,3 +2640,59 @@
     font-size: 11px;
   }
 }
+/* ============================================================
+   MORE RESTAURANTS BUTTON
+   ============================================================ */
+
+.travel-home .travel-more-restaurants {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 14px;
+
+  border-radius: 12px;
+
+  color: #ffffff !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #b89bcb 0%,
+      #e9a8c9 55%,
+      #cbf1fa 100%
+    ) !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.72);
+
+  box-shadow:
+    0 7px 17px rgba(184, 155, 203, 0.23);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  white-space: nowrap;
+
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    filter 180ms ease;
+}
+
+.travel-home .travel-more-restaurants:hover {
+  transform: translateY(-2px);
+
+  filter: brightness(1.03);
+
+  box-shadow:
+    0 11px 24px rgba(184, 155, 203, 0.30);
+}
+
+.travel-home .travel-more-restaurants:active {
+  transform: scale(0.98);
+}
+
+.travel-home .travel-more-restaurants:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}

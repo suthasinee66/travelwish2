@@ -7,7 +7,9 @@ import {
   Compass,
   Landmark,
   Heart,
+  RefreshCw,
   Bell,
+  Trash2,
   Lightbulb,
   Plus,
   Mic,
@@ -17,8 +19,10 @@ import {
   LayoutGrid,
   Mountain,
   Waves,
+  LoaderCircle,
   Camera,
   TreePalm,
+  Replace,
   Coffee,
   Building2,
   Users,
@@ -31,11 +35,14 @@ import {
   Footprints,
   Utensils,
   ShoppingBag,
+  ChevronDown,
+  ChevronUp,
   Armchair,
   User,
   UserRoundPlus,
   Coins,
   Gem,
+  Star,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Fragment, useEffect, useState, useMemo } from "react";
@@ -604,6 +611,14 @@ function SortablePlaceItem({
   index,
   findPlace,
   findRestaurant,
+  loadMoreRestaurants,
+  showMoreRestaurants,
+  moreRestaurants,
+  loadingMoreRestaurants,
+  addRestaurantToPlan,
+  replaceRestaurantInPlan,
+  removeRestaurantFromPlan,
+  removePlaceFromPlan,
 }: any) {
 
   const sortableId =
@@ -618,8 +633,11 @@ function SortablePlaceItem({
     transform,
     transition,
   } = useSortable({
-    id: sortableId
+    id: sortableId,
   });
+
+  const attId = String(item.place_id);
+  const restaurantId = String(item.restaurant_id);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -630,109 +648,574 @@ function SortablePlaceItem({
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       className="
-        flex
-        items-center
-        gap-3
         border
         rounded-2xl
         p-3
         bg-white
         shadow-sm
-        cursor-grab
       "
     >
 
-      {/* ลำดับ */}
+      {/* =====================================
+          แถวหลัก
+      ===================================== */}
       <div
         className="
-          w-8
-          h-8
-          rounded-full
-          bg-[#573d63]
-          text-white
           flex
           items-center
-          justify-center
-          font-bold
-          shrink-0
+          gap-3
+          cursor-grab
         "
+        {...attributes}
+        {...listeners}
       >
-        {index + 1}
+
+        {/* ลำดับ */}
+        <div
+  className="
+    w-8
+    h-8
+    rounded-full
+    bg-[#573d63]
+    text-white
+    flex
+    items-center
+    justify-center
+    font-bold
+  "
+>
+  {index + 1}
+</div>
+
+
+        {/* รูป */}
+        {item.images?.[0] ? (
+
+          <img
+            src={item.images[0]}
+            alt={item.name}
+            className="
+              w-14
+              h-14
+              rounded-xl
+              object-cover
+              shrink-0
+            "
+          />
+
+        ) : (
+
+          <div
+            className="
+              w-14
+              h-14
+              rounded-xl
+              bg-gray-200
+              shrink-0
+              flex
+              items-center
+              justify-center
+            "
+          >
+            {item.type === "restaurant" ? (
+              <Utensils
+                size={22}
+                className="text-[#b89bcb]"
+              />
+            ) : (
+              <MapPin
+                size={22}
+                className="text-[#b89bcb]"
+              />
+            )}
+          </div>
+
+        )}
+
+
+        {/* ชื่อ */}
+        <div className="flex-1 min-w-0">
+
+          <div className="font-semibold text-sm truncate">
+            {item.name}
+          </div>
+
+          {item.period && (
+            <div className="text-xs text-gray-400 mt-1">
+              {item.period}
+            </div>
+          )}
+
+        </div>
+
+
+        {/* =================================
+            ถังขยะ
+        ================================= */}
+        {item.type === "restaurant" && (
+  <button
+    type="button"
+    onPointerDown={(e) => {
+      e.stopPropagation();
+    }}
+    onClick={(e) => {
+      e.stopPropagation();
+
+      removeRestaurantFromPlan(item);
+    }}
+    className="
+      flex
+      h-9
+      w-9
+      shrink-0
+      items-center
+      justify-center
+      rounded-lg
+      border
+      border-red-200
+      bg-red-50
+      text-red-500
+      transition
+      hover:bg-red-100
+      hover:text-red-600
+    "
+    title="ลบร้านอาหาร"
+  >
+    <Trash2
+      size={18}
+      strokeWidth={2}
+      className="text-red-500"
+    />
+  </button>
+)}
+
+{item.type === "place" && (
+  <button
+    type="button"
+    onPointerDown={(e) => {
+      e.stopPropagation();
+    }}
+    onClick={(e) => {
+      e.stopPropagation();
+
+      removePlaceFromPlan(item);
+    }}
+    className="
+      flex
+      h-9
+      w-9
+      shrink-0
+      items-center
+      justify-center
+      rounded-lg
+      border
+      border-red-200
+      bg-red-50
+      text-red-500
+      transition
+      hover:bg-red-100
+      hover:text-red-600
+    "
+    title="ลบสถานที่"
+  >
+    <Trash2
+      size={18}
+      strokeWidth={2}
+      className="text-red-500"
+    />
+  </button>
+)}
+
       </div>
 
-      {/* รูป */}
-      {item.images?.[0] ? (
-        <img
-          src={item.images[0]}
-          alt={item.name}
-          className="
-            w-14
-            h-14
-            rounded-xl
-            object-cover
-            shrink-0
-          "
+
+      {/* =====================================
+          ปุ่มแสดงร้านค้าเพิ่มเติม
+      ===================================== */}
+      {item.type === "restaurant" &&
+        item.restaurant_id &&
+        item.place_id && (
+<div className="ml-11 mt-3">
+
+  <button
+    type="button"
+
+    onPointerDown={(e) => {
+      e.stopPropagation();
+    }}
+
+    onClick={(e) => {
+      e.stopPropagation();
+
+      loadMoreRestaurants(
+        attId,
+        restaurantId
+      );
+    }}
+
+    disabled={loadingMoreRestaurants[attId]}
+
+    className="
+      flex
+      items-center
+      gap-1
+      text-sm
+      font-medium
+      text-gray-500
+      hover:text-[#573d63]
+      transition
+      disabled:opacity-50
+    "
+  >
+
+    {loadingMoreRestaurants[attId] ? (
+
+      <>
+        <LoaderCircle
+          size={14}
+          className="animate-spin"
         />
-      ) : (
-        <div
-          className="
-            w-14
-            h-14
-            rounded-xl
-            bg-gray-200
-            shrink-0
-          "
-        />
+
+        <span>กำลังโหลด...</span>
+      </>
+
+    ) : (
+
+      <>
+        {showMoreRestaurants[attId] ? (
+          <ChevronUp
+            size={16}
+            strokeWidth={2}
+          />
+        ) : (
+          <ChevronDown
+            size={16}
+            strokeWidth={2}
+          />
+        )}
+
+        <span>
+          {showMoreRestaurants[attId]
+            ? "ซ่อน"
+            : "เพิ่มเติม"}
+        </span>
+      </>
+
+    )}
+
+  </button>
+
+</div>
+
       )}
 
-      {/* ชื่อ */}
-      <div className="flex-1">
 
-        <div className="font-semibold text-sm">
-          {item.name}
+      {/* =====================================
+          ร้านค้าเพิ่มเติม
+      ===================================== */}
+      {item.type === "restaurant" &&
+        showMoreRestaurants[attId] && (
+
+        <div
+          className="
+            mt-3
+            ml-11
+            flex
+            gap-3
+            overflow-x-auto
+            pb-2
+          "
+        >
+
+          {(moreRestaurants[attId] || []).map(
+            (restaurant: any) => (
+
+              <div
+                key={restaurant.place_id}
+                className="
+                  min-w-[240px]
+                  w-[240px]
+                  shrink-0
+                  rounded-xl
+                  border
+                  border-gray-200
+                  bg-white
+                  p-3
+                "
+              >
+
+                {/* =========================
+                    ข้อมูลร้าน
+                ========================= */}
+                <div className="flex gap-3">
+
+                  {restaurant.images?.[0] ? (
+
+                    <img
+                      src={restaurant.images[0]}
+                      alt={
+                        restaurant.place_name_th ??
+                        restaurant.place_name_en ??
+                        "ร้านอาหาร"
+                      }
+                      className="
+                        h-16
+                        w-16
+                        shrink-0
+                        rounded-xl
+                        object-cover
+                      "
+                    />
+
+                  ) : (
+
+                    <div
+                      className="
+                        flex
+                        h-16
+                        w-16
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-xl
+                        bg-gray-100
+                      "
+                    >
+                      <Utensils
+                        size={24}
+                        strokeWidth={1.8}
+                        className="text-[#b89bcb]"
+                      />
+                    </div>
+
+                  )}
+
+
+                  <div className="min-w-0 flex-1">
+
+                    <div className="text-sm font-semibold">
+                      {restaurant.place_name_th ??
+                        restaurant.place_name_en ??
+                        "ร้านอาหาร"}
+                    </div>
+
+
+                    {restaurant.rating != null && (
+
+                      <div
+                        className="
+                          mt-1
+                          flex
+                          items-center
+                          gap-1
+                          text-xs
+                          text-gray-500
+                        "
+                      >
+                        <Star
+                          size={13}
+                          strokeWidth={2}
+                          className="text-[#e9a8c9]"
+                        />
+
+                        <span>
+                          {restaurant.rating}
+                        </span>
+                      </div>
+
+                    )}
+
+
+                    {restaurant.distance_km != null && (
+
+                      <div
+                        className="
+                          mt-1
+                          flex
+                          items-center
+                          gap-1
+                          text-xs
+                          text-gray-500
+                        "
+                      >
+                        <MapPin
+                          size={13}
+                          strokeWidth={2}
+                          className="text-[#a9dce8]"
+                        />
+
+                        <span>
+                          {Number(
+                            restaurant.distance_km
+                          ).toFixed(2)}{" "}
+                          กม.
+                        </span>
+                      </div>
+
+                    )}
+
+                  </div>
+
+                </div>
+
+
+                {/* =========================
+                    เพิ่ม / แทนที่
+                ========================= */}
+                <div className="mt-3 flex gap-2">
+
+                  {/* เพิ่ม */}
+                  <button
+                    type="button"
+
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                    }}
+
+                    onClick={(e) => {
+                      e.stopPropagation();
+
+                      addRestaurantToPlan(
+                        restaurant,
+                        item
+                      );
+                    }}
+
+                    className="
+                      flex
+                      flex-1
+                      items-center
+                      justify-center
+                      gap-1
+                      rounded-lg
+                      border
+                      border-[#bfe5d4]
+                      bg-[#bfe5d4]
+                      px-2
+                      py-2
+                      text-xs
+                      font-semibold
+                      text-[#302b43]
+                    "
+                  >
+                    <Plus
+                      size={14}
+                      strokeWidth={2.2}
+                    />
+
+                    เพิ่ม
+                  </button>
+
+
+                  {/* แทนที่ */}
+                  <button
+                    type="button"
+
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                    }}
+
+                    onClick={(e) => {
+                      e.stopPropagation();
+
+                      replaceRestaurantInPlan(
+                        restaurant,
+                        item
+                      );
+                    }}
+
+                    className="
+                      flex
+                      flex-1
+                      items-center
+                      justify-center
+                      gap-1
+                      rounded-lg
+                      border
+                      border-[#e9a8c9]
+                      bg-[#e9a8c9]
+                      px-2
+                      py-2
+                      text-xs
+                      font-semibold
+                      text-[#302b43]
+                    "
+                  >
+                    <RefreshCw
+                      size={14}
+                      strokeWidth={2.2}
+                    />
+
+                    แทนที่
+                  </button>
+
+                </div>
+
+              </div>
+
+            )
+          )}
+
         </div>
 
-        <div className="text-xs text-gray-400">
-          {item.period}
-        </div>
-
-      </div>
+      )}
 
     </div>
   );
 }
 
-function TripPlanPanel({
+export function TripPlanPanel({
   plannerJson,
   plan,
   tripInput,
   allPlaces,
   restaurants,
   mapCenter,
+  chatId,
+  showMap = true,
+  onDayChange,
 }: {
-  plannerJson:any;
-  plan:string;
-  tripInput:any;
-  allPlaces:any[];
-  restaurants:any[];
-  mapCenter:{
-    lat:number;
-    lng:number;
+  plannerJson: any;
+  plan: string;
+  tripInput: any;
+  allPlaces: any[];
+  restaurants: any[];
+  mapCenter: {
+    lat: number;
+    lng: number;
   };
+  chatId: string | null | undefined;
+  showMap?: boolean;
+  onDayChange?: (day: number | "all") => void;
 }) {
   console.log("🔥 TripPlanPanel RENDER");
 
   const [selectedDay, setSelectedDay] = useState(0);
+const [showAllDays, setShowAllDays] = useState(false);
   const [routePlaces, setRoutePlaces] = useState<any[]>([]);
   const [routePlacesByDay,setRoutePlacesByDay] = useState<any>({});
   const [routeLegs, setRouteLegs] = useState<any[]>([]);
+  const [liveRestaurants, setLiveRestaurants] = useState<any[]>(restaurants);
+  const [livePlaces, setLivePlaces] = useState<any[]>(allPlaces);
   const [hotelModal, setHotelModal] = useState(false);
 const [hotelSearch, setHotelSearch] = useState("");
 const [hotels, setHotels] = useState<any[]>([]);
 const [hotelLoading, setHotelLoading] = useState(false);
+const [showSaveTripModal, setShowSaveTripModal] = useState(false);
+const [tripTitle, setTripTitle] = useState("");
+const [showMoreRestaurants, setShowMoreRestaurants] = useState<
+  Record<string, boolean>
+>({});
+
+const [moreRestaurants, setMoreRestaurants] = useState<
+  Record<string, any[]>
+>({});
+
+const [loadingMoreRestaurants, setLoadingMoreRestaurants] = useState<
+  Record<string, boolean>
+>({});
+
 const filteredHotels = useMemo(() => {
 
   const keyword = hotelSearch.toLowerCase();
@@ -793,6 +1276,220 @@ console.log("FIRST HOTEL:", data?.[0]);
 
 };
 
+const getDefaultTripTitle = () => {
+  const destination =
+    tripInput?.destination ||
+    tripInput?.province ||
+    "My Trip";
+
+  const days =
+    tripInput?.days ||
+    tripInput?.duration ||
+    null;
+
+  if (days) {
+    return `ทริป${destination} ${days} วัน`;
+  }
+
+  return `ทริป${destination}`;
+};
+
+const saveTripToSupabase = async () => {
+  try {
+    console.log("💾 START SAVE TRIP");
+
+    if (!tripTitle.trim()) {
+      alert("กรุณาใส่ชื่อทริป");
+      return;
+    }
+
+    // 1. ดึง user ปัจจุบัน
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("❌ USER ERROR:", userError);
+      alert("กรุณาเข้าสู่ระบบก่อน");
+      return;
+    }
+
+    console.log("👤 USER:", user.id);
+
+    // 2. หา profile_id
+    const {
+      data: profile,
+      error: profileError,
+    } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("profile_id", user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("❌ PROFILE ERROR:", profileError);
+      alert("ไม่พบข้อมูล Profile");
+      return;
+    }
+
+    console.log("👤 PROFILE:", profile);
+
+    // 3. เตรียมข้อมูลทุกวัน
+    const updatedRoutePlacesByDay = {
+      ...routePlacesByDay,
+      [selectedDay]: routePlaces,
+    };
+
+    // 4. สร้าง Trip
+    const { data: trip, error: tripError } =
+      await supabase
+        .from("trips")
+        .insert({
+          profile_id: profile.profile_id,
+          title: tripTitle.trim(),
+          destination:
+            tripInput?.destination ||
+            tripInput?.province ||
+            null,
+          people:
+            tripInput?.companion ||
+            tripInput?.travel_companion ||
+            null,
+          budget:
+            tripInput?.budget
+              ? Number(tripInput.budget)
+              : null,
+        })
+        .select()
+        .single();
+
+    if (tripError || !trip) {
+      console.error("❌ CREATE TRIP ERROR:", tripError);
+      alert("สร้างทริปไม่สำเร็จ");
+      return;
+    }
+
+    console.log("✅ TRIP CREATED:", trip);
+
+    // 5. สร้างแต่ละวัน
+    for (const dayData of days) {
+      const dayNumber = Number(dayData.day);
+
+      const { data: tripDay, error: dayError } =
+        await supabase
+          .from("trip_days")
+          .insert({
+            trip_id: trip.id,
+            day_number: dayNumber,
+            title: dayData.title || null,
+          })
+          .select()
+          .single();
+
+      if (dayError || !tripDay) {
+        console.error(
+          "❌ CREATE DAY ERROR:",
+          dayError
+        );
+        throw dayError;
+      }
+
+      console.log(
+        `✅ DAY ${dayNumber}:`,
+        tripDay
+      );
+
+      // 6. เอาข้อมูลที่แก้ไขแล้วของวันนั้น
+      const items =
+        updatedRoutePlacesByDay[dayNumber - 1] ??
+        dayData.items ??
+        [];
+
+      // 7. เตรียม trip_items
+      const tripItems = items
+  .map((item: any, index: number) => {
+
+    const isRestaurant =
+      item.type === "restaurant" ||
+      !!item.restaurant_id;
+
+    if (isRestaurant) {
+      if (!item.restaurant_id) {
+        console.warn(
+          "⚠️ Restaurant ไม่มี restaurant_id:",
+          item
+        );
+
+        return null;
+      }
+
+      return {
+        trip_day_id: tripDay.id,
+        item_type: "restaurant",
+        att_id: null,
+        restaurant_id: String(item.restaurant_id),
+        sort_order: index + 1,
+      };
+    }
+
+    if (!item.place_id) {
+      console.warn(
+        "⚠️ Place ไม่มี place_id:",
+        item
+      );
+
+      return null;
+    }
+
+    return {
+      trip_day_id: tripDay.id,
+      item_type: "place",
+      att_id: String(item.place_id),
+      restaurant_id: null,
+      sort_order: index + 1,
+    };
+  })
+  .filter(Boolean);
+
+console.log(
+  "📦 TRIP ITEMS TO INSERT:",
+  JSON.stringify(tripItems, null, 2)
+);
+
+if (tripItems.length > 0) {
+  const { error: itemError } =
+    await supabase
+      .from("trip_items")
+      .insert(tripItems);
+
+  if (itemError) {
+    console.error(
+      "❌ CREATE ITEMS ERROR:",
+      itemError
+    );
+    throw itemError;
+  }
+}
+
+      console.log(
+        `✅ DAY ${dayNumber} ITEMS:`,
+        tripItems
+      );
+    }
+
+    console.log("🎉 SAVE TRIP SUCCESS");
+
+    setShowSaveTripModal(false);
+
+    alert("บันทึกทริปเรียบร้อยแล้ว");
+
+  } catch (error) {
+    console.error("❌ SAVE TRIP FAILED:", error);
+    alert("เกิดข้อผิดพลาดในการบันทึกทริป");
+  }
+};
+
   const getCoordinates = (places: any[]) => {
 
     const place = places.find(
@@ -816,6 +1513,582 @@ console.log("FIRST HOTEL:", data?.[0]);
     };
 
   };
+const loadMoreRestaurants = async (
+  attId: string,
+  recommendedRestaurantId?: string
+) => {
+
+  console.log("🍽️ LOAD MORE RESTAURANTS");
+  console.log("👉 ATT_ID:", attId);
+
+  if (moreRestaurants[attId]) {
+    setShowMoreRestaurants(prev => ({
+      ...prev,
+      [attId]: !prev[attId],
+    }));
+    return;
+  }
+
+  setLoadingMoreRestaurants(prev => ({
+    ...prev,
+    [attId]: true,
+  }));
+
+  try {
+
+    // ========================================
+    // 1. หา restaurant ที่ผูกกับสถานที่
+    // ========================================
+const { data: relations, error: relationError } =
+  await supabase
+    .from("attraction_restaurant")
+    .select(`
+      place_id,
+      distance_km
+    `)
+    .eq("att_id", attId)
+    .order("distance_km", {
+      ascending: true
+    })
+    .limit(10);
+
+    console.log(
+      "🔗 ATTRACTION RESTAURANT:",
+      relations
+    );
+
+    if (relationError) {
+      console.error(
+        "❌ RELATION ERROR:",
+        relationError
+      );
+      return;
+    }
+
+    if (!relations || relations.length === 0) {
+
+      console.log(
+        "❌ ไม่พบร้านที่ผูกกับ att_id:",
+        attId
+      );
+
+      setMoreRestaurants(prev => ({
+        ...prev,
+        [attId]: [],
+      }));
+
+      setShowMoreRestaurants(prev => ({
+        ...prev,
+        [attId]: true,
+      }));
+
+      return;
+    }
+
+    // ========================================
+    // 2. เอา place_id ไปหา restaurant
+    // ========================================
+
+    const restaurantIds = relations
+      .map((item: any) => String(item.place_id))
+      .filter(Boolean);
+
+    console.log(
+      "🍜 RESTAURANT IDS:",
+      restaurantIds
+    );
+
+    const {
+      data: restaurantData,
+      error: restaurantError
+    } = await supabase
+      .from("restaurant")
+      .select(`
+        place_id,
+        place_name_th,
+        place_name_en,
+        place_address,
+        place_phone,
+        place_website,
+        place_type,
+        province_name_th,
+        latitude,
+        longitude,
+        images,
+        rating,
+        user_ratings_total
+      `)
+      .in("place_id", restaurantIds);
+
+    if (restaurantError) {
+      console.error(
+        "❌ RESTAURANT ERROR:",
+        restaurantError
+      );
+      return;
+    }
+
+    console.log(
+      "🍜 RESTAURANTS FROM DB:",
+      restaurantData
+    );
+
+    // ========================================
+    // 3. รวม distance_km เข้ากับร้าน
+    // ========================================
+const restaurantList =
+  (restaurantData || [])
+    .map((restaurant: any) => {
+      const relation = relations.find(
+        (item: any) =>
+          String(item.place_id) ===
+          String(restaurant.place_id)
+      );
+
+      return {
+        ...restaurant,
+        distance_km: relation?.distance_km
+      };
+    })
+    // ❌ ไม่เอาร้านที่ AI แนะนำมาแสดงซ้ำ
+    .filter(
+      (restaurant: any) =>
+        String(restaurant.place_id) !==
+        String(recommendedRestaurantId)
+    )
+    // เอาแค่ 3 ร้าน
+    .slice(0, 10);
+
+    console.log(
+      "🍽️ MORE RESTAURANTS:",
+      restaurantList
+    );
+
+    // ========================================
+    // 4. เก็บข้อมูล
+    // ========================================
+
+    setMoreRestaurants(prev => ({
+      ...prev,
+      [attId]: restaurantList,
+    }));
+
+    setShowMoreRestaurants(prev => ({
+      ...prev,
+      [attId]: true,
+    }));
+
+  } finally {
+
+    setLoadingMoreRestaurants(prev => ({
+      ...prev,
+      [attId]: false,
+    }));
+
+  }
+};
+
+// ============================================================
+// เพิ่มร้านอาหารเข้าแผน
+// ============================================================
+const addRestaurantToPlan = (
+  restaurant: any,
+  currentItem: any
+) => {
+  console.log("➕ ADD RESTAURANT");
+  console.log("CURRENT ITEM:", currentItem);
+  console.log("NEW RESTAURANT:", restaurant);
+
+  const newRestaurant = {
+    ...currentItem,
+
+    type: "restaurant",
+
+    restaurant_id: String(restaurant.place_id),
+
+    restaurant_name:
+      restaurant.place_name_th ??
+      restaurant.place_name_en ??
+      "ร้านอาหาร",
+
+    name:
+      restaurant.place_name_th ??
+      restaurant.place_name_en ??
+      "ร้านอาหาร",
+
+    images: restaurant.images ?? [],
+
+    location: restaurant,
+
+    latitude: restaurant.latitude,
+    longitude: restaurant.longitude,
+  };
+
+  setRoutePlaces(prev => {
+
+    const currentIndex = prev.findIndex(
+      item =>
+        item.type === "restaurant" &&
+        String(item.restaurant_id) ===
+          String(currentItem.restaurant_id)
+    );
+
+    if (currentIndex === -1) {
+      console.warn(
+        "❌ ไม่พบร้านเดิมใน routePlaces"
+      );
+
+      return prev;
+    }
+
+    const newPlaces = [...prev];
+
+    // เพิ่มร้านใหม่ต่อจากร้านเดิม
+    newPlaces.splice(
+      currentIndex + 1,
+      0,
+      newRestaurant
+    );
+
+    console.log(
+      "✅ ROUTE PLACES AFTER ADD:",
+      newPlaces
+    );
+
+    return newPlaces;
+  });
+};
+
+
+// ============================================================
+// แทนที่ร้านอาหารในแผน
+// ============================================================
+const replaceRestaurantInPlan = (
+  restaurant: any,
+  currentItem: any
+) => {
+  console.log("🔄 REPLACE RESTAURANT");
+  console.log("CURRENT ITEM:", currentItem);
+  console.log("NEW RESTAURANT:", restaurant);
+
+  const newRestaurant = {
+    ...currentItem,
+
+    type: "restaurant",
+
+    restaurant_id: String(restaurant.place_id),
+
+    restaurant_name:
+      restaurant.place_name_th ??
+      restaurant.place_name_en ??
+      "ร้านอาหาร",
+
+    name:
+      restaurant.place_name_th ??
+      restaurant.place_name_en ??
+      "ร้านอาหาร",
+
+    images: restaurant.images ?? [],
+
+    location: restaurant,
+
+    latitude: restaurant.latitude,
+    longitude: restaurant.longitude,
+  };
+
+  setRoutePlaces(prev => {
+
+    const newPlaces = prev.map(item => {
+
+      if (
+        item.type === "restaurant" &&
+        String(item.restaurant_id) ===
+          String(currentItem.restaurant_id)
+      ) {
+        return newRestaurant;
+      }
+
+      return item;
+    });
+
+    console.log(
+      "✅ ROUTE PLACES AFTER REPLACE:",
+      newPlaces
+    );
+
+    return newPlaces;
+  });
+};
+
+const removePlaceFromPlan = (
+  currentItem: any
+) => {
+  console.log("🗑️ REMOVE PLACE");
+  console.log("REMOVE ITEM:", currentItem);
+
+  setRoutePlaces(prev => {
+
+    const newPlaces = prev.filter(item => {
+      return !(
+        item.type === "place" &&
+        String(item.place_id) ===
+          String(currentItem.place_id)
+      );
+    });
+
+    console.log(
+      "✅ ROUTE PLACES AFTER REMOVE PLACE:",
+      newPlaces
+    );
+
+    return newPlaces;
+  });
+};
+
+const removeRestaurantFromPlan = (
+  currentItem: any
+) => {
+  console.log("🗑️ REMOVE RESTAURANT");
+  console.log("REMOVE ITEM:", currentItem);
+
+  setRoutePlaces(prev => {
+
+    const newPlaces = prev.filter(item => {
+      return !(
+        item.type === "restaurant" &&
+        String(item.restaurant_id) ===
+          String(currentItem.restaurant_id)
+      );
+    });
+
+    console.log(
+      "✅ ROUTE PLACES AFTER REMOVE:",
+      newPlaces
+    );
+
+    return newPlaces;
+  });
+};
+const saveEditedPlan = async () => {
+  try {
+    console.log("💾 SAVE EDITED PLAN");
+
+    if (!chatId) {
+      console.error("❌ ไม่มี chatId");
+      return;
+    }
+
+    // =====================================================
+    // 1. เก็บข้อมูล Day ปัจจุบันก่อน
+    // =====================================================
+
+    const updatedRoutePlacesByDay = {
+      ...routePlacesByDay,
+      [selectedDay]: routePlaces,
+    };
+
+    console.log(
+      "📦 ROUTE PLACES BY DAY:",
+      updatedRoutePlacesByDay
+    );
+
+    // =====================================================
+    // 2. สร้าง planner_json ใหม่จากทุก Day
+    // =====================================================
+
+    const selectedPlaces: any[] = [];
+
+    days.forEach((dayData, dayIndex) => {
+
+      // ถ้า Day นี้มีการแก้ไขแล้ว
+      // ใช้ข้อมูลจาก routePlacesByDay
+      // ถ้ายังไม่เคยแก้ ใช้ข้อมูลเดิมจาก plannerItems
+      const editedItems =
+        updatedRoutePlacesByDay[dayIndex];
+
+      if (editedItems) {
+
+        editedItems.forEach(
+          (item: any, index: number) => {
+
+            selectedPlaces.push({
+              day: dayIndex + 1,
+
+              order: index + 1,
+
+              type: item.type,
+
+              place_id:
+                item.type === "place"
+                  ? String(item.place_id)
+                  : null,
+
+              restaurant_id:
+                item.type === "restaurant"
+                  ? String(item.restaurant_id)
+                  : null,
+
+              place_name:
+                item.type === "place"
+                  ? (
+                      item.name ??
+                      item.place_name ??
+                      null
+                    )
+                  : null,
+
+              restaurant_name:
+                item.type === "restaurant"
+                  ? (
+                      item.name ??
+                      item.restaurant_name ??
+                      null
+                    )
+                  : null,
+            });
+
+          }
+        );
+
+      } else {
+
+        // =================================================
+        // Day ที่ยังไม่ได้แก้
+        // ใช้ข้อมูลเดิม
+        // =================================================
+
+        const originalItems =
+          dayData.items || [];
+
+        originalItems.forEach(
+          (item: any, index: number) => {
+
+            selectedPlaces.push({
+
+              day: dayIndex + 1,
+
+              order: index + 1,
+
+              type:
+                item.restaurant_id
+                  ? "restaurant"
+                  : "place",
+
+              place_id:
+                item.place_id
+                  ? String(item.place_id)
+                  : null,
+
+              restaurant_id:
+                item.restaurant_id
+                  ? String(item.restaurant_id)
+                  : null,
+
+              place_name:
+                item.place_name ?? null,
+
+              restaurant_name:
+                item.restaurant_name ?? null,
+
+            });
+
+          }
+        );
+
+      }
+
+    });
+
+    console.log(
+      "💾 FINAL PLANNER JSON:",
+      selectedPlaces
+    );
+
+    // =====================================================
+    // 3. หา AI planner message
+    // =====================================================
+
+    const {
+      data: plannerMessage,
+      error: findError
+    } = await supabase
+      .from("chat_messages")
+      .select("id")
+      .eq("session_id", chatId)
+      .eq("role", "ai")
+      .not("planner_json", "is", null)
+      .order("created_at", {
+        ascending: false
+      })
+      .limit(1)
+      .maybeSingle();
+
+    if (findError) {
+
+      console.error(
+        "❌ FIND PLANNER ERROR:",
+        findError
+      );
+
+      return;
+    }
+
+    if (!plannerMessage) {
+
+      console.error(
+        "❌ ไม่พบ planner message"
+      );
+
+      return;
+    }
+
+    console.log(
+      "📝 PLANNER MESSAGE ID:",
+      plannerMessage.id
+    );
+
+    // =====================================================
+    // 4. UPDATE DATABASE
+    // =====================================================
+
+    const {
+      error: updateError
+    } = await supabase
+      .from("chat_messages")
+      .update({
+        planner_json: selectedPlaces,
+      })
+      .eq("id", plannerMessage.id);
+
+    if (updateError) {
+
+      console.error(
+        "❌ SAVE ERROR:",
+        updateError
+      );
+
+      return;
+    }
+
+    // =====================================================
+    // 5. สำเร็จ
+    // =====================================================
+
+    console.log(
+      "✅ SAVE SUCCESS"
+    );
+
+    alert("บันทึกแผนเรียบร้อยแล้ว");
+
+  } catch (error) {
+
+    console.error(
+      "❌ SAVE FAILED:",
+      error
+    );
+
+  }
+};
 const openGoogleMaps = (items: any[]) => {
   const locations: string[] = [];
 
@@ -965,6 +2238,148 @@ const sensors = useSensors(
   const plannerItems = Array.isArray(plannerJson)
   ? plannerJson
   : plannerJson?.selectedPlaces || [];
+  useEffect(() => {
+  const loadPlannerPlaces = async () => {
+
+    const placeIds = [
+      ...new Set(
+        plannerItems
+          .map((item: any) => item.place_id)
+          .filter(Boolean)
+          .map(String)
+      )
+    ];
+
+    console.log("🖼️ ATTRACTION IDS FROM AI:", placeIds);
+
+    if (placeIds.length === 0) {
+      setLivePlaces(allPlaces);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("attraction")
+      .select(`
+        att_id,
+        name_th,
+        name_en,
+        latitude,
+        longitude,
+        province,
+        images
+      `)
+      .in("att_id", placeIds);
+
+    if (error) {
+      console.error(
+        "❌ LOAD PLANNER PLACES ERROR:",
+        error
+      );
+      return;
+    }
+
+    console.log(
+      "🖼️ LATEST ATTRACTIONS FROM SUPABASE:",
+      data
+    );
+
+    setLivePlaces(data || []);
+  };
+
+  loadPlannerPlaces();
+
+}, [plannerJson, allPlaces]);
+
+  useEffect(() => {
+  const loadPlannerRestaurants = async () => {
+
+    const restaurantIds = [
+      ...new Set(
+        plannerItems
+          .map((item: any) => item.restaurant_id)
+          .filter(Boolean)
+          .map(String)
+      )
+    ];
+
+    console.log("🍜 RESTAURANT IDS FROM AI:", restaurantIds);
+
+    if (restaurantIds.length === 0) {
+      setLiveRestaurants(restaurants);
+      return;
+    }
+
+    // ร้านที่มีอยู่ใน props แล้ว
+    const existingRestaurants = restaurants.filter((r: any) =>
+      restaurantIds.includes(String(r.place_id))
+    );
+
+    console.log(
+      "🍜 EXISTING RESTAURANTS:",
+      existingRestaurants
+    );
+
+    // หาเฉพาะร้านที่ยังไม่มีใน props
+    const missingIds = restaurantIds.filter(
+      id =>
+        !existingRestaurants.some(
+          (r: any) => String(r.place_id) === id
+        )
+    );
+
+    console.log(
+      "🍜 MISSING RESTAURANTS:",
+      missingIds
+    );
+
+    if (missingIds.length === 0) {
+      setLiveRestaurants(restaurants);
+      return;
+    }
+
+    // โหลดร้านใหม่จาก Supabase
+    const { data, error } = await supabase
+      .from("restaurant")
+      .select(`
+        place_id,
+        place_name_th,
+        place_name_en,
+        place_address,
+        place_phone,
+        place_website,
+        place_type,
+        province_name_th,
+        latitude,
+        longitude,
+        images,
+        rating,
+        user_ratings_total
+      `)
+      .in("place_id", missingIds);
+
+    if (error) {
+      console.error(
+        "❌ LOAD PLANNER RESTAURANTS ERROR:",
+        error
+      );
+      return;
+    }
+
+    console.log(
+      "🍜 NEW RESTAURANTS LOADED:",
+      data
+    );
+
+    setLiveRestaurants([
+      ...existingRestaurants,
+      ...(data || [])
+    ]);
+  };
+
+  loadPlannerRestaurants();
+
+}, [plannerJson, restaurants]);
+
   console.log("RAW PLANNER JSON", plannerJson);
   console.log("🔥 PLANNER ITEMS", plannerItems);
 
@@ -1022,40 +2437,35 @@ const days = useMemo(() => {
 
 }, [plannerItems]);
 
-  const findPlace = (placeId: string) => {
 
-  const result = allPlaces.find(
+const findPlace = (placeId: string) => {
+
+  const result = livePlaces.find(
     p => String(p.att_id) === String(placeId)
   );
 
-
   console.log(
-    "FIND PLACE",
+    "🖼️ FIND PLACE",
     placeId,
     result
   );
 
-
   return result;
 };
+
+  
 const findRestaurant = (restaurantId: string) => {
 
-  const result = restaurants.find(
+  const result = liveRestaurants.find(
     r =>
       String(r.place_id) === String(restaurantId)
   );
-
 
   console.log(
     "🍜 FIND RESTAURANT",
     restaurantId,
     result
   );
-  console.log(
-  "ALL RESTAURANT IDS",
-  restaurants.slice(0,10)
-);
-
 
   return result;
 };
@@ -1074,72 +2484,56 @@ console.log(
   "ALL DAYS",
   days
 );
-const mapPlaces = useMemo(() => {
 
+
+const buildRoutePlaces = (items: any[]) => {
   const result: any[] = [];
 
-  days[selectedDay]?.items.forEach((item) => {
+  items.forEach((item) => {
 
     // =========================
     // PLACE
     // =========================
-
     if (item.place_id) {
 
       const place = findPlace(item.place_id);
 
       if (place) {
-
         result.push({
           ...item,
-
           type: "place",
-
           location: place,
-
           name:
             place.name_th ??
             place.name_en ??
             item.place_name ??
             "สถานที่",
-
           images: place.images,
         });
-
       }
-
     }
-
 
     // =========================
     // RESTAURANT
     // =========================
-
     if (item.restaurant_id) {
 
       const restaurant =
         findRestaurant(item.restaurant_id);
 
       if (restaurant) {
-
         result.push({
           ...item,
-
           type: "restaurant",
-
           location: restaurant,
-
           name:
             restaurant.place_name_th ??
             restaurant.place_name_en ??
             item.restaurant_name ??
             "ร้านอาหาร",
-
           images: restaurant.images,
         });
-
       }
-
     }
 
   });
@@ -1149,21 +2543,82 @@ const mapPlaces = useMemo(() => {
       x.location?.latitude != null &&
       x.location?.longitude != null
   );
+};
+
+const mapPlaces = useMemo(() => {
+
+  return buildRoutePlaces(
+    days[selectedDay]?.items ?? []
+  );
 
 }, [
   days,
   selectedDay,
-  allPlaces,
-  restaurants
+  livePlaces,
+  liveRestaurants
 ]);
-useEffect(() => {
+const allDayItems = useMemo(() => {
 
-  console.log("CHANGE DAY RESET");
-  console.log("NEW MAP PLACES", mapPlaces);
+  return days.map((dayData, dayIndex) => {
+
+    const items =
+      dayIndex === selectedDay
+        ? routePlaces
+        : routePlacesByDay[dayIndex] ??
+          buildRoutePlaces(
+            dayData.items ?? []
+          );
+
+    return {
+      ...dayData,
+      items,
+    };
+
+  });
+
+}, [
+  days,
+  selectedDay,
+  routePlaces,
+  routePlacesByDay,
+  livePlaces,
+  liveRestaurants
+]);
+
+useEffect(() => {
+  console.log("🔄 CHANGE DAY:", selectedDay);
+
+  // ถ้าเคยแก้ Day นี้แล้ว
+  // ให้โหลดข้อมูลที่แก้ไว้กลับมา
+  if (routePlacesByDay[selectedDay]) {
+    console.log(
+      "✅ LOAD SAVED DAY:",
+      selectedDay,
+      routePlacesByDay[selectedDay]
+    );
+
+    setRoutePlaces([
+      ...routePlacesByDay[selectedDay]
+    ]);
+
+    return;
+  }
+
+  // ถ้ายังไม่เคยแก้ Day นี้
+  // ใช้ข้อมูลเริ่มต้นจาก mapPlaces
+  console.log(
+    "🆕 LOAD ORIGINAL DAY:",
+    selectedDay,
+    mapPlaces
+  );
 
   setRoutePlaces([...mapPlaces]);
 
-}, [selectedDay, mapPlaces]);
+}, [
+  selectedDay,
+  mapPlaces,
+  routePlacesByDay
+]);
 
 console.log(
   "FINAL MAP PLACES",
@@ -1194,81 +2649,71 @@ mapCenter;
 
   return (
   <div className="travel-trip-plan flex flex-col gap-5 w-full">
-      
 
-      {/* MAP */}
-      <div
-  className="
-    travel-trip-map
-    h-[280px]
-    rounded-3xl
-    overflow-hidden
-    relative
-  "
->
-
-        <APIProvider
-  apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-  libraries={["geometry"]}
->
-<Map
-  defaultCenter={markerCenter}
-  defaultZoom={13}
-  mapId="9d5ca48506fddf5eb0fea298"
-  gestureHandling="greedy"
-  draggable={true}
-  disableDefaultUI={false}
->
-
-  <MapUpdater center={markerCenter}/>
-
-            <MapRoute
-    places={routePlaces}
-    onRouteLoaded={setRouteLegs}
-/>
-{
-  routePlaces.map((place,index)=>(
-    <AdvancedMarker
-      key={`${place.type}-${place.restaurant_id ?? place.place_id}`}
-      position={{
-        lat:Number(place.location.latitude),
-        lng:Number(place.location.longitude)
-      }}
+  {/* MAP */}
+  {showMap && (
+    <div
+      className="
+        travel-trip-map
+        h-[280px]
+        rounded-3xl
+        overflow-hidden
+        relative
+      "
     >
-      <div
-        className="
-        w-8
-        h-8
-        rounded-full
-        bg-[#573d63]
-        text-white
-        flex
-        items-center
-        justify-center
-        font-bold
-        shadow-lg
-        border-2
-        border-white
-        "
+      <APIProvider
+        apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+        libraries={["geometry"]}
       >
-        {index + 1}
-      </div>
+        <Map
+          defaultCenter={markerCenter}
+          defaultZoom={13}
+          mapId="9d5ca48506fddf5eb0fea298"
+          gestureHandling="greedy"
+          draggable={true}
+          disableDefaultUI={false}
+        >
+          <MapUpdater center={markerCenter} />
 
-    </AdvancedMarker>
-  ))
-}
+          <MapRoute
+            places={routePlaces}
+            onRouteLoaded={setRouteLegs}
+          />
 
+          {routePlaces.map((place, index) => (
+            <AdvancedMarker
+              key={`${place.type}-${place.restaurant_id ?? place.place_id}`}
+              position={{
+                lat: Number(place.location.latitude),
+                lng: Number(place.location.longitude),
+              }}
+            >
+              <div
+                className="
+                  w-8
+                  h-8
+                  rounded-full
+                  bg-[#573d63]
+                  text-white
+                  flex
+                  items-center
+                  justify-center
+                  font-bold
+                  shadow-lg
+                  border-2
+                  border-white
+                "
+              >
+                {index + 1}
+              </div>
+            </AdvancedMarker>
+          ))}
+        </Map>
+      </APIProvider>
+    </div>
+  )}
 
-          </Map>
-
-        </APIProvider>
-
-
-      </div>
-
-
-
-      {/* HEADER */}
+  {/* HEADER */}
       <div>
 
   <div className="flex items-start justify-between">
@@ -1452,19 +2897,65 @@ justify-center
 
   </div>
 
+{/* TABS */}
+<div className="travel-day-tabs flex gap-2 mt-4">
 
-        {/* TABS */}
-        <div className="travel-day-tabs flex gap-2 mt-4">
+  {days.map((_, index) => (
+    <button
+      key={index}
+      onClick={() => {
 
-          {days.map((_, index) => (
-<button
-  key={index}
+  // เก็บ Day ปัจจุบันก่อน
+  setRoutePlacesByDay(prev => ({
+    ...prev,
+    [selectedDay]: routePlaces,
+  }));
+
+  // กลับมาแสดง Day เดียว
+  setShowAllDays(false);
+
+  // เปลี่ยน Day ใน TripPlanPanel
+  setSelectedDay(index);
+
+  // เปลี่ยน Map ตาม Day
+  onDayChange?.(index + 1);
+}}
+      className={`
+        travel-day-tab
+        px-4
+        py-2
+        rounded-full
+        text-xs
+        font-medium
+        transition-all
+        ${
+          selectedDay === index
+            ? "travel-day-tab-active"
+            : "travel-day-tab-inactive"
+        }
+      `}
+    >
+      Day {index + 1}
+    </button>
+  ))}
+
+  {/* ALL */}
+  <button
   onClick={() => {
-    setSelectedDay(index);
 
+    // เก็บการแก้ไขของ Day ปัจจุบันก่อน
+    setRoutePlacesByDay(prev => ({
+      ...prev,
+      [selectedDay]: routePlaces,
+    }));
+
+    // เปิดโหมดแสดงทุกวัน
+    setShowAllDays(true);
+
+    // เปลี่ยน Map เป็นทุกวัน
+    onDayChange?.("all");
   }}
-
-              className={`
+    className={`
   travel-day-tab
   px-4
   py-2
@@ -1473,20 +2964,16 @@ justify-center
   font-medium
   transition-all
   ${
-    selectedDay === index
+    showAllDays
       ? "travel-day-tab-active"
       : "travel-day-tab-inactive"
   }
 `}
-            >
-              Day {index + 1}
+  >
+    ทั้งหมด
+  </button>
 
-            </button>
-
-          ))}
-
-
-        </div>
+</div>
 
 
 
@@ -1498,17 +2985,23 @@ justify-center
   <div>
 
   <h2 className="text-lg font-bold mt-0.5">
-    {days[selectedDay]?.title || "Your itinerary"}
-  </h2>
+  {showAllDays
+    ? "All Days"
+    : days[selectedDay]?.title || "Your itinerary"}
+</h2>
 </div>
 
 
   <button
-    onClick={() =>
-      openGoogleMaps(
-        days[selectedDay]?.items || []
-      )
-    }
+  onClick={() =>
+    openGoogleMaps(
+      showAllDays
+        ? allDayItems.flatMap(
+            dayData => dayData.items
+          )
+        : routePlaces
+    )
+  }
     className="
   travel-map-button
   flex
@@ -1528,88 +3021,268 @@ justify-center
 
 </div>
 <DndContext
- sensors={sensors}
- collisionDetection={closestCenter}
- onDragEnd={handleDragEnd}
+  sensors={showAllDays ? [] : sensors}
+  collisionDetection={closestCenter}
+  onDragEnd={
+    showAllDays
+      ? undefined
+      : handleDragEnd
+  }
 >
-  
-<SortableContext
-  items={routePlaces.map((item) =>
-    item.type === "restaurant"
-      ? `restaurant-${item.restaurant_id}`
-      : `place-${item.place_id}`
-  )}
-  strategy={verticalListSortingStrategy}
->
+{showAllDays ? (
 
-{
-routePlaces.map((item, index) => (
+  /* =====================================
+     ALL DAYS
+  ===================================== */
 
-  <Fragment
-key={
-  `${selectedDay}-${
-    item.type === "restaurant"
-      ? `restaurant-${item.restaurant_id}`
-      : `place-${item.place_id}`
-  }`
-}
->
+  <div className="space-y-8">
 
-    <SortablePlaceItem
-      item={item}
-      index={index}
-      findPlace={findPlace}
-      findRestaurant={findRestaurant}
-    />
+    {allDayItems.map(
+      (dayData, dayIndex) => {
 
-    {index < routePlaces.length - 1 &&
-      routeLegs[index] && (
+        // จำนวนรายการของ Day ก่อนหน้า
+        const previousCount = allDayItems
+          .slice(0, dayIndex)
+          .reduce(
+            (sum, day) =>
+              sum + day.items.length,
+            0
+          );
 
-      <div
-  className="
-    travel-route-distance
-    ml-10
-    py-1.5
-    flex
-    items-center
-    gap-2
-    text-xs
-  "
->
-        <div className="travel-route-line w-px h-7 ml-2" />
+        return (
+          <div
+            key={`all-day-${dayData.day}`}
+            className="space-y-3"
+          >
 
-        <span>
-          {" "}
-          {routeLegs[index].distanceMeters < 1000
-            ? `${routeLegs[index].distanceMeters} เมตร`
-            : `${(
-                routeLegs[index].distanceMeters / 1000
-              ).toFixed(1)} กม.`}
-        </span>
+            {/* DAY HEADER */}
+            <div className="flex items-center gap-2">
 
-      </div>
+              <h3 className="text-base font-bold">
+                Day {dayData.day}
+              </h3>
 
+              {dayData.title && (
+                <span className="text-sm text-gray-500">
+                  {dayData.title}
+                </span>
+              )}
+
+            </div>
+
+            {/* DAY ITEMS */}
+            <SortableContext
+              items={dayData.items.map(
+                (item) =>
+                  item.type === "restaurant"
+                    ? `restaurant-${item.restaurant_id}`
+                    : `place-${item.place_id}`
+              )}
+              strategy={
+                verticalListSortingStrategy
+              }
+            >
+
+              {dayData.items.map(
+                (item, index) => (
+
+                  <Fragment
+                    key={
+                      `all-${dayData.day}-${
+                        item.type === "restaurant"
+                          ? `restaurant-${item.restaurant_id}`
+                          : `place-${item.place_id}`
+                      }`
+                    }
+                  >
+
+                    <SortablePlaceItem
+                      item={item}
+
+                      // ⭐ เลขต่อเนื่องทุก Day
+                      index={
+                        previousCount + index
+                      }
+
+                      findPlace={findPlace}
+                      findRestaurant={findRestaurant}
+
+                      loadMoreRestaurants={
+                        loadMoreRestaurants
+                      }
+
+                      showMoreRestaurants={
+                        showMoreRestaurants
+                      }
+
+                      moreRestaurants={
+                        moreRestaurants
+                      }
+
+                      loadingMoreRestaurants={
+                        loadingMoreRestaurants
+                      }
+
+                      addRestaurantToPlan={
+                        addRestaurantToPlan
+                      }
+
+                      replaceRestaurantInPlan={
+                        replaceRestaurantInPlan
+                      }
+
+                      removePlaceFromPlan={
+                        removePlaceFromPlan
+                      }
+
+                      removeRestaurantFromPlan={
+                        removeRestaurantFromPlan
+                      }
+                    />
+
+                  </Fragment>
+
+                )
+              )}
+
+            </SortableContext>
+
+          </div>
+        );
+
+      }
     )}
 
-  </Fragment>
+  </div>
 
-))
-}
+) : (
 
-</SortableContext>
+    /* =====================================
+       SINGLE DAY
+    ===================================== */
+
+    <SortableContext
+      items={routePlaces.map((item) =>
+        item.type === "restaurant"
+          ? `restaurant-${item.restaurant_id}`
+          : `place-${item.place_id}`
+      )}
+      strategy={verticalListSortingStrategy}
+    >
+
+      {routePlaces.map(
+        (item, index) => (
+
+          <Fragment
+            key={
+              `${selectedDay}-${
+                item.type === "restaurant"
+                  ? `restaurant-${item.restaurant_id}`
+                  : `place-${item.place_id}`
+              }`
+            }
+          >
+
+            <SortablePlaceItem
+              item={item}
+              index={index}
+              findPlace={findPlace}
+              findRestaurant={findRestaurant}
+
+              loadMoreRestaurants={
+                loadMoreRestaurants
+              }
+
+              showMoreRestaurants={
+                showMoreRestaurants
+              }
+
+              moreRestaurants={
+                moreRestaurants
+              }
+
+              loadingMoreRestaurants={
+                loadingMoreRestaurants
+              }
+
+              addRestaurantToPlan={
+                addRestaurantToPlan
+              }
+
+              replaceRestaurantInPlan={
+                replaceRestaurantInPlan
+              }
+
+              removePlaceFromPlan={
+                removePlaceFromPlan
+              }
+
+              removeRestaurantFromPlan={
+                removeRestaurantFromPlan
+              }
+            />
+
+
+            {/* DISTANCE */}
+            {index <
+              routePlaces.length - 1 &&
+              routeLegs[index] && (
+
+                <div
+                  className="
+                    travel-route-distance
+                    ml-10
+                    py-1.5
+                    flex
+                    items-center
+                    gap-2
+                    text-xs
+                  "
+                >
+
+                  <div
+                    className="
+                      travel-route-line
+                      w-px
+                      h-7
+                      ml-2
+                    "
+                  />
+
+                  <span>
+                    {routeLegs[index]
+                      .distanceMeters < 1000
+
+                      ? `${routeLegs[index]
+                          .distanceMeters} เมตร`
+
+                      : `${(
+                          routeLegs[index]
+                            .distanceMeters / 1000
+                        ).toFixed(1)} กม.`}
+                  </span>
+
+                </div>
+
+              )}
+
+          </Fragment>
+
+        )
+      )}
+
+    </SortableContext>
+
+  )}
 
 </DndContext>
-
 <div className="flex justify-end mt-5 pt-4 border-t border-purple-100">
   <button
-    className="
-  travel-save-button
-  px-6
-  py-2.5
-  rounded-xl
-  text-sm
-  font-semibold
-"
+    onClick={() => {
+      setTripTitle(getDefaultTripTitle());
+      setShowSaveTripModal(true);
+    }}
+    className="travel-save-button px-6 py-2.5 rounded-xl font-semibold transition-all duration-200"
   >
     Save
   </button>
@@ -1619,9 +3292,107 @@ key={
 
 
       </div>
+{showSaveTripModal && (
+  <div
+    className="
+      fixed
+      inset-0
+      z-[100]
+      bg-black/40
+      flex
+      items-center
+      justify-center
+      p-4
+    "
+    onClick={() => setShowSaveTripModal(false)}
+  >
+    <div
+      className="
+        bg-white
+        rounded-3xl
+        p-6
+        w-full
+        max-w-md
+        shadow-2xl
+      "
+      onClick={(e) => e.stopPropagation()}
+    >
 
+      <h2 className="text-xl font-semibold">
+        Save Trip
+      </h2>
+
+      <p className="text-sm text-gray-500 mt-1">
+        Save your current itinerary as a trip.
+      </p>
+
+      <div className="mt-5">
+
+        <label className="text-sm font-medium">
+          Trip name
+        </label>
+
+        <input
+          value={tripTitle}
+          onChange={(e) =>
+            setTripTitle(e.target.value)
+          }
+          className="
+            mt-2
+            w-full
+            border
+            rounded-xl
+            px-4
+            py-3
+            outline-none
+            focus:ring-2
+            focus:ring-black/10
+          "
+          placeholder="ชื่อทริป"
+        />
+
+      </div>
+
+      <div className="mt-6 flex justify-end gap-2">
+
+        <button
+          onClick={() =>
+            setShowSaveTripModal(false)
+          }
+          className="
+            px-4
+            py-2
+            rounded-full
+            border
+            hover:bg-gray-50
+          "
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={saveTripToSupabase}
+          disabled={!tripTitle.trim()}
+          className="
+            px-5
+            py-2
+            rounded-full
+            bg-black
+            text-white
+            disabled:opacity-40
+          "
+        >
+          Save Trip
+        </button>
+
+      </div>
 
     </div>
+  </div>
+)}
+
+    </div>
+    
   );
 }
 async function loadAllRestaurants() {
@@ -4259,6 +6030,7 @@ focus:ring-black/20
     allPlaces={allPlaces}
     restaurants={restaurants}
     mapCenter={mapCenter}
+    chatId={currentChatId}
   />
 )}
 

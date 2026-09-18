@@ -28,6 +28,7 @@ import { Route as AdminMapRouteImport } from './routes/admin/map'
 import { Route as AdminPlaceImagesRouteImport } from './routes/admin/place-images'
 import { Route as AdminRating_attractionRouteImport } from './routes/admin/rating_attraction'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as Trips_detailTripIdRouteImport } from './routes/trips_detail.$tripId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -124,6 +125,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Trips_detailTripIdRoute = Trips_detailTripIdRouteImport.update({
+  id: '/trips_detail/$tripId',
+  path: '/trips_detail/$tripId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/admin/place-images': typeof AdminPlaceImagesRoute
   '/admin/rating_attraction': typeof AdminRating_attractionRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/trips_detail/$tripId': typeof Trips_detailTripIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/admin/place-images': typeof AdminPlaceImagesRoute
   '/admin/rating_attraction': typeof AdminRating_attractionRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/trips_detail/$tripId': typeof Trips_detailTripIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/admin/place-images': typeof AdminPlaceImagesRoute
   '/admin/rating_attraction': typeof AdminRating_attractionRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/trips_detail/$tripId': typeof Trips_detailTripIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/admin/place-images'
     | '/admin/rating_attraction'
     | '/auth/callback'
+    | '/trips_detail/$tripId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/admin/place-images'
     | '/admin/rating_attraction'
     | '/auth/callback'
+    | '/trips_detail/$tripId'
   id:
     | '__root__'
     | '/'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/admin/place-images'
     | '/admin/rating_attraction'
     | '/auth/callback'
+    | '/trips_detail/$tripId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -275,6 +287,7 @@ export interface RootRouteChildren {
   AdminPlaceImagesRoute: typeof AdminPlaceImagesRoute
   AdminRating_attractionRoute: typeof AdminRating_attractionRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  Trips_detailTripIdRoute: typeof Trips_detailTripIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -412,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/trips_detail/$tripId': {
+      id: '/trips_detail/$tripId'
+      path: '/trips_detail/$tripId'
+      fullPath: '/trips_detail/$tripId'
+      preLoaderRoute: typeof Trips_detailTripIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPlaceImagesRoute: AdminPlaceImagesRoute,
   AdminRating_attractionRoute: AdminRating_attractionRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  Trips_detailTripIdRoute: Trips_detailTripIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

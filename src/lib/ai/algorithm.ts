@@ -130,7 +130,183 @@ function findNearbyRestaurants(
         .slice(0, limit);
 }
 
+/* =========================================================
+   LOAD NEARBY RESTAURANTS FROM GOOGLE PLACES
+   ========================================================= */
 
+async function loadNearbyRestaurantsFromGoogle(
+    place: TDMCPlace,
+    province?: string
+) {
+    const attId =
+        place.att_id ??
+        place.id;
+
+    const latitude =
+        Number(
+            place.latitude ??
+            place.lat
+        );
+
+    const longitude =
+        Number(
+            place.longitude ??
+            place.lng
+        );
+
+    if (
+        !attId ||
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude)
+    ) {
+        console.warn(
+            "⚠️ ข้อมูลสถานที่ไม่ครบ:",
+            place
+        );
+
+        return [];
+    }
+
+    try {
+
+        const params =
+            new URLSearchParams({
+                att_id: String(attId),
+                lat: String(latitude),
+                lng: String(longitude),
+                province: province ?? ""
+            });
+
+        const response =
+            await fetch(
+                `http://localhost:5000/api/nearby-restaurants?${params.toString()}`
+            );
+
+        if (!response.ok) {
+
+            console.error(
+                "❌ Nearby restaurant API error:",
+                response.status
+            );
+
+            return [];
+        }
+
+        const data =
+            await response.json();
+
+        console.log(
+            `🍽️ ${place.name_th}:`,
+            data.count,
+            "ร้าน"
+        );
+
+        return data.restaurants ?? [];
+
+    } catch (error) {
+
+        console.error(
+            "❌ โหลดร้านอาหารไม่สำเร็จ:",
+            error
+        );
+
+        return [];
+    }
+}
+/* =========================================================
+   LOAD ATTRACTION IMAGES FROM GOOGLE PLACES
+   ========================================================= */
+async function loadAttractionImages(
+    place: TDMCPlace
+) {
+
+    // =====================================================
+    // 1. ถ้ามีรูปอยู่ในข้อมูลสถานที่แล้ว
+    // → ใช้ทันที ไม่ต้องเรียก Server
+    // =====================================================
+
+    const existingImages =
+        Array.isArray((place as any).images)
+            ? (place as any).images
+            : [];
+
+    if (existingImages.length >= 5) {
+
+        console.log(
+            `♻️ ${place.name_th}: ใช้รูปที่มีอยู่แล้ว ${existingImages.length} รูป`
+        );
+
+        return existingImages.slice(0, 5);
+    }
+
+
+    // =====================================================
+    // 2. ถ้ายังไม่มีรูป → ให้ Server เช็ก Supabase
+    // =====================================================
+
+    const attId =
+        place.att_id ??
+        place.id;
+
+    if (!attId) {
+
+        console.warn(
+            "⚠️ ไม่มี att_id สำหรับดึงรูป:",
+            place
+        );
+
+        return existingImages;
+    }
+
+    try {
+
+        const params =
+            new URLSearchParams({
+                att_id: String(attId)
+            });
+
+        console.log(
+            "🖼️ LOAD ATTRACTION IMAGES:",
+            attId,
+            place.name_th
+        );
+
+        const response =
+            await fetch(
+                `http://localhost:5000/api/attraction-images?${params.toString()}`
+            );
+
+        if (!response.ok) {
+
+            console.error(
+                "❌ Attraction image API error:",
+                response.status
+            );
+
+            return existingImages;
+        }
+
+        const data =
+            await response.json();
+
+        console.log(
+            `🖼️ ${place.name_th}:`,
+            data.images?.length ?? 0,
+            "รูป"
+        );
+
+        return data.images ?? existingImages;
+
+    } catch (error) {
+
+        console.error(
+            "❌ โหลดรูปสถานที่ไม่สำเร็จ:",
+            error
+        );
+
+        return existingImages;
+    }
+}
 /* =========================================================
    TDMC RESULT → SYSTEM RESULT
    ========================================================= */
@@ -234,6 +410,8 @@ function formatRankedPlaces(
 
                 category:
                     place.category,
+                images:
+                    place.images ?? [],
 
                 province:
                     place.province,
@@ -554,6 +732,214 @@ export function rankPlaces(
     );
 }
 
+/* =========================================================
+   TDMC TOP 10 + GOOGLE NEARBY RESTAURANTS
+   ========================================================= */
+
+export async function rankPlacesWithNearbyRestaurants(
+    attractions: any[],
+    restaurants: any[],
+    trip: TripPlanInput,
+    options?: {
+        limit?: number;
+        weights?: TDMCWeights;
+        candidateMultiplier?: number;
+    }
+) {
+
+    /* =============================================
+       1. RUN TDMC
+       ============================================= */
+
+    const rankedPlaces =
+        rankPlaces(
+            attractions,
+            restaurants,
+            trip,
+            options
+        );
+
+    console.log(
+        "\n🍽️ LOAD GOOGLE RESTAURANTS FOR TOP TDMC"
+    );
+
+    /* =============================================
+       2. เอา Top 10 จาก TDMC
+       ============================================= */
+
+    const topPlaces =
+        rankedPlaces.slice(
+            0,
+            options?.limit ?? 10
+        );
+
+    console.log(
+        "📊 TDMC TOP:",
+        topPlaces.length
+    );
+
+    /* =============================================
+       3. เรียกร้านอาหารจาก Google
+       ============================================= */
+
+    const results = [];
+
+    for (
+        const rankedPlace
+        of topPlaces
+    ) {
+
+        const attraction =
+            rankedPlace.attraction;
+
+        const tdmcPlace: TDMCPlace = {
+            att_id:
+                attraction.id,
+
+            id:
+                attraction.id,
+
+            name_th:
+                attraction.name_th,
+
+            name_en:
+                attraction.name_en,
+
+            latitude:
+                attraction.latitude,
+
+            longitude:
+                attraction.longitude,
+
+            province:
+                attraction.province,
+
+            images:
+                attraction.images ?? []
+                
+        };
+/* =============================================
+   4. รูปสถานที่
+   ถ้ามีอยู่แล้ว → ไม่เรียก Google
+   ถ้าไม่มี → ให้ Server จัดการ
+   ============================================= */
+
+const attractionImages =
+    await loadAttractionImages(
+        tdmcPlace
+    );
+
+
+/* =============================================
+   5. ร้านอาหาร
+   ใช้ร้านจาก Supabase ก่อน
+   ถ้ามี → ไม่เรียก Google
+   ============================================= */
+
+const cachedRestaurants =
+    findNearbyRestaurants(
+        tdmcPlace,
+        restaurants,
+        3
+    );
+
+let selectedRestaurants =
+    cachedRestaurants;
+
+if (cachedRestaurants.length === 0) {
+
+    console.log(
+        `🔎 ${attraction.name_th}: ไม่พบร้านในข้อมูลเดิม → เรียก Google`
+    );
+
+    selectedRestaurants =
+        await loadNearbyRestaurantsFromGoogle(
+            tdmcPlace,
+            trip.province
+        );
+} else {
+
+    console.log(
+        `♻️ ${attraction.name_th}: ใช้ร้านจาก Supabase ${cachedRestaurants.length} ร้าน`
+    );
+}
+results.push({
+
+    ...rankedPlace,
+
+    attraction: {
+        ...rankedPlace.attraction,
+        images: attractionImages
+    },
+
+    nearbyRestaurants:
+        selectedRestaurants
+            .map(
+                (rest: any) => {
+
+                    const distance =
+                        distanceKm(
+                            Number(
+                                attraction.latitude
+                            ),
+                            Number(
+                                attraction.longitude
+                            ),
+                            Number(
+                                rest.latitude
+                            ),
+                            Number(
+                                rest.longitude
+                            )
+                        );
+
+                    return {
+
+                        id:
+                            rest.place_id,
+
+                        restaurant_name_th:
+                            rest.place_name_th,
+
+                        latitude:
+                            rest.latitude,
+
+                        longitude:
+                            rest.longitude,
+
+                        rating:
+                            rest.rating,
+
+                        user_ratings_total:
+                            rest.user_ratings_total,
+
+                        distance
+
+                    };
+
+                }
+            )
+            .filter(
+                (rest: any) =>
+                    rest.distance < 10
+            )
+            .sort(
+                (a: any, b: any) =>
+                    a.distance -
+                    b.distance
+            )
+            .slice(0, 3)
+
+});
+
+    }
+
+    console.log(
+        "✅ TDMC + Google Restaurants Complete"
+    );
+
+    return results;
+}
 
 /* =========================================================
    EXPERIMENT VERSION

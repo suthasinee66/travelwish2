@@ -23,3 +23,29 @@ export async function getPlaceImage(
 
 
   } 
+
+  export async function getNearbyRestaurants(
+  latitude: number,
+  longitude: number,
+  province?: string
+) {
+  const res = await fetch(
+    `http://localhost:5000/api/nearby-restaurants?lat=${latitude}&lng=${longitude}&province=${encodeURIComponent(
+      province || ""
+    )}`
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch nearby restaurants");
+  }
+
+  const json = await res.json();
+
+  console.log("🍜 Nearby Restaurants");
+  console.log("Latitude:", latitude);
+  console.log("Longitude:", longitude);
+  console.log("Province:", province);
+  console.log("Restaurants:", json.restaurants);
+
+  return json.restaurants ?? [];
+}

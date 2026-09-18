@@ -48,25 +48,47 @@ function Trips() {
     setUser(auth.user);
 
     const { data, error } = await supabase
-      .from("trip")
-      .select(`
-        *,
-        trip_places(
-          id,
-          day,
-          sort_order,
-          attraction(
-            att_id,
-            name_th,
-            province,
-            images
-          )
+  .from("trips")
+  .select(`
+    id,
+    title,
+    destination,
+    start_date,
+    end_date,
+    people,
+    budget,
+    created_at,
+
+    trip_days(
+      id,
+      day_number,
+      title,
+
+      trip_items(
+        id,
+        item_type,
+        att_id,
+        restaurant_id,
+        sort_order,
+
+        attraction(
+          att_id,
+          name_th,
+          province,
+          images
+        ),
+
+        restaurant(
+          place_id,
+          place_name_th
         )
-      `)
-      .eq("profile_id", auth.user.id)
-      .order("created_at", {
-        ascending: false,
-      });
+      )
+    )
+  `)
+  .eq("profile_id", auth.user.id)
+  .order("created_at", {
+    ascending: false,
+  });
 
     if (error) {
       console.error(error);
@@ -97,26 +119,25 @@ function Trips() {
   // ============================================================
   // CREATE MANUAL TRIP
   // ============================================================
+async function createTrip() {
+  if (!user) return;
 
-  async function createTrip() {
-    if (!user) return;
-
-    const { error } = await supabase.from("trip").insert({
+  const { error } = await supabase
+    .from("trips")
+    .insert({
       profile_id: user.id,
       title: "New Trip",
       destination: "",
-      image: null,
       people: "1 traveler",
     });
 
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    loadTrips();
+  if (error) {
+    console.error("❌ CREATE TRIP ERROR:", error);
+    return;
   }
 
+  loadTrips();
+}
   // ============================================================
   // FORMAT DATE
   // ============================================================
@@ -134,43 +155,49 @@ function Trips() {
   // ============================================================
   // GET COVER IMAGE
   // ============================================================
+function getCover(trip: any) {
+  const img = trip.trip_days
+    ?.flatMap(
+      (day: any) => day.trip_items ?? []
+    )
+    ?.find(
+      (item: any) =>
+        item.item_type === "place" &&
+        item.attraction?.images?.length > 0
+    )
+    ?.attraction?.images?.[0];
 
-  function getCover(trip: any) {
-    if (trip.image) {
-      return trip.image;
-    }
-
-    const img = trip.trip_places?.find(
-      (x: any) =>
-        x.attraction?.images?.length > 0
-    )?.attraction?.images?.[0];
-
-    return (
-      img ||
-      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200"
-    );
-  }
+  return (
+    img ||
+    "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200"
+  );
+}
 
   // ============================================================
   // GET STOPS
   // ============================================================
 
   function getStops(trip: any) {
-    return trip.trip_places?.length || 0;
-  }
+  return (
+    trip.trip_days?.reduce(
+      (total: number, day: any) =>
+        total + (day.trip_items?.length || 0),
+      0
+    ) || 0
+  );
+}
 
   // ============================================================
   // OPEN TRIP
   // ============================================================
-
-  function openTrip(tripId: string) {
-    navigate({
-      to: "/trips/$id",
-      params: {
-        id: tripId,
-      },
-    });
-  }
+function openTrip(tripId: string) {
+  navigate({
+    to: "/trips_detail/$tripId",
+    params: {
+      tripId,
+    },
+  });
+}
 
   // ============================================================
   // UI

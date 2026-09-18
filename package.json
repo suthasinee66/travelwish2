@@ -109,13 +109,13 @@
   "main": "eslint.config.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/suthasinee66/travelwish1.git"
+    "url": "git+https://github.com/suthasinee66/travelwish2.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/suthasinee66/travelwish1/issues"
+    "url": "https://github.com/suthasinee66/travelwish2/issues"
   },
-  "homepage": "https://github.com/suthasinee66/travelwish1#readme"
+  "homepage": "https://github.com/suthasinee66/travelwish2#readme"
 }

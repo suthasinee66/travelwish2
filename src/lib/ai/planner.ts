@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabase";
-import { rankPlaces } from "./algorithm";
+import {
+    rankPlacesWithNearbyRestaurants
+} from "./algorithm";
 import type { TripPlanInput } from "./types";
 
 import {
@@ -270,11 +272,15 @@ if (sessionError) {
 }
 
 
-const ranked = rankPlaces(
-    attractions,
-    restaurants,
-    tripData
-);
+const ranked =
+    await rankPlacesWithNearbyRestaurants(
+        attractions,
+        restaurants,
+        tripData,
+        {
+            limit: 10
+        }
+    );
 
     console.log(`🏆 Algorithm เลือกสถานที่ ${ranked.length} แห่ง`);
 

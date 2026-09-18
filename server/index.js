@@ -3,17 +3,27 @@ import cors from "cors";
 import dotenv from "dotenv";
 import axios from "axios";
 import OpenAI from "openai";
-
+import nearbyRestaurantsRouter
+  from "./api/nearbyRestaurants.js";
 dotenv.config();
+import attractionImagesRouter
+  from "./api/attractionImages.js";
+
 
 const app = express();
-
 app.use(cors());
 
 app.use(
   express.json({
     limit: "20mb",
   })
+);
+
+app.use("/api", nearbyRestaurantsRouter);
+
+app.use(
+  "/api",
+  attractionImagesRouter
 );
 
 // ============================================
@@ -384,6 +394,7 @@ app.post("/api/ai", async (req, res) => {
     });
   }
 });
+
 
 // ============================================
 // START SERVER
