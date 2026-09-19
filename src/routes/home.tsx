@@ -4970,7 +4970,7 @@ const handleSend = async () => {
 
 
   return (
-    <div className="travel-home flex h-screen bg-background text-foreground">
+    <div className="travel-home flex min-h-[100dvh] md:h-screen bg-background text-foreground">
       {/* Sidebar */}
       <Sidebar
         user={user}
@@ -5765,7 +5765,7 @@ hover:bg-gray-100
     transition-all
     duration-500
     overflow-hidden
-    ${exploreOpen ? "w-[80vw]" : "w-[600px]"}
+    ${exploreOpen ? "w-full lg:w-[80vw]" : "w-full sm:w-[600px]"}
   `}
       >
         {exploreOpen && (
@@ -5790,16 +5790,16 @@ hover:bg-gray-100
     h-full
     overflow-y-auto
     p-5
-    ${exploreOpen ? "flex gap-6" : "space-y-6"}
+    ${exploreOpen ? "flex flex-col lg:flex-row gap-4 lg:gap-6" : "space-y-6"}
   `}
         >
           {exploreOpen && (
             <div
               className="
-w-72
+w-full lg:w-72
 shrink-0
-border-r
-pr-6
+border-b lg:border-b-0 lg:border-r
+pb-4 lg:pb-0 lg:pr-6
 space-y-6
 overflow-y-auto
 h-full
