@@ -101,7 +101,7 @@ function CreateWithAI() {
 
   return (
 
-    <div className="travel-home flex h-screen text-foreground aurora-canvas">
+    <div className="travel-home flex min-h-[100dvh] md:h-screen text-foreground aurora-canvas">
 
 
 

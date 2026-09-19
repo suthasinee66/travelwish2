@@ -204,7 +204,7 @@ function openTrip(tripId: string) {
   // ============================================================
 
   return (
-    <div className="travel-home flex h-screen text-foreground aurora-canvas">
+    <div className="travel-home flex min-h-[100dvh] md:h-screen text-foreground aurora-canvas overflow-x-hidden">
       {/* ======================================================
           SIDEBAR
       ====================================================== */}
@@ -215,13 +215,13 @@ function openTrip(tripId: string) {
           MAIN
       ====================================================== */}
 
-      <main className="travel-main flex-1 overflow-y-auto min-w-0">
+      <main className="travel-main flex-1 overflow-y-auto min-w-0 pb-20 md:pb-0">
 
         {/* ====================================================
             HEADER
         ==================================================== */}
 
-        <header className="travel-header h-16 flex items-center gap-4 px-8 sticky top-0 z-10">
+        <header className="travel-header min-h-16 flex flex-wrap items-center gap-3 px-4 sm:px-6 lg:px-8 py-3 sticky top-0 z-10">
 
           <h1 className="text-sm font-semibold tracking-wide text-[#49334f]">
             Trips
@@ -295,7 +295,7 @@ function openTrip(tripId: string) {
             CONTENT
         ==================================================== */}
 
-        <div className="px-8 py-7 max-w-6xl">
+        <div className="px-4 sm:px-6 lg:px-8 py-5 sm:py-7 max-w-6xl">
 
           {/* ==================================================
               PAGE TITLE

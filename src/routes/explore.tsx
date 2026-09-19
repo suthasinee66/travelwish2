@@ -290,10 +290,10 @@ if(!error){
 };
 
   return (
-    <div className="travel-home flex h-screen text-foreground aurora-canvas">
+    <div className="travel-home flex min-h-[100dvh] md:h-screen text-foreground aurora-canvas">
       <Sidebar user={user}/>
 
-      <main className="travel-main flex-1 overflow-y-auto min-w-0">
+      <main className="travel-main flex-1 overflow-y-auto min-w-0 pb-20 md:pb-0">
         <header className="travel-header h-16 flex items-center gap-4 px-8 sticky top-0 z-10">
           <h1 className="text-sm font-semibold tracking-wide text-[#49334f]">Explore</h1>
           <div className="flex-1 flex justify-center">
@@ -310,7 +310,7 @@ if(!error){
           </button>
         </header>
 
-        <div className="px-8 py-7 max-w-6xl">
+        <div className="px-4 sm:px-6 lg:px-8 py-5 sm:py-7 max-w-6xl">
           {/* Hero */}
           <section className="rounded-3xl overflow-hidden relative aspect-[21/9] sm:aspect-[3/1] mb-8">
             <img

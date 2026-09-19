@@ -1017,6 +1017,10 @@
   .travel-home aside > div:first-child,
   .travel-home aside h3,
   .travel-home aside .flex-1.min-h-0 {
+    display: flex;
+  }
+
+  .travel-home aside .flex-1.min-h-0 > div:not(:first-child) {
     display: none;
   }
 
@@ -2695,4 +2699,66 @@
 .travel-home .travel-more-restaurants:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+/* MOBILE RESPONSIVE OVERRIDES 2026 */
+@media (max-width: 767px) {
+  .travel-home {
+    width: 100%;
+    min-height: 100dvh;
+    height: auto !important;
+    overflow-x: hidden;
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  .travel-main {
+    width: 100%;
+    min-width: 0;
+    padding-right: 0 !important;
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  .travel-header {
+    width: 100%;
+    min-height: 64px;
+    height: auto !important;
+    padding: 12px 16px !important;
+    gap: 10px !important;
+    flex-wrap: wrap;
+  }
+
+  .travel-home aside {
+    bottom: max(10px, env(safe-area-inset-bottom));
+    height: 64px !important;
+    min-height: 64px !important;
+  }
+
+  .travel-home aside nav {
+    overflow: hidden;
+  }
+
+  .travel-home aside nav a,
+  .travel-home aside nav button {
+    min-width: 0;
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+
+  .travel-home img,
+  .travel-home video,
+  .travel-home canvas {
+    max-width: 100%;
+  }
+
+  .travel-home [class*="w-[600px]"],
+  .travel-home [class*="w-[500px]"],
+  .travel-home [class*="w-[420px]"] {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .travel-home [class*="px-8"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
 }
