@@ -2762,3 +2762,60 @@
     padding-right: 16px !important;
   }
 }
+
+
+/* Mobile sidebar drawer: override legacy bottom-navigation rules */
+@media (max-width: 767px) {
+  .travel-home .travel-sidebar {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    width: 15rem !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 24px 24px 0 !important;
+    overflow: hidden !important;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .travel-home .travel-sidebar > div:first-child,
+  .travel-home .travel-sidebar > div:last-of-type,
+  .travel-home .travel-sidebar > div:nth-last-of-type(2),
+  .travel-home .travel-sidebar h3 {
+    display: flex !important;
+  }
+
+  .travel-home .travel-sidebar > .flex-1 {
+    display: flex !important;
+  }
+
+  .travel-home .travel-sidebar nav {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 0.5rem !important;
+    overflow: visible !important;
+  }
+
+  .travel-home .travel-sidebar nav > div {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .travel-home .travel-sidebar nav a,
+  .travel-home .travel-sidebar nav button {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding: 0.625rem 0.75rem !important;
+  }
+
+  .travel-home .travel-sidebar nav span {
+    display: block !important;
+  }
+
+  .travel-home .travel-sidebar nav button.mt-4 {
+    display: block !important;
+    margin-top: 1rem !important;
+  }
+}
