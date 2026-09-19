@@ -56,7 +56,13 @@ import { useTravelStore } from "@/store/travelStore";
 import { loadTravelData } from "@/lib/travel/loadTravelData";
 import { getUserLocation } from "@/lib/location/getUserLocation";
 import { createPlanner } from "@/lib/ai/planner";
-import { chatWithAI, resetTrip } from "@/lib/ai/chat";
+import {
+  chatWithAI,
+  generalChatWithAI,
+  detectTripIntent,
+  detectPlannerDecision,
+  resetTrip
+} from "@/lib/ai/chat";
 import { Bot, Copy, ThumbsUp, ThumbsDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { loadRecommendationCache } from "@/lib/recommend/loadRecommendationCache";
@@ -612,9 +618,11 @@ function SortablePlaceItem({
   findPlace,
   findRestaurant,
   loadMoreRestaurants,
+  checkMoreRestaurants,     // เพิ่ม
   showMoreRestaurants,
   moreRestaurants,
   loadingMoreRestaurants,
+  hasMoreRestaurants,       // เพิ่ม
   addRestaurantToPlan,
   replaceRestaurantInPlan,
   removeRestaurantFromPlan,
@@ -638,6 +646,24 @@ function SortablePlaceItem({
 
   const attId = String(item.place_id);
   const restaurantId = String(item.restaurant_id);
+  useEffect(() => {
+  if (
+    item.type === "restaurant" &&
+    item.restaurant_id &&
+    item.place_id
+  ) {
+    checkMoreRestaurants(
+      attId,
+      restaurantId
+    );
+  }
+}, [
+  item.type,
+  item.restaurant_id,
+  item.place_id,
+  attId,
+  restaurantId,
+]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -834,8 +860,9 @@ function SortablePlaceItem({
           ปุ่มแสดงร้านค้าเพิ่มเติม
       ===================================== */}
       {item.type === "restaurant" &&
-        item.restaurant_id &&
-        item.place_id && (
+  item.restaurant_id &&
+  item.place_id &&
+  hasMoreRestaurants[attId] === true && (
 <div className="ml-11 mt-3">
 
   <button
@@ -1215,6 +1242,9 @@ const [moreRestaurants, setMoreRestaurants] = useState<
 const [loadingMoreRestaurants, setLoadingMoreRestaurants] = useState<
   Record<string, boolean>
 >({});
+const [hasMoreRestaurants, setHasMoreRestaurants] = useState<
+  Record<string, boolean>
+>({});
 
 const filteredHotels = useMemo(() => {
 
@@ -1513,6 +1543,54 @@ if (tripItems.length > 0) {
     };
 
   };
+
+  const checkMoreRestaurants = async (
+  attId: string,
+  recommendedRestaurantId?: string
+) => {
+  // เคยตรวจแล้ว ไม่ต้อง query ซ้ำ
+  if (hasMoreRestaurants[attId] !== undefined) {
+    return;
+  }
+
+  const { data: relations, error } = await supabase
+    .from("attraction_restaurant")
+    .select("place_id")
+    .eq("att_id", attId)
+    .limit(10);
+
+  if (error) {
+    console.error(
+      "❌ CHECK MORE RESTAURANTS ERROR:",
+      error
+    );
+
+    setHasMoreRestaurants(prev => ({
+      ...prev,
+      [attId]: false,
+    }));
+
+    return;
+  }
+
+  // ต้องมีร้านอื่นที่ไม่ใช่ร้านที่ AI เลือกอยู่แล้ว
+  const hasMore = (relations || []).some(
+    (relation: any) =>
+      String(relation.place_id) !==
+      String(recommendedRestaurantId)
+  );
+
+  setHasMoreRestaurants(prev => ({
+    ...prev,
+    [attId]: hasMore,
+  }));
+
+  console.log(
+    `🍽️ ${attId} มีร้านเพิ่มเติม:`,
+    hasMore
+  );
+};
+
 const loadMoreRestaurants = async (
   attId: string,
   recommendedRestaurantId?: string
@@ -1566,6 +1644,10 @@ const { data: relations, error: relationError } =
     }
 
     if (!relations || relations.length === 0) {
+      setHasMoreRestaurants(prev => ({
+  ...prev,
+  [attId]: false
+}));
 
       console.log(
         "❌ ไม่พบร้านที่ผูกกับ att_id:",
@@ -1658,6 +1740,11 @@ const restaurantList =
     )
     // เอาแค่ 3 ร้าน
     .slice(0, 10);
+    setHasMoreRestaurants(prev => ({
+  ...prev,
+  [attId]: restaurantList.length > 0
+}));
+
 
     console.log(
       "🍽️ MORE RESTAURANTS:",
@@ -3110,6 +3197,8 @@ justify-center
                       loadMoreRestaurants={
                         loadMoreRestaurants
                       }
+                        checkMoreRestaurants={checkMoreRestaurants}
+  hasMoreRestaurants={hasMoreRestaurants}
 
                       showMoreRestaurants={
                         showMoreRestaurants
@@ -3192,6 +3281,9 @@ justify-center
               loadMoreRestaurants={
                 loadMoreRestaurants
               }
+                checkMoreRestaurants={checkMoreRestaurants}
+  hasMoreRestaurants={hasMoreRestaurants}
+  
 
               showMoreRestaurants={
                 showMoreRestaurants
@@ -3501,6 +3593,7 @@ function Home() {
   const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
   const [tripModal, setTripModal] = useState(false);
   const [waitingPlanConfirm, setWaitingPlanConfirm] = useState(false);
+  const [collectingTrip, setCollectingTrip] = useState(false);
   const [plannerJson, setPlannerJson] = useState<any[]>([]);
   const [activeStep, setActiveStep] =
     useState<
@@ -4129,25 +4222,8 @@ const handleSend = async () => {
   setInput("");
 
   // =====================================
-  // 1. ถ้าผู้ใช้พิมพ์ว่าต้องการสร้างทริป
+  // 1. สร้าง / หา chat session ก่อน
   // =====================================
-
-  const wantsTrip =
-    text.includes("จัดทริป") ||
-    text.includes("จัดแพลน") ||
-    text.includes("วางแผนเที่ยว") ||
-    text.includes("สร้างทริป");
-
-  if (wantsTrip) {
-    setActiveStep("where");
-    setTripModal(true);
-    return;
-  }
-
-  // =====================================
-  // 2. สร้าง chat session แม้ข้อมูลยังไม่ครบ
-  // =====================================
-
   let chatId = currentChatId;
 
   if (!chatId) {
@@ -4161,7 +4237,6 @@ const handleSend = async () => {
           text: "ไม่สามารถสร้างแชตได้ กรุณาลองใหม่อีกครั้ง"
         }
       ]);
-
       return;
     }
   }
@@ -4169,17 +4244,13 @@ const handleSend = async () => {
   setHasChatStarted(true);
 
   // =====================================
-  // 3. ถ้ากำลังรอคำตอบว่าจะจัดทริปไหม
+  // 2. ถ้ากำลังรอยืนยันสร้าง Planner
+  // ต้องเช็กก่อน detectTripIntent
   // =====================================
-
   if (waitingPlanConfirm) {
-
     setMessages(prev => [
       ...prev,
-      {
-        role: "user",
-        text
-      }
+      { role: "user", text }
     ]);
 
     await supabase
@@ -4191,129 +4262,331 @@ const handleSend = async () => {
         content: text
       });
 
-    // ===============================
-    // ตอบตกลง
-    // ===============================
+    // ให้ AI วิเคราะห์คำตอบ เช่น
+    // "โอเค" → CREATE_PLAN
+    // "ไม่เอา" → CANCEL
+    // "ขอ 3 วัน" → UPDATE
+    const decision =
+      await detectPlannerDecision(text);
 
-    const wantsPlan =
-      text.includes("ใช่") ||
-      text.includes("จัดเลย") ||
-      text.includes("ตกลง") ||
-      text.includes("เอาเลย") ||
-      text.includes("ต้องการ") ||
-      text.includes("ครับ");
+    console.log(
+      "🧠 PLANNER DECISION:",
+      decision
+    );
 
-    if (wantsPlan) {
-
+    if (decision === "CREATE_PLAN") {
       setWaitingPlanConfirm(false);
+      setCollectingTrip(false);
 
       setMessages(prev => [
         ...prev,
         {
           role: "ai",
-          text: "⏳ กำลังสร้างแผนเที่ยว..."
+          text: "⏳ กำลังสร้างแผนเที่ยว...",
+          loading: true
         }
       ]);
 
       try {
+        const tripForPlanner = {
+          ...tripInput,
+          days: tripInput.days ?? 1
+        };
+
+        console.log(
+          "🧳 TRIP FOR PLANNER:",
+          tripForPlanner
+        );
 
         const result = await createPlanner(
-          tripInput,
+          tripForPlanner,
           chatId,
           user.id,
           selectedModel
         );
 
+        setTripInput(tripForPlanner);
         setPlan(result.markdown);
         setPlannerJson(result.planner_json);
         setShowTripPlan(true);
-
         setExploreOpen(false);
 
         setMessages(prev => [
           ...prev.slice(0, -1),
           {
             role: "ai",
-            text: result
+            text: result.markdown
           }
         ]);
-
       } catch (err) {
-
-        console.error(err);
+        console.error(
+          "❌ CREATE PLANNER ERROR:",
+          err
+        );
 
         setMessages(prev => [
           ...prev.slice(0, -1),
           {
             role: "ai",
             text:
-              "ขออภัย ขณะนี้ AI มีผู้ใช้งานจำนวนมาก กรุณาลองใหม่อีกครั้ง"
+              "ขออภัย ขณะนี้ไม่สามารถสร้างแผนเที่ยวได้ กรุณาลองใหม่อีกครั้ง"
           }
         ]);
-
       }
 
       return;
     }
 
-    // ===============================
-    // ถ้าตอบว่าไม่
-    // ===============================
+    if (decision === "CANCEL") {
+      setWaitingPlanConfirm(false);
+      setCollectingTrip(false);
 
-    const doesNotWantPlan =
-      text.includes("ไม่") ||
-      text.includes("ยังไม่") ||
-      text.includes("ไม่ต้อง");
+      const reply =
+        "ได้เลยครับ 😊 ถ้าต้องการวางแผนเที่ยวเมื่อไหร่ บอกผมได้เลย";
 
-    if (doesNotWantPlan) {
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "ai",
+          text: reply
+        }
+      ]);
 
+      await supabase
+        .from("chat_messages")
+        .insert({
+          session_id: chatId,
+          user_id: user.id,
+          role: "ai",
+          content: reply
+        });
+
+      return;
+    }
+
+    // ถ้าผู้ใช้แก้ข้อมูล เช่น "ขอ 3 วัน"
+    // ให้ข้อความไหลลงไป detectTripIntent ด้านล่าง
+    if (decision === "UPDATE") {
+      setWaitingPlanConfirm(false);
+      setCollectingTrip(true);
+
+      console.log(
+        "✏️ USER IS UPDATING TRIP"
+      );
+    }
+
+    // ถ้า AI ยังสรุปไม่ได้ ให้ selected AI คุยต่อเอง
+    // ไม่ถามประโยคยืนยันเดิมซ้ำ
+    if (decision === "UNCLEAR") {
       setWaitingPlanConfirm(false);
 
       setMessages(prev => [
         ...prev,
         {
           role: "ai",
-          text: "ได้เลยครับ 😊 ถ้าต้องการวางแผนเที่ยวเมื่อไหร่ บอกผมได้เลย"
+          text: "กำลังคิด...",
+          loading: true
         }
       ]);
+
+      try {
+        const aiText =
+          await generalChatWithAI(
+            text,
+            messages,
+            selectedModel
+          );
+
+        setMessages(prev => [
+          ...prev.slice(0, -1),
+          {
+            role: "ai",
+            text: aiText
+          }
+        ]);
+
+        await supabase
+          .from("chat_messages")
+          .insert({
+            session_id: chatId,
+            user_id: user.id,
+            role: "ai",
+            content: aiText
+          });
+      } catch (error) {
+        console.error(
+          "❌ GENERAL CHAT ERROR:",
+          error
+        );
+
+        setMessages(prev => [
+          ...prev.slice(0, -1),
+          {
+            role: "ai",
+            text:
+              "ขออภัยครับ ลองส่งข้อความอีกครั้งได้เลย"
+          }
+        ]);
+      }
+
+      return;
+    }
+  }
+
+  // =====================================
+  // 3. ตรวจว่าเป็นคำขอสร้างทริปหรือไม่
+  // ถ้าก่อนหน้านี้ถามจังหวัดอยู่ collectingTrip จะทำให้
+  // คำตอบสั้น ๆ เช่น "เชียงใหม่" ยังอยู่ใน flow สร้างทริป
+  // =====================================
+  const intent = await detectTripIntent(
+    text,
+    selectedModel
+  );
+
+  console.log("🧠 TRIP INTENT:", intent);
+
+  if (intent.wantsTrip || collectingTrip) {
+    const detected = intent.tripInfo;
+
+    const detectedAtmosphere = detected.atmosphere
+      ? Array.isArray(detected.atmosphere)
+        ? detected.atmosphere
+        : [detected.atmosphere]
+      : [];
+
+    const updatedTrip: TripInput = {
+      ...tripInput,
+
+      province:
+        detected.province ??
+        tripInput.province ??
+        "",
+
+      days:
+        detected.days ??
+        tripInput.days ??
+        null,
+
+      budget:
+        detected.budget ??
+        tripInput.budget ??
+        null,
+
+      companion:
+        detected.companion ??
+        tripInput.companion ??
+        "",
+
+      travelType:
+        detected.travelType?.length
+          ? detected.travelType
+          : tripInput.travelType ?? [],
+
+      activities:
+        detected.activities?.length
+          ? detected.activities
+          : tripInput.activities ?? [],
+
+      atmosphere:
+        detectedAtmosphere.length
+          ? detectedAtmosphere
+          : tripInput.atmosphere ?? []
+    };
+
+    console.log("🧳 UPDATED TRIP:", updatedTrip);
+    setTripInput(updatedTrip);
+
+    setMessages(prev => [
+      ...prev,
+      { role: "user", text }
+    ]);
+
+    await supabase
+      .from("chat_messages")
+      .insert({
+        session_id: chatId,
+        user_id: user.id,
+        role: "user",
+        content: text
+      });
+
+    // จังหวัดเป็นข้อมูลเดียวที่จำเป็นสำหรับ query สถานที่
+    if (!updatedTrip.province) {
+      setCollectingTrip(true);
+
+      const reply = "ได้เลยครับ ✨ อยากให้ผมจัดทริปไปจังหวัดไหน?";
+
+      setMessages(prev => [
+        ...prev,
+        { role: "ai", text: reply }
+      ]);
+
+      await supabase
+        .from("chat_messages")
+        .insert({
+          session_id: chatId,
+          user_id: user.id,
+          role: "ai",
+          content: reply
+        });
 
       return;
     }
 
-    // ถ้าไม่ใช่คำตอบ Yes/No
+    // มีจังหวัดแล้ว ไม่เปิด Modal และไม่บังคับข้อมูลอื่นให้ครบ
+    setCollectingTrip(false);
+    setWaitingPlanConfirm(true);
+
+    const detailParts = [
+      updatedTrip.days
+        ? `${updatedTrip.days} วัน`
+        : null,
+      updatedTrip.companion
+        ? `ไปกับ${updatedTrip.companion}`
+        : null,
+      updatedTrip.budget
+        ? `งบประมาณ ${Number(updatedTrip.budget).toLocaleString()} บาท`
+        : null
+    ].filter(Boolean);
+
+    const detailText = detailParts.length
+      ? ` (${detailParts.join(", ")})`
+      : "";
+
+    const reply =
+      `ได้เลยครับ ✨ ผมสามารถจัดทริป${updatedTrip.province}${detailText} ` +
+      `จากข้อมูลที่มีตอนนี้ได้เลย\n\nต้องการให้ผมจัดแพลนเลยไหม?`;
+
     setMessages(prev => [
       ...prev,
-      {
-        role: "ai",
-        text:
-          "ต้องการให้ผมจัดแพลนจากข้อมูลที่มีตอนนี้เลยไหมครับ?"
-      }
+      { role: "ai", text: reply }
     ]);
+
+    await supabase
+      .from("chat_messages")
+      .insert({
+        session_id: chatId,
+        user_id: user.id,
+        role: "ai",
+        content: reply
+      });
 
     return;
   }
 
   // =====================================
-  // 4. ข้อความปกติ
+  // 4. ข้อความทั่วไป → General AI Chat
   // =====================================
+  const previousMessages = messages;
+
+  const userMessage = {
+    role: "user",
+    text
+  };
 
   setMessages(prev => [
     ...prev,
-    {
-      role: "user",
-      text
-    }
-  ]);
-
-  const aiText =
-    "ได้เลยครับ ✨ ต้องการให้ผมจัดแพลนจากข้อมูลที่มีตอนนี้เลยไหม?";
-
-  setMessages(prev => [
-    ...prev,
-    {
-      role: "ai",
-      text: aiText
-    }
+    userMessage
   ]);
 
   await supabase
@@ -4321,11 +4594,58 @@ const handleSend = async () => {
     .insert({
       session_id: chatId,
       user_id: user.id,
-      role: "ai",
-      content: aiText
+      role: "user",
+      content: text
     });
 
-  setWaitingPlanConfirm(true);
+  setMessages(prev => [
+    ...prev,
+    {
+      role: "ai",
+      text: "กำลังคิด...",
+      loading: true
+    }
+  ]);
+
+  try {
+    const aiText = await generalChatWithAI(
+      text,
+      previousMessages,
+      selectedModel
+    );
+
+    console.log("🤖 GENERAL AI RESPONSE:", aiText);
+
+    setMessages(prev => [
+      ...prev.slice(0, -1),
+      {
+        role: "ai",
+        text: aiText
+      }
+    ]);
+
+    await supabase
+      .from("chat_messages")
+      .insert({
+        session_id: chatId,
+        user_id: user.id,
+        role: "ai",
+        content: aiText
+      });
+  } catch (error) {
+    console.error(
+      "❌ GENERAL CHAT AI ERROR:",
+      error
+    );
+
+    setMessages(prev => [
+      ...prev.slice(0, -1),
+      {
+        role: "ai",
+        text: "ขออภัย ไม่สามารถติดต่อ AI ได้ กรุณาลองใหม่อีกครั้ง"
+      }
+    ]);
+  }
 };
 
 

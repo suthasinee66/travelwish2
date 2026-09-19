@@ -271,7 +271,6 @@ if (sessionError) {
 
 }
 
-
 const ranked =
     await rankPlacesWithNearbyRestaurants(
         attractions,
@@ -282,8 +281,76 @@ const ranked =
         }
     );
 
-    console.log(`🏆 Algorithm เลือกสถานที่ ${ranked.length} แห่ง`);
+console.log(
+    `🏆 Algorithm เลือกสถานที่ ${ranked.length} แห่ง`
+);
 
+
+/* =========================================================
+   เตรียมข้อมูลสำหรับ AI Planner
+
+   สำคัญ:
+   ranked = ข้อมูลเต็มสำหรับระบบ/UI
+   plannerRanked = ข้อมูลย่อสำหรับส่ง AI
+
+   ไม่ส่ง:
+   - images
+   - latitude / longitude
+   - TDMC internal metrics
+   - normalized values
+   - topic metrics
+   - rating ที่ไม่จำเป็น
+   ========================================================= */
+const plannerRanked =
+    ranked.map((item, index) => ({
+
+        rank: index + 1,
+
+        attraction: {
+            id: item.attraction.id,
+            name_th: item.attraction.name_th,
+            category: item.attraction.category ?? [],
+
+            distanceKm:
+                Number.isFinite(
+                    Number(item.attraction.distanceKm)
+                )
+                    ? Number(
+                        Number(item.attraction.distanceKm).toFixed(2)
+                    )
+                    : null
+        },
+
+        nearbyRestaurants:
+            Array.isArray(item.nearbyRestaurants)
+                ? item.nearbyRestaurants.map(
+                    (restaurant: any) => ({
+
+                        id: restaurant.id,
+
+                        restaurant_name_th:
+                            restaurant.restaurant_name_th,
+
+                        distance:
+                            Number.isFinite(
+                                Number(restaurant.distance)
+                            )
+                                ? Number(
+                                    Number(
+                                        restaurant.distance
+                                    ).toFixed(2)
+                                )
+                                : null
+                    })
+                )
+                : []
+    }));
+
+
+console.log(
+    "📦 Planner Ranked:",
+    plannerRanked
+);
     console.table(
         ranked.map((r, index) => ({
             index: index + 1,
@@ -309,8 +376,7 @@ ${JSON.stringify(tripData, null, 2)}
 ====================
 สถานที่ที่เลือกได้
 ====================
-
-${JSON.stringify(ranked, null, 2)}
+${JSON.stringify(plannerRanked)}
 ====================
 กฎการสร้างแผน (สำคัญ)
 ====================

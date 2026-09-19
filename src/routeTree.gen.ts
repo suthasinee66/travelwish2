@@ -9,85 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as CreateRouteImport } from './routes/create'
-import { Route as Create_withAIRouteImport } from './routes/create_withAI'
-import { Route as Create_withManualRouteImport } from './routes/create_withManual'
-import { Route as ExploreRouteImport } from './routes/explore'
-import { Route as Explore_nearby_allRouteImport } from './routes/explore_nearby_all'
-import { Route as Explore_recommend_allRouteImport } from './routes/explore_recommend_all'
-import { Route as HomeRouteImport } from './routes/home'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as PersonalSurveyRouteImport } from './routes/personal-survey'
-import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as SavedRouteImport } from './routes/saved'
 import { Route as TripsRouteImport } from './routes/trips'
-import { Route as AdminTest_AlgorithmRouteImport } from './routes/admin/Test_Algorithm'
-import { Route as AdminMapRouteImport } from './routes/admin/map'
-import { Route as AdminPlaceImagesRouteImport } from './routes/admin/place-images'
-import { Route as AdminRating_attractionRouteImport } from './routes/admin/rating_attraction'
-import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as SavedRouteImport } from './routes/saved'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
+import { Route as PersonalSurveyRouteImport } from './routes/personal-survey'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as Explore_recommend_allRouteImport } from './routes/explore_recommend_all'
+import { Route as Explore_nearby_allRouteImport } from './routes/explore_nearby_all'
+import { Route as ExploreRouteImport } from './routes/explore'
+import { Route as Create_withManualRouteImport } from './routes/create_withManual'
+import { Route as Create_withAIRouteImport } from './routes/create_withAI'
+import { Route as CreateRouteImport } from './routes/create'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as Trips_detailTripIdRouteImport } from './routes/trips_detail.$tripId'
+import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AdminRating_attractionRouteImport } from './routes/admin/rating_attraction'
+import { Route as AdminPlaceImagesRouteImport } from './routes/admin/place-images'
+import { Route as AdminMapRouteImport } from './routes/admin/map'
+import { Route as AdminTest_AlgorithmRouteImport } from './routes/admin/Test_Algorithm'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CreateRoute = CreateRouteImport.update({
-  id: '/create',
-  path: '/create',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Create_withAIRoute = Create_withAIRouteImport.update({
-  id: '/create_withAI',
-  path: '/create_withAI',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Create_withManualRoute = Create_withManualRouteImport.update({
-  id: '/create_withManual',
-  path: '/create_withManual',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExploreRoute = ExploreRouteImport.update({
-  id: '/explore',
-  path: '/explore',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Explore_nearby_allRoute = Explore_nearby_allRouteImport.update({
-  id: '/explore_nearby_all',
-  path: '/explore_nearby_all',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const Explore_recommend_allRoute = Explore_recommend_allRouteImport.update({
-  id: '/explore_recommend_all',
-  path: '/explore_recommend_all',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HomeRoute = HomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PersonalSurveyRoute = PersonalSurveyRouteImport.update({
-  id: '/personal-survey',
-  path: '/personal-survey',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileSetupRoute = ProfileSetupRouteImport.update({
-  id: '/profile-setup',
-  path: '/profile-setup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
+const TripsRoute = TripsRouteImport.update({
+  id: '/trips',
+  path: '/trips',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SavedRoute = SavedRouteImport.update({
@@ -95,29 +40,69 @@ const SavedRoute = SavedRouteImport.update({
   path: '/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TripsRoute = TripsRouteImport.update({
-  id: '/trips',
-  path: '/trips',
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminTest_AlgorithmRoute = AdminTest_AlgorithmRouteImport.update({
-  id: '/admin/Test_Algorithm',
-  path: '/admin/Test_Algorithm',
+const ProfileSetupRoute = ProfileSetupRouteImport.update({
+  id: '/profile-setup',
+  path: '/profile-setup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminMapRoute = AdminMapRouteImport.update({
-  id: '/admin/map',
-  path: '/admin/map',
+const PersonalSurveyRoute = PersonalSurveyRouteImport.update({
+  id: '/personal-survey',
+  path: '/personal-survey',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminPlaceImagesRoute = AdminPlaceImagesRouteImport.update({
-  id: '/admin/place-images',
-  path: '/admin/place-images',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRating_attractionRoute = AdminRating_attractionRouteImport.update({
-  id: '/admin/rating_attraction',
-  path: '/admin/rating_attraction',
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Explore_recommend_allRoute = Explore_recommend_allRouteImport.update({
+  id: '/explore_recommend_all',
+  path: '/explore_recommend_all',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Explore_nearby_allRoute = Explore_nearby_allRouteImport.update({
+  id: '/explore_nearby_all',
+  path: '/explore_nearby_all',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExploreRoute = ExploreRouteImport.update({
+  id: '/explore',
+  path: '/explore',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Create_withManualRoute = Create_withManualRouteImport.update({
+  id: '/create_withManual',
+  path: '/create_withManual',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Create_withAIRoute = Create_withAIRouteImport.update({
+  id: '/create_withAI',
+  path: '/create_withAI',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreateRoute = CreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Trips_detailTripIdRoute = Trips_detailTripIdRouteImport.update({
+  id: '/trips_detail/$tripId',
+  path: '/trips_detail/$tripId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
@@ -125,9 +110,24 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Trips_detailTripIdRoute = Trips_detailTripIdRouteImport.update({
-  id: '/trips_detail/$tripId',
-  path: '/trips_detail/$tripId',
+const AdminRating_attractionRoute = AdminRating_attractionRouteImport.update({
+  id: '/admin/rating_attraction',
+  path: '/admin/rating_attraction',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPlaceImagesRoute = AdminPlaceImagesRouteImport.update({
+  id: '/admin/place-images',
+  path: '/admin/place-images',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminMapRoute = AdminMapRouteImport.update({
+  id: '/admin/map',
+  path: '/admin/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTest_AlgorithmRoute = AdminTest_AlgorithmRouteImport.update({
+  id: '/admin/Test_Algorithm',
+  path: '/admin/Test_Algorithm',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -292,88 +292,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create': {
-      id: '/create'
-      path: '/create'
-      fullPath: '/create'
-      preLoaderRoute: typeof CreateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create_withAI': {
-      id: '/create_withAI'
-      path: '/create_withAI'
-      fullPath: '/create_withAI'
-      preLoaderRoute: typeof Create_withAIRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/create_withManual': {
-      id: '/create_withManual'
-      path: '/create_withManual'
-      fullPath: '/create_withManual'
-      preLoaderRoute: typeof Create_withManualRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/explore': {
-      id: '/explore'
-      path: '/explore'
-      fullPath: '/explore'
-      preLoaderRoute: typeof ExploreRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/explore_nearby_all': {
-      id: '/explore_nearby_all'
-      path: '/explore_nearby_all'
-      fullPath: '/explore_nearby_all'
-      preLoaderRoute: typeof Explore_nearby_allRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/explore_recommend_all': {
-      id: '/explore_recommend_all'
-      path: '/explore_recommend_all'
-      fullPath: '/explore_recommend_all'
-      preLoaderRoute: typeof Explore_recommend_allRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/personal-survey': {
-      id: '/personal-survey'
-      path: '/personal-survey'
-      fullPath: '/personal-survey'
-      preLoaderRoute: typeof PersonalSurveyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile-setup': {
-      id: '/profile-setup'
-      path: '/profile-setup'
-      fullPath: '/profile-setup'
-      preLoaderRoute: typeof ProfileSetupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
+    '/trips': {
+      id: '/trips'
+      path: '/trips'
+      fullPath: '/trips'
+      preLoaderRoute: typeof TripsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/saved': {
@@ -383,39 +306,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SavedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/trips': {
-      id: '/trips'
-      path: '/trips'
-      fullPath: '/trips'
-      preLoaderRoute: typeof TripsRouteImport
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/Test_Algorithm': {
-      id: '/admin/Test_Algorithm'
-      path: '/admin/Test_Algorithm'
-      fullPath: '/admin/Test_Algorithm'
-      preLoaderRoute: typeof AdminTest_AlgorithmRouteImport
+    '/profile-setup': {
+      id: '/profile-setup'
+      path: '/profile-setup'
+      fullPath: '/profile-setup'
+      preLoaderRoute: typeof ProfileSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/map': {
-      id: '/admin/map'
-      path: '/admin/map'
-      fullPath: '/admin/map'
-      preLoaderRoute: typeof AdminMapRouteImport
+    '/personal-survey': {
+      id: '/personal-survey'
+      path: '/personal-survey'
+      fullPath: '/personal-survey'
+      preLoaderRoute: typeof PersonalSurveyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/place-images': {
-      id: '/admin/place-images'
-      path: '/admin/place-images'
-      fullPath: '/admin/place-images'
-      preLoaderRoute: typeof AdminPlaceImagesRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/rating_attraction': {
-      id: '/admin/rating_attraction'
-      path: '/admin/rating_attraction'
-      fullPath: '/admin/rating_attraction'
-      preLoaderRoute: typeof AdminRating_attractionRouteImport
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore_recommend_all': {
+      id: '/explore_recommend_all'
+      path: '/explore_recommend_all'
+      fullPath: '/explore_recommend_all'
+      preLoaderRoute: typeof Explore_recommend_allRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore_nearby_all': {
+      id: '/explore_nearby_all'
+      path: '/explore_nearby_all'
+      fullPath: '/explore_nearby_all'
+      preLoaderRoute: typeof Explore_nearby_allRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explore': {
+      id: '/explore'
+      path: '/explore'
+      fullPath: '/explore'
+      preLoaderRoute: typeof ExploreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create_withManual': {
+      id: '/create_withManual'
+      path: '/create_withManual'
+      fullPath: '/create_withManual'
+      preLoaderRoute: typeof Create_withManualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create_withAI': {
+      id: '/create_withAI'
+      path: '/create_withAI'
+      fullPath: '/create_withAI'
+      preLoaderRoute: typeof Create_withAIRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/create': {
+      id: '/create'
+      path: '/create'
+      fullPath: '/create'
+      preLoaderRoute: typeof CreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trips_detail/$tripId': {
+      id: '/trips_detail/$tripId'
+      path: '/trips_detail/$tripId'
+      fullPath: '/trips_detail/$tripId'
+      preLoaderRoute: typeof Trips_detailTripIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback': {
@@ -425,11 +404,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/trips_detail/$tripId': {
-      id: '/trips_detail/$tripId'
-      path: '/trips_detail/$tripId'
-      fullPath: '/trips_detail/$tripId'
-      preLoaderRoute: typeof Trips_detailTripIdRouteImport
+    '/admin/rating_attraction': {
+      id: '/admin/rating_attraction'
+      path: '/admin/rating_attraction'
+      fullPath: '/admin/rating_attraction'
+      preLoaderRoute: typeof AdminRating_attractionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/place-images': {
+      id: '/admin/place-images'
+      path: '/admin/place-images'
+      fullPath: '/admin/place-images'
+      preLoaderRoute: typeof AdminPlaceImagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/map': {
+      id: '/admin/map'
+      path: '/admin/map'
+      fullPath: '/admin/map'
+      preLoaderRoute: typeof AdminMapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/Test_Algorithm': {
+      id: '/admin/Test_Algorithm'
+      path: '/admin/Test_Algorithm'
+      fullPath: '/admin/Test_Algorithm'
+      preLoaderRoute: typeof AdminTest_AlgorithmRouteImport
       parentRoute: typeof rootRouteImport
     }
   }

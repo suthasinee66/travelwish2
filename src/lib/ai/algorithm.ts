@@ -10,6 +10,10 @@ import {
     type TDMCScoredPlace,
 } from "../algorithm/tdmcAlgorithm";
 
+
+const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000";
 /* =========================================================
    DISTANCE
    ========================================================= */
@@ -178,9 +182,9 @@ async function loadNearbyRestaurantsFromGoogle(
             });
 
         const response =
-            await fetch(
-                `http://localhost:5000/api/nearby-restaurants?${params.toString()}`
-            );
+    await fetch(
+        `${API_URL}/api/nearby-restaurants?${params.toString()}`
+    );
 
         if (!response.ok) {
 
@@ -219,29 +223,33 @@ async function loadNearbyRestaurantsFromGoogle(
 async function loadAttractionImages(
     place: TDMCPlace
 ) {
-
     // =====================================================
-    // 1. ถ้ามีรูปอยู่ในข้อมูลสถานที่แล้ว
-    // → ใช้ทันที ไม่ต้องเรียก Server
+    // 1. ถ้ามีรูปจาก Supabase อยู่แล้วแม้แต่ 1 รูป
+    // → ใช้ Cache ทันที
+    // → ห้ามเรียก Google ซ้ำ
     // =====================================================
 
     const existingImages =
         Array.isArray((place as any).images)
-            ? (place as any).images
+            ? (place as any).images.filter(Boolean)
             : [];
 
-    if (existingImages.length >= 5) {
+    if (existingImages.length > 0) {
+        console.log(
+            `♻️ ${place.name_th}: ใช้รูปจาก Supabase ${existingImages.length} รูป`
+        );
 
         console.log(
-            `♻️ ${place.name_th}: ใช้รูปที่มีอยู่แล้ว ${existingImages.length} รูป`
+            "🚫 ไม่เรียก Google Places API"
         );
 
         return existingImages.slice(0, 5);
     }
 
-
     // =====================================================
-    // 2. ถ้ายังไม่มีรูป → ให้ Server เช็ก Supabase
+    // 2. ไม่มีรูปจริง ๆ
+    // → ให้ Server ตรวจ Supabase อีกครั้ง
+    // → Server ค่อยตัดสินใจว่าจะเรียก Google หรือไม่
     // =====================================================
 
     const attId =
@@ -249,62 +257,64 @@ async function loadAttractionImages(
         place.id;
 
     if (!attId) {
-
         console.warn(
             "⚠️ ไม่มี att_id สำหรับดึงรูป:",
             place
         );
 
-        return existingImages;
+        return [];
     }
 
     try {
-
         const params =
             new URLSearchParams({
                 att_id: String(attId)
             });
 
         console.log(
-            "🖼️ LOAD ATTRACTION IMAGES:",
-            attId,
-            place.name_th
+            `🌐 ${place.name_th}: ไม่มีรูปในข้อมูล → ตรวจผ่าน Server`
         );
 
         const response =
             await fetch(
-                `http://localhost:5000/api/attraction-images?${params.toString()}`
+                `${API_URL}/api/attraction-images?${params.toString()}`
             );
 
         if (!response.ok) {
-
             console.error(
                 "❌ Attraction image API error:",
                 response.status
             );
 
-            return existingImages;
+            return [];
         }
 
         const data =
             await response.json();
 
+        const images =
+            Array.isArray(data.images)
+                ? data.images.filter(Boolean)
+                : [];
+
         console.log(
             `🖼️ ${place.name_th}:`,
-            data.images?.length ?? 0,
-            "รูป"
+            images.length,
+            "รูป",
+            data.cached
+                ? "(Supabase Cache)"
+                : "(Google)"
         );
 
-        return data.images ?? existingImages;
+        return images.slice(0, 5);
 
     } catch (error) {
-
         console.error(
             "❌ โหลดรูปสถานที่ไม่สำเร็จ:",
             error
         );
 
-        return existingImages;
+        return [];
     }
 }
 /* =========================================================

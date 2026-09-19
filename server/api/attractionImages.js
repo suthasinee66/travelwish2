@@ -102,10 +102,9 @@ router.get(
           ? attraction.images
           : [];
 
-
-      if (
-        existingImages.length >= 5
-      ) {
+if (
+  existingImages.length > 0
+) {
 
         console.log(
           `♻️ ${attraction.name_th} ใช้รูปจาก Cache`
