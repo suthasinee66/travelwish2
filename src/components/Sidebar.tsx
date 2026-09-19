@@ -121,7 +121,7 @@ export default function Sidebar({
         <aside className={`
             travel-sidebar
             fixed md:static
-            top-0 left-0 z-[60]
+            top-0 left-0 z-[100]
             w-60 shrink-0 flex flex-col
             bg-white md:bg-transparent
             h-[100dvh] md:h-screen
