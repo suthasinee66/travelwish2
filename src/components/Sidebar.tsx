@@ -87,26 +87,39 @@ export default function Sidebar({
 
     const closeMobileSidebar = () => setMobileOpen(false);
 
+    useEffect(() => {
+        if (!mobileOpen) return;
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [mobileOpen]);
+
     return (
         <>
         {/* Mobile hamburger */}
-        <button
-            type="button"
-            aria-label="Open navigation"
-            onClick={() => setMobileOpen(true)}
-            className="
-                md:hidden
-                fixed top-3 left-3 z-[70]
-                h-11 w-11
-                rounded-xl
-                bg-white/90 backdrop-blur
-                shadow-md border border-white/70
-                flex items-center justify-center
-                text-[#573d63]
-            "
-        >
-            <Menu className="h-5 w-5" />
-        </button>
+        {!mobileOpen && (
+            <button
+                type="button"
+                aria-label="Open navigation"
+                onClick={() => setMobileOpen(true)}
+                className="
+                    md:hidden
+                    fixed top-3 left-3 z-[80]
+                    h-11 w-11
+                    rounded-xl
+                    bg-white
+                    shadow-md border border-[#eadfeb]
+                    flex items-center justify-center
+                    text-[#573d63]
+                "
+            >
+                <Menu className="h-5 w-5" />
+            </button>
+        )}
 
         {/* Mobile overlay */}
         {mobileOpen && (
@@ -114,15 +127,16 @@ export default function Sidebar({
                 type="button"
                 aria-label="Close navigation"
                 onClick={closeMobileSidebar}
-                className="md:hidden fixed inset-0 z-[55] bg-black/20"
+                className="md:hidden fixed inset-0 z-[80] bg-black/30"
             />
         )}
 
         <aside className={`
             travel-sidebar
             fixed md:static
-            top-0 left-0 z-[100]
-            w-60 shrink-0 flex flex-col
+            inset-y-0 left-0 z-[90]
+            w-[82vw] max-w-[320px] md:w-60 md:max-w-none
+            shrink-0 flex flex-col
             bg-white md:bg-transparent
             h-[100dvh] md:h-screen
             text-[#573d63]
@@ -138,7 +152,7 @@ export default function Sidebar({
             type="button"
             aria-label="Close navigation"
             onClick={closeMobileSidebar}
-            className="md:hidden ml-auto order-3 h-9 w-9 rounded-full hover:bg-white/70 flex items-center justify-center"
+            className="md:hidden ml-auto order-3 h-9 w-9 rounded-full hover:bg-[#f4edf6] flex items-center justify-center"
         >
             <X className="h-5 w-5" />
         </button>
@@ -404,8 +418,11 @@ export default function Sidebar({
                         className="
         bg-white
         rounded-3xl
-        p-8
-        w-[420px]
+        p-5 sm:p-8
+        w-[calc(100vw-2rem)]
+        max-w-[420px]
+        max-h-[90dvh]
+        overflow-y-auto
         shadow-xl
     "
                         onClick={(e) => e.stopPropagation()}
