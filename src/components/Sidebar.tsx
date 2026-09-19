@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import * as Dialog from "@radix-ui/react-dialog";
 import {
     MessageCircle,
     Briefcase,
@@ -84,81 +85,20 @@ export default function Sidebar({
 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
-    return (
-        <>
-            {/* Mobile hamburger: desktop Sidebar remains unchanged */}
-            {!mobileOpen && (
-                <button
-                    type="button"
-                    aria-label="Open sidebar"
-                    onClick={() => setMobileOpen(true)}
-                    className="
-                        md:hidden
-                        fixed
-                        top-4
-                        left-4
-                        z-[80]
-                        h-10
-                        w-10
-                        rounded-full
-                        bg-background
-                        border
-                        border-border
-                        shadow-sm
-                        flex
-                        items-center
-                        justify-center
-                        text-[#573d63]
-                    "
-                >
-                    <Menu className="h-5 w-5" />
-                </button>
-            )}
+    useEffect(() => {
+        const media = window.matchMedia("(max-width: 767px)");
+        const update = () => {
+            setIsMobile(media.matches);
+            if (!media.matches) setMobileOpen(false);
+        };
+        update();
+        media.addEventListener("change", update);
+        return () => media.removeEventListener("change", update);
+    }, []);
 
-            <aside
-                className={`
-                    w-60
-                    shrink-0
-                    flex
-                    flex-col
-                    h-screen
-                    text-[#573d63]
-                    fixed
-                    inset-y-0
-                    left-0
-                    z-[70]
-                    bg-background
-                    transition-transform
-                    duration-200
-                    md:static
-                    md:z-auto
-                    md:bg-transparent
-                    md:translate-x-0
-                    ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
-                `}
-            >
-                <button
-                    type="button"
-                    aria-label="Close sidebar"
-                    onClick={() => setMobileOpen(false)}
-                    className="
-                        md:hidden
-                        absolute
-                        top-4
-                        right-4
-                        h-9
-                        w-9
-                        rounded-full
-                        flex
-                        items-center
-                        justify-center
-                        hover:bg-accent
-                    "
-                >
-                    <X className="h-5 w-5" />
-                </button>
-
+    const sidebarContent = <>
     {/* ================= HEADER ================= */}
     <div className="px-5 py-5 flex items-center gap-2 shrink-0 text-[#6f456f]">
         <Sparkles className="h-6 w-6" />
@@ -406,6 +346,32 @@ export default function Sidebar({
         </div>
 
     </div>
+    </>;
+
+    return (<>
+        {isMobile ? (
+            <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
+                <Dialog.Trigger asChild>
+                    <button type="button" aria-label="Open sidebar" className="travel-menu-trigger">
+                        <Menu className="h-5 w-5" />
+                    </button>
+                </Dialog.Trigger>
+                <Dialog.Portal>
+                    <Dialog.Overlay className="travel-menu-overlay" />
+                    <Dialog.Content className="travel-mobile-drawer" aria-describedby={undefined}>
+                        <Dialog.Title className="sr-only">TravelWise navigation</Dialog.Title>
+                        <Dialog.Close aria-label="Close sidebar" className="travel-menu-close">
+                            <X className="h-5 w-5" />
+                        </Dialog.Close>
+                        {sidebarContent}
+                    </Dialog.Content>
+                </Dialog.Portal>
+            </Dialog.Root>
+        ) : (
+            <aside className="travel-sidebar hidden md:flex w-60 shrink-0 flex-col bg-transparent h-screen text-[#573d63]">
+                {sidebarContent}
+            </aside>
+        )}
             {showCreateModal && (
 
                 <div
@@ -416,7 +382,8 @@ export default function Sidebar({
         flex
         items-center
         justify-center
-        z-50
+        z-[100]
+        p-4
     "
                     onClick={() => setShowCreateModal(false)}
                 >
@@ -427,7 +394,7 @@ export default function Sidebar({
         bg-white
         rounded-3xl
         p-8
-        w-[420px]
+        w-full max-w-[420px] max-h-[calc(100dvh-2rem)] overflow-y-auto
         shadow-xl
     "
                         onClick={(e) => e.stopPropagation()}
@@ -580,7 +547,6 @@ justify-center
                 </div>
 
             )}
-            </aside>
         </>
     );
     
