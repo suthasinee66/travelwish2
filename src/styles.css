@@ -596,6 +596,15 @@
   isolation: isolate;
 }
 
+/* Keep recommendation/itinerary panels in the original pastel palette. */
+.travel-home > aside:not(.travel-sidebar) {
+  background: linear-gradient(180deg, #fffafd, #eff9fc);
+  border-color: rgba(255, 255, 255, 0.82);
+  border-radius: 24px;
+  box-shadow: 0 18px 42px rgba(91, 72, 117, 0.1);
+  color: var(--travel-ink);
+}
+
 
 /*
  * ============================================================
@@ -1089,6 +1098,91 @@
     height: auto;
     min-height: 50dvh;
     flex-shrink: 0;
+  }
+
+  /* Home must grow with its contents instead of compressing the header/hero. */
+  .travel-home > main:has(.travel-composer) {
+    flex: none;
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .travel-home main:has(.travel-composer) > .travel-header {
+    flex: none;
+    display: block;
+    padding: 14px 16px 14px 68px;
+  }
+
+  .travel-home main:has(.travel-composer) > .travel-header > button {
+    min-height: 36px;
+  }
+
+  .travel-home main:has(.travel-composer) > .travel-header > div {
+    margin-top: 10px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .travel-home main:has(.travel-composer) > .travel-header > div > div {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+  }
+
+  .travel-home main:has(.travel-composer) > .travel-header > div button {
+    min-width: 0;
+    min-height: 44px;
+    overflow-wrap: anywhere;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .travel-home main:has(.travel-hero) > .overflow-y-auto {
+    display: none;
+  }
+
+  .travel-home main > .travel-hero {
+    flex: none;
+    min-height: 0;
+    padding: 28px 16px;
+  }
+
+  .travel-home .travel-hero h1 {
+    font-size: clamp(1.65rem, 7vw, 2.2rem);
+    line-height: 1.2;
+  }
+
+  .travel-home .travel-hero p {
+    font-size: 15px;
+    line-height: 1.75;
+  }
+
+  .travel-home main:has(.travel-composer) > .overflow-y-auto {
+    flex: 1 0 auto;
+    overflow: visible;
+    padding-inline: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  .travel-home main > div:has(> .travel-composer) {
+    flex: none;
+    padding: 12px 16px 24px;
+    margin-top: auto;
+  }
+
+  .travel-home > aside:not(.travel-sidebar) > .h-full {
+    height: auto;
+    padding: 16px;
+  }
+
+  .travel-home > aside:not(.travel-sidebar) > .flex {
+    flex-direction: column;
+  }
+
+  .travel-home > aside:not(.travel-sidebar) > .flex > div {
+    max-width: 100%;
+    min-width: 0;
   }
 }
 
