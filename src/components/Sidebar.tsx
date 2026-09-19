@@ -114,7 +114,7 @@ export default function Sidebar({
                 type="button"
                 aria-label="Close navigation"
                 onClick={closeMobileSidebar}
-                className="md:hidden fixed inset-0 z-[55] bg-black/15 backdrop-blur-[1px]"
+                className="md:hidden fixed inset-0 z-[55] bg-black/20"
             />
         )}
 
