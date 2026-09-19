@@ -10,6 +10,8 @@ import {
     Plus,
     Sparkles,
     MoreHorizontal,
+    Menu,
+    X,
 } from "lucide-react";
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -81,8 +83,81 @@ export default function Sidebar({
     const navigate = useNavigate();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+
     return (
-        <aside className="w-60 shrink-0 flex flex-col bg-transparent h-screen text-[#573d63]">
+        <>
+            {/* Mobile hamburger: desktop Sidebar remains unchanged */}
+            {!mobileOpen && (
+                <button
+                    type="button"
+                    aria-label="Open sidebar"
+                    onClick={() => setMobileOpen(true)}
+                    className="
+                        md:hidden
+                        fixed
+                        top-4
+                        left-4
+                        z-[80]
+                        h-10
+                        w-10
+                        rounded-full
+                        bg-background
+                        border
+                        border-border
+                        shadow-sm
+                        flex
+                        items-center
+                        justify-center
+                        text-[#573d63]
+                    "
+                >
+                    <Menu className="h-5 w-5" />
+                </button>
+            )}
+
+            <aside
+                className={`
+                    w-60
+                    shrink-0
+                    flex
+                    flex-col
+                    h-screen
+                    text-[#573d63]
+                    fixed
+                    inset-y-0
+                    left-0
+                    z-[70]
+                    bg-background
+                    transition-transform
+                    duration-200
+                    md:static
+                    md:z-auto
+                    md:bg-transparent
+                    md:translate-x-0
+                    ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+                `}
+            >
+                <button
+                    type="button"
+                    aria-label="Close sidebar"
+                    onClick={() => setMobileOpen(false)}
+                    className="
+                        md:hidden
+                        absolute
+                        top-4
+                        right-4
+                        h-9
+                        w-9
+                        rounded-full
+                        flex
+                        items-center
+                        justify-center
+                        hover:bg-accent
+                    "
+                >
+                    <X className="h-5 w-5" />
+                </button>
 
     {/* ================= HEADER ================= */}
     <div className="px-5 py-5 flex items-center gap-2 shrink-0 text-[#6f456f]">
@@ -106,6 +181,7 @@ export default function Sidebar({
 
                         <Link
                             to={n.to}
+                            onClick={() => setMobileOpen(false)}
                             className="
                                 w-full
                                 flex
@@ -132,6 +208,7 @@ export default function Sidebar({
 
                                 if (n.action === "create") {
                                     setShowCreateModal(true);
+                                    setMobileOpen(false);
                                 }
 
                             }}
@@ -163,7 +240,10 @@ export default function Sidebar({
 
             {/* New Chat */}
             <button
-                onClick={onNewChat}
+                onClick={() => {
+                    setMobileOpen(false);
+                    onNewChat?.();
+                }}
                 className="
                     mt-4
                     w-full
@@ -216,7 +296,8 @@ export default function Sidebar({
 
                             console.log("CLICK CHAT:", chat.id);
 
-                            onSelectChat(chat.id);
+                            setMobileOpen(false);
+                            onSelectChat?.(chat.id);
 
                         }}
                         className="
@@ -499,7 +580,8 @@ justify-center
                 </div>
 
             )}
-        </aside>
+            </aside>
+        </>
     );
     
 }
