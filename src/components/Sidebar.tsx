@@ -10,6 +10,8 @@ import {
     Plus,
     Sparkles,
     MoreHorizontal,
+    Menu,
+    X,
 } from "lucide-react";
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -81,11 +83,65 @@ export default function Sidebar({
     const navigate = useNavigate();
 
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    const closeMobileSidebar = () => setMobileOpen(false);
+
     return (
-        <aside className="w-60 shrink-0 flex flex-col bg-transparent h-screen text-[#573d63]">
+        <>
+        {/* Mobile hamburger */}
+        <button
+            type="button"
+            aria-label="Open navigation"
+            onClick={() => setMobileOpen(true)}
+            className="
+                md:hidden
+                fixed top-3 left-3 z-[70]
+                h-11 w-11
+                rounded-xl
+                bg-white/90 backdrop-blur
+                shadow-md border border-white/70
+                flex items-center justify-center
+                text-[#573d63]
+            "
+        >
+            <Menu className="h-5 w-5" />
+        </button>
+
+        {/* Mobile overlay */}
+        {mobileOpen && (
+            <button
+                type="button"
+                aria-label="Close navigation"
+                onClick={closeMobileSidebar}
+                className="md:hidden fixed inset-0 z-[55] bg-black/35"
+            />
+        )}
+
+        <aside className={`
+            travel-sidebar
+            fixed md:static
+            top-0 left-0 z-[60]
+            w-60 shrink-0 flex flex-col
+            bg-[#f8edf7] md:bg-transparent
+            h-[100dvh] md:h-screen
+            text-[#573d63]
+            shadow-2xl md:shadow-none
+            transition-transform duration-300 ease-out
+            ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
+            md:translate-x-0
+        `}>
 
     {/* ================= HEADER ================= */}
     <div className="px-5 py-5 flex items-center gap-2 shrink-0 text-[#6f456f]">
+        <button
+            type="button"
+            aria-label="Close navigation"
+            onClick={closeMobileSidebar}
+            className="md:hidden ml-auto order-3 h-9 w-9 rounded-full hover:bg-white/70 flex items-center justify-center"
+        >
+            <X className="h-5 w-5" />
+        </button>
         <Sparkles className="h-6 w-6" />
         <span className="text-lg font-semibold tracking-tight">
             TravelWise.
@@ -106,6 +162,7 @@ export default function Sidebar({
 
                         <Link
                             to={n.to}
+                            onClick={closeMobileSidebar}
                             className="
                                 w-full
                                 flex
@@ -132,6 +189,7 @@ export default function Sidebar({
 
                                 if (n.action === "create") {
                                     setShowCreateModal(true);
+                                    closeMobileSidebar();
                                 }
 
                             }}
@@ -217,6 +275,7 @@ export default function Sidebar({
                             console.log("CLICK CHAT:", chat.id);
 
                             onSelectChat(chat.id);
+                            closeMobileSidebar();
 
                         }}
                         className="
@@ -500,6 +559,7 @@ justify-center
 
             )}
         </aside>
+        </>
     );
     
 }
