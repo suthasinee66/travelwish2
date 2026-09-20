@@ -1712,28 +1712,77 @@ const saveTripToSupabase = async () => {
 
       const tripItems =
         items
-          .map(
-            (
-              item: any,
-              index: number
-            ) => {
-              const isRestaurant =
-                item.type ===
-                  "restaurant" ||
-                Boolean(
-                  item.restaurant_id
-                );
+          .flatMap(
+            (item: any) => {
+              const expanded: any[] = [];
 
+              const placeId =
+                item.place_id ??
+                item.att_id;
+
+              // routePlaces ที่แยกแล้ว:
+              // ใช้ type เป็นตัวตัดสินหลัก
               if (
-                isRestaurant
+                item.type === "place"
               ) {
-                if (
-                  !item.restaurant_id
-                ) {
-                  return null;
+                if (placeId) {
+                  expanded.push({
+                    trip_day_id:
+                      tripDay.id,
+                    item_type:
+                      "place",
+                    att_id:
+                      String(placeId),
+                    restaurant_id:
+                      null,
+                  });
                 }
 
-                return {
+                return expanded;
+              }
+
+              if (
+                item.type ===
+                "restaurant"
+              ) {
+                if (
+                  item.restaurant_id
+                ) {
+                  expanded.push({
+                    trip_day_id:
+                      tripDay.id,
+                    item_type:
+                      "restaurant",
+                    att_id: null,
+                    restaurant_id:
+                      String(
+                        item.restaurant_id
+                      ),
+                  });
+                }
+
+                return expanded;
+              }
+
+              // planner item เดิมอาจมีทั้ง
+              // place_id + restaurant_id ใน object เดียว
+              if (placeId) {
+                expanded.push({
+                  trip_day_id:
+                    tripDay.id,
+                  item_type:
+                    "place",
+                  att_id:
+                    String(placeId),
+                  restaurant_id:
+                    null,
+                });
+              }
+
+              if (
+                item.restaurant_id
+              ) {
+                expanded.push({
                   trip_day_id:
                     tripDay.id,
                   item_type:
@@ -1743,34 +1792,36 @@ const saveTripToSupabase = async () => {
                     String(
                       item.restaurant_id
                     ),
-                  sort_order:
-                    index + 1,
-                };
+                });
               }
 
-              const placeId =
-                item.place_id ??
-                item.att_id;
-
-              if (!placeId) {
-                return null;
-              }
-
-              return {
-                trip_day_id:
-                  tripDay.id,
-                item_type:
-                  "place",
-                att_id:
-                  String(placeId),
-                restaurant_id:
-                  null,
-                sort_order:
-                  index + 1,
-              };
+              return expanded;
             }
           )
-          .filter(Boolean);
+          .map(
+            (
+              item: any,
+              index: number
+            ) => ({
+              ...item,
+              sort_order:
+                index + 1,
+            })
+          );
+
+      console.log(
+        `📦 DAY ${dayNumber} SAVE ITEMS:`,
+        tripItems.map(
+          (item: any) => ({
+            type: item.item_type,
+            att_id: item.att_id,
+            restaurant_id:
+              item.restaurant_id,
+            sort_order:
+              item.sort_order,
+          })
+        )
+      );
 
       if (
         tripItems.length > 0
@@ -3291,6 +3342,8 @@ const buildRoutePlaces = (items: any[]) => {
         result.push({
           ...item,
           type: "place",
+          restaurant_id: null,
+          restaurant_name: null,
           location: place,
           name:
             place.name_th ??
@@ -3314,6 +3367,8 @@ const buildRoutePlaces = (items: any[]) => {
         result.push({
           ...item,
           type: "restaurant",
+          place_id: null,
+          place_name: null,
           location: restaurant,
           name:
             restaurant.place_name_th ??
