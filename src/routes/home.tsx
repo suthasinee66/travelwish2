@@ -7125,7 +7125,13 @@ focus:ring-black/20
                   {!exploreOpen && (
                     <button
                       onClick={handleExplore}
-                      className="text-xs text-muted-foreground hover:text-black"
+                      className="
+                        ml-auto
+                        shrink-0
+                        text-xs
+                        text-muted-foreground
+                        hover:text-black
+                      "
                     >
                       Explore
                     </button>
