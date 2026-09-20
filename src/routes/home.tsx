@@ -565,7 +565,7 @@ function DistanceBetweenItems({
           bg-gray-200
         "
       />
-      <span>≈ {label}</span>
+      <span>| {label}</span>
     </div>
   );
 }
