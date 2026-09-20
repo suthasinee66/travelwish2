@@ -4188,14 +4188,28 @@ justify-center
     onClick={() => setShowSaveTripModal(false)}
   >
     <div
+      style={{
+        background: "#fffdfb",
+        backgroundColor: "#fffdfb",
+        backgroundImage: "none",
+        opacity: 1,
+        backdropFilter: "none",
+        WebkitBackdropFilter: "none",
+        filter: "none",
+        mixBlendMode: "normal",
+        isolation: "isolate",
+      }}
       className="
         travel-modal-card
-        bg-white
+        !bg-[#fffdfb]
+        !opacity-100
         rounded-3xl
+        border
+        border-[#eadfeb]
         p-6
         w-full
         max-w-md
-        shadow-2xl
+        shadow-[0_24px_70px_rgba(91,72,117,0.22)]
       "
       onClick={(e) => e.stopPropagation()}
     >
@@ -4223,16 +4237,24 @@ justify-center
           onChange={(e) =>
             setTripTitle(e.target.value)
           }
+          style={{
+            backgroundColor: "#ffffff",
+            opacity: 1,
+          }}
           className="
             mt-2
             w-full
+            !bg-white
+            !opacity-100
             border
+            border-[#e3d7e6]
             rounded-xl
             px-4
             py-3
             outline-none
+            focus:border-[#b89bcb]
             focus:ring-2
-            focus:ring-black/10
+            focus:ring-[#b89bcb]/15
           "
           placeholder="ชื่อทริป"
         />
