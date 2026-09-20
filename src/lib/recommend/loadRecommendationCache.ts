@@ -4,7 +4,9 @@ import { getPreferenceHash } from "./getPreferenceHash";
 
 export async function loadRecommendationCache(
   userId: string,
-  preferences: any
+  preferences: any,
+  places?: any[],
+  onReady?: (places: any[]) => void,
 ) {
 
   // ==========================================
@@ -96,7 +98,8 @@ export async function loadRecommendationCache(
 
   if (
     cached &&
-    Array.isArray(cached.recommendations)
+    Array.isArray(cached.recommendations) &&
+    cached.recommendations.length > 0
   ) {
 
     console.log(
@@ -121,7 +124,11 @@ export async function loadRecommendationCache(
 
 
   const recommendations =
-    await getRecommendations(preferences);
+    await getRecommendations(preferences, places, onReady);
+
+  if (recommendations.length === 0) {
+    return { data: recommendations, fromCache: false };
+  }
 
 
   // ==========================================

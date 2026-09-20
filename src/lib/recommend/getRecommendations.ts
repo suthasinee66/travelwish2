@@ -1,14 +1,18 @@
 import { supabase } from "@/lib/supabase";
 import { getPlaceImage } from "@/lib/google/places";
 
-export const getRecommendations = async (pref: any) => {
+export const getRecommendations = async (
+  pref: any,
+  places?: any[],
+  onReady?: (places: any[]) => void,
+) => {
   if (!pref) return [];
 
-  let allData: any[] = [];
+  let allData: any[] = places || [];
 const pageSize = 1000;
 let from = 0;
 
-while (true) {
+while (!places) {
   const { data, error } = await supabase
     .from("attraction")
     .select("*")
@@ -16,7 +20,7 @@ while (true) {
 
   if (error) {
     console.error(error);
-    return [];
+    throw error;
   }
 
   if (!data || data.length === 0) break;
@@ -126,13 +130,21 @@ console.table(
 );
 
 
-const result = await Promise.all(
-  topPlaces.map(async (place) => {
+// Publish ranked places before optional image requests complete.
+onReady?.(topPlaces);
+
+// Limit image requests on mobile connections; image failures must not discard scores.
+const result: any[] = new Array(topPlaces.length);
+let nextIndex = 0;
+await Promise.all(Array.from({ length: Math.min(4, topPlaces.length) }, async () => {
+  while (nextIndex < topPlaces.length) {
+    const index = nextIndex++;
+    const place = topPlaces[index];
+    const existingImages = Array.isArray(place.images) ? place.images : [];
 
     // ✅ มีรูปใน Supabase แล้ว
     if (
-      place.images &&
-      place.images.length >= 5
+      existingImages.length > 0
     ) {
 
       console.log(
@@ -140,10 +152,11 @@ const result = await Promise.all(
         place.name_th
       );
 
-      return {
+      result[index] = {
         ...place,
         images: place.images
       };
+      continue;
     }
 
 
@@ -154,6 +167,7 @@ const result = await Promise.all(
     );
 
 
+    try {
     const images = await getPlaceImage(
       place.name_th,
       place.province
@@ -176,13 +190,16 @@ const result = await Promise.all(
     }
 
 
-    return {
+    result[index] = {
       ...place,
       images
     };
-
-  })
-);
+    } catch (error) {
+      console.warn("Place image unavailable; keeping recommendation", place.att_id);
+      result[index] = { ...place, images: existingImages };
+    }
+  }
+}));
 
 
 console.log("========== FINAL RESULT ==========");
