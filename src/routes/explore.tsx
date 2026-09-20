@@ -14,6 +14,7 @@ import {
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { supabase } from "@/lib/supabase";
 import { Link } from "@tanstack/react-router";
@@ -51,6 +52,7 @@ const categories = [
 
 
 function Explore() {
+  const [placeToAddTrip, setPlaceToAddTrip] = useState<any | null>(null);
   const {
  user,
  recommend,
@@ -294,6 +296,13 @@ if(!error){
   return (
     <div className="travel-home flex h-screen text-foreground aurora-canvas">
       <Sidebar user={user}/>
+      <AddPlaceToTripModal
+        open={!!placeToAddTrip}
+        place={placeToAddTrip}
+        onClose={() =>
+          setPlaceToAddTrip(null)
+        }
+      />
 
       <main className="travel-main flex-1 overflow-y-auto min-w-0">
         <header className="travel-header h-16 flex items-center gap-4 px-8 sticky top-0 z-10">
@@ -471,7 +480,7 @@ className={
 <button
   onClick={(e)=>{
     e.stopPropagation();
-    console.log("add trip", place.att_id);
+    setPlaceToAddTrip(place);
   }}
   className="
   absolute
@@ -737,7 +746,7 @@ ${
 <button
   onClick={(e) => {
     e.stopPropagation();
-    console.log("add trip", f.att_id);
+    setPlaceToAddTrip(f);
   }}
   className="
 absolute
