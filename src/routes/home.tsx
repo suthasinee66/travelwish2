@@ -3831,9 +3831,45 @@ const rejectedFromHistory = [
   )
 ];
 
+const excludeKeywordsFromHistory = [
+  ...new Set(
+    data
+      .filter((m) => m.role === "user")
+      .flatMap((m) => {
+        const text = String(m.content ?? "").toLowerCase();
+
+        const knownKeywords = [
+          "อุทยาน",
+          "วัด",
+          "คาเฟ่",
+          "น้ำตก",
+          "ทะเล",
+          "ภูเขา",
+          "พิพิธภัณฑ์",
+          "ตลาด",
+          "ธรรมชาติ",
+          "เมือง"
+        ];
+
+        const isReject =
+          text.includes("ไม่เอา") ||
+          text.includes("ไม่อยากไป") ||
+          text.includes("ไม่ชอบ") ||
+          text.includes("ตัด") ||
+          text.includes("เอาออก");
+
+        return isReject
+          ? knownKeywords.filter(keyword =>
+              text.includes(keyword)
+            )
+          : [];
+      })
+  )
+];
+
 setTripEditConstraints({
   rejectedPlaceIds: rejectedFromHistory,
-  excludeKeywords: []
+  excludeKeywords: excludeKeywordsFromHistory
 });
 // ===============================
 // โหลด planner_json
