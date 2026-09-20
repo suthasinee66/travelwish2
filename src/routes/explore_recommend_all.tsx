@@ -10,6 +10,7 @@ import {
 
 import { Link } from "@tanstack/react-router";
 import Sidebar from "@/components/Sidebar";
+import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
 import { useEffect, useState } from "react";
 import { useTravelStore } from "@/store/travelStore";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/explore_recommend_all")({
 
 
 function ExploreAll() {
+  const [placeToAddTrip, setPlaceToAddTrip] = useState<any | null>(null);
 
   const {
   user,
@@ -166,6 +168,13 @@ place.att_id
 
 
       <Sidebar user={user}/>
+      <AddPlaceToTripModal
+        open={!!placeToAddTrip}
+        place={placeToAddTrip}
+        onClose={() =>
+          setPlaceToAddTrip(null)
+        }
+      />
 
 
 
@@ -433,10 +442,7 @@ onClick={(e)=>{
 
 e.stopPropagation();
 
-console.log(
-"add trip",
-place.att_id
-);
+setPlaceToAddTrip(place);
 
 }}
 
