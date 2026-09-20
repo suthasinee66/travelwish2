@@ -8,6 +8,8 @@ import nearbyRestaurantsRouter
 dotenv.config();
 import attractionImagesRouter
   from "./api/attractionImages.js";
+import restaurantImagesRouter
+  from "./api/restaurantImages.js";
 
 
 const app = express();
@@ -24,6 +26,11 @@ app.use("/api", nearbyRestaurantsRouter);
 app.use(
   "/api",
   attractionImagesRouter
+);
+
+app.use(
+  "/api",
+  restaurantImagesRouter
 );
 
 // ============================================
