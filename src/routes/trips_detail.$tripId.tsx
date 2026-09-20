@@ -588,6 +588,7 @@ const mapCenter = useMemo(() => {
 {/* Header */}
 <div
   className="
+    travel-detail-header
     relative
     flex
     items-center

@@ -5150,10 +5150,8 @@ text-xl
             onClick={() => setExploreOpen(false)}
           />
         )}
-        <header className="travel-header h-16 flex items-center px-6">
-          <button onClick={handleNewChat} className="text-sm font-medium flex items-center gap-1">
-            New chat <span className="text-muted-foreground">▾</span>
-          </button>
+        <header className="travel-header travel-chat-header flex items-center px-6">
+          <h1>Your trip</h1>
           <div className="flex-1 flex justify-center">
             <div className="flex items-center gap-6 text-sm">
               <button

@@ -87,7 +87,7 @@ function ExploreNearbyAll() {
       <main className="flex-1 overflow-y-auto px-8 py-8">
         {/* Header */}
 
-        <div className="flex items-center justify-between mb-8">
+        <div className="travel-list-header flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Link
               to="/explore"
