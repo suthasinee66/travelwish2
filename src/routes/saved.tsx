@@ -260,7 +260,7 @@ async function loadSaved(){
           </button>
         </header>
 
-        <div className="px-8 py-7 max-w-6xl">
+        <div className="px-8 py-7 max-w-5xl mx-auto">
           <div className="mb-7">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#a2779f]">Your travel library</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#49334f]">Places worth remembering</h2>
@@ -298,13 +298,13 @@ async function loadSaved(){
                 </button>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3">
               {savedItems.map((s) => (
                 <article
                   key={s.id}
-                  className="glass-surface rounded-3xl overflow-hidden cursor-pointer group hover-lift"
+                  className="glass-surface rounded-2xl overflow-hidden cursor-pointer group hover-lift"
                 >
-                  <div className="relative h-44 overflow-hidden">
+                  <div className="relative h-24 overflow-hidden sm:h-32 md:h-36">
                     <img
                       src={s.img}
                       alt={s.title}
@@ -313,24 +313,24 @@ async function loadSaved(){
                     <button className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 text-rose-500 flex items-center justify-center hover:bg-white">
                       <Heart className="h-3.5 w-3.5 fill-current" />
                     </button>
-                    <span className="absolute bottom-2 left-2 text-[11px] rounded-full bg-black/60 text-white px-2 py-0.5">
+                    <span className="absolute bottom-2 left-2 text-[9px] sm:text-[11px] rounded-full bg-black/60 text-white px-2 py-0.5">
                       {s.tag}
                     </span>
                   </div>
-                  <div className="p-3.5">
+                  <div className="p-2 sm:p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="font-semibold leading-tight">{s.title}</h3>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <h3 className="truncate text-sm font-semibold leading-tight sm:text-base">{s.title}</h3>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mt-1">
                           <MapPin className="h-3 w-3" /> {s.place}
                         </div>
                       </div>
-                      <div className="text-xs font-medium flex items-center gap-0.5 shrink-0">
+                      <div className="text-[10px] sm:text-xs font-medium flex items-center gap-0.5 shrink-0">
                         <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {s.rating}
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
+                    <div className="mt-2 flex items-center justify-between sm:mt-3">
+                      <span className="max-w-[78%] truncate text-[10px] sm:text-xs text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
                         {s.collection}
                       </span>
                       <button
