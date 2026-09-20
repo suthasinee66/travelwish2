@@ -342,8 +342,7 @@ export default function AddPlaceToTripModal({
         flex
         items-center
         justify-center
-        bg-black/55
-        backdrop-blur-[2px]
+        bg-black/25
         p-4
       "
       onClick={onClose}
@@ -359,7 +358,7 @@ export default function AddPlaceToTripModal({
           border-gray-200
           bg-white
           p-5
-          shadow-[0_24px_80px_rgba(0,0,0,0.28)]
+          shadow-[0_18px_50px_rgba(0,0,0,0.16)]
         "
         onClick={event =>
           event.stopPropagation()
