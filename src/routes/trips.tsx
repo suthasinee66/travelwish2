@@ -346,7 +346,7 @@ function openTrip(tripId: string) {
 
           <section>
 
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3">
 
               {/* ==================================================
                   NEW TRIP CARD
@@ -360,7 +360,8 @@ function openTrip(tripId: string) {
                   glass-surface
                   rounded-2xl
                   overflow-hidden
-                  min-h-[270px]
+                  min-h-[210px]
+                  sm:min-h-[240px]
                   border-2
                   border-dashed
                   border-[#c9a8c8]/60
@@ -377,8 +378,10 @@ function openTrip(tripId: string) {
 
                 <div
                   className="
-                    h-10
-                    w-10
+                    h-9
+                    w-9
+                    sm:h-10
+                    sm:w-10
                     rounded-full
                     bg-secondary
                     flex
@@ -390,11 +393,11 @@ function openTrip(tripId: string) {
                   <Plus className="h-4 w-4" />
                 </div>
 
-                <span className="mt-3 font-semibold">
+                <span className="mt-2 text-sm font-semibold sm:mt-3 sm:text-base">
                   New Trip
                 </span>
 
-                <span className="mt-1 text-xs text-muted-foreground">
+                <span className="mt-1 hidden text-xs text-muted-foreground sm:block">
                   Start planning your next adventure
                 </span>
 
@@ -417,9 +420,9 @@ function openTrip(tripId: string) {
                       "
                     >
 
-                      <div className="h-36 bg-secondary" />
+                      <div className="h-24 bg-secondary sm:h-32 md:h-36" />
 
-                      <div className="p-3 space-y-2">
+                      <div className="p-2 space-y-1.5 sm:p-3 sm:space-y-2">
 
                         <div className="h-5 bg-secondary rounded" />
 
@@ -457,7 +460,7 @@ function openTrip(tripId: string) {
 
                     {/* IMAGE */}
 
-                    <div className="relative h-36 overflow-hidden">
+                    <div className="relative h-24 overflow-hidden sm:h-32 md:h-36">
 
                       <img
                         src={getCover(trip)}
@@ -479,7 +482,8 @@ function openTrip(tripId: string) {
                           absolute
                           bottom-2
                           left-2
-                          text-[11px]
+                          text-[9px]
+                          sm:text-[11px]
                           rounded-full
                           bg-black/60
                           text-white
@@ -494,17 +498,17 @@ function openTrip(tripId: string) {
 
                     {/* CONTENT */}
 
-                    <div className="p-3">
+                    <div className="p-2 sm:p-3">
 
                       <div className="flex items-start justify-between gap-2">
 
                         <div className="min-w-0">
 
-                          <h3 className="font-semibold leading-tight truncate">
+                          <h3 className="truncate text-sm font-semibold leading-tight sm:text-base">
                             {trip.title || "Untitled Trip"}
                           </h3>
 
-                          <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                          <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mt-1">
 
                             <MapPin className="h-3 w-3 shrink-0" />
 
@@ -521,9 +525,9 @@ function openTrip(tripId: string) {
 
                       {/* TRIP INFORMATION */}
 
-                      <div className="mt-2.5 space-y-1.5">
+                      <div className="mt-2 space-y-1 sm:mt-2.5 sm:space-y-1.5">
 
-                        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <div className="text-[10px] sm:text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
 
                           <Calendar className="h-3.5 w-3.5" />
 
@@ -541,7 +545,7 @@ function openTrip(tripId: string) {
 
                         </div>
 
-                        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <div className="text-[10px] sm:text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
 
                           <Users className="h-3.5 w-3.5" />
 
@@ -562,14 +566,17 @@ function openTrip(tripId: string) {
                           openTrip(trip.id);
                         }}
                         className="
-                          mt-3
+                          mt-2
                           w-full
-                          text-xs
+                          text-[10px]
+                          sm:mt-3
+                          sm:text-xs
                           font-medium
                           border
                           border-border
                           rounded-full
-                          py-1.5
+                          py-1
+                          sm:py-1.5
                           hover:bg-accent
                           transition
                         "
