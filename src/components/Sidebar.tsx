@@ -16,28 +16,81 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import claudeIcon from "@/assets/ai/claude.png";
-import geminiIcon from "@/assets/ai/gemini.png";
-import gptIcon from "@/assets/ai/gpt.png";
+import ai1Icon from "@/assets/ai/ai1.svg";
+import ai2Icon from "@/assets/ai/ai2.svg";
+import ai3Icon from "@/assets/ai/ai3.svg";
 
 function getModelIcon(model: string | null) {
     if (!model) return null;
 
     const m = model.toLowerCase();
 
-    if (m.includes("claude")) {
-        return claudeIcon;
-    }
-
     if (m.includes("gemini")) {
-        return geminiIcon;
+        return ai1Icon;
     }
 
     if (m.includes("gpt")) {
-        return gptIcon;
+        return ai2Icon;
+    }
+
+    if (m.includes("claude")) {
+        return ai3Icon;
     }
 
     return null;
+}
+
+function getModelLabel(model: string | null) {
+    if (!model) return "AI";
+
+    const m = model.toLowerCase();
+
+    if (m.includes("gemini")) return "AI 1";
+    if (m.includes("gpt")) return "AI 2";
+    if (m.includes("claude")) return "AI 3";
+
+    return "AI";
+}
+
+function getChatTitle(chat: any) {
+    const rawTitle = String(chat?.title || "").trim();
+    const pref = chat?.trip_preferences || {};
+
+    if (
+        rawTitle &&
+        rawTitle.toLowerCase() !== "new trip" &&
+        rawTitle.toLowerCase() !== "new chat"
+    ) {
+        return rawTitle;
+    }
+
+    if (pref?.province) {
+        return `ทริป${pref.province}`;
+    }
+
+    if (pref?.days) {
+        return `แผนทริป ${pref.days} วัน`;
+    }
+
+    return "แชทใหม่";
+}
+
+function getTripSummary(chat: any) {
+    const pref = chat?.trip_preferences || {};
+
+    const parts = [
+        pref?.days
+            ? `${pref.days} วัน`
+            : null,
+        pref?.companion
+            ? pref.companion
+            : null,
+        pref?.budget
+            ? `${Number(pref.budget).toLocaleString()} บาท`
+            : null,
+    ].filter(Boolean);
+
+    return parts.join(" · ");
 }
 
 const navItems = [
@@ -250,7 +303,7 @@ export default function Sidebar({
                             text-sm
                             truncate
                             flex
-                            items-center
+                            items-start
                         "
                     >
 
@@ -258,12 +311,14 @@ export default function Sidebar({
 
                             <img
                                 src={getModelIcon(chat.ai_model)!}
-                                alt={chat.ai_model}
+                                alt={getModelLabel(chat.ai_model)}
+                                title={getModelLabel(chat.ai_model)}
                                 className="
-                                    inline-block
+                                    mt-0.5
                                     mr-2
-                                    h-[18px]
-                                    w-[18px]
+                                    h-[20px]
+                                    w-[20px]
+                                    rounded-md
                                     object-contain
                                     shrink-0
                                 "
@@ -272,14 +327,29 @@ export default function Sidebar({
                         ) : (
 
                             <MessageCircle
-                                size={15}
-                                className="inline-block mr-2 shrink-0"
+                                size={16}
+                                className="mt-0.5 mr-2 shrink-0"
                             />
 
                         )}
 
-                        <span className="truncate">
-                            {chat.title || "New trip"}
+                        <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium">
+                                {getChatTitle(chat)}
+                            </span>
+
+                            {getTripSummary(chat) && (
+                                <span className="
+                                    mt-0.5
+                                    block
+                                    truncate
+                                    text-[10px]
+                                    font-normal
+                                    text-muted-foreground
+                                ">
+                                    {getTripSummary(chat)}
+                                </span>
+                            )}
                         </span>
 
                     </button>
