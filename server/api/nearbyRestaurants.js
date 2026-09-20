@@ -183,6 +183,7 @@ router.get(
             distance_km,
             restaurant (
               place_id,
+              google_place_id,
               place_name_th,
               place_name_en,
               place_address,
@@ -438,6 +439,9 @@ router.get(
           .map((place) => ({
 
             place_id:
+              place.id ?? null,
+
+            google_place_id:
               place.id ?? null,
 
             place_name_th:
