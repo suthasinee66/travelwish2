@@ -372,7 +372,7 @@ function LoginPage() {
                     </label>
 
                     <Link
-                      to="/"
+                      to="/forgot-password"
                       className="text-xs font-semibold text-[#8b718f] transition-colors hover:text-[#634d6f]"
                     >
                       ลืมรหัสผ่าน?
