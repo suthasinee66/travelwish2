@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  Compass,
   Heart,
   MapPin,
   Plus,
@@ -838,168 +837,15 @@ function Explore() {
         flex-1
         overflow-y-auto
       ">
-        <header className="
-          travel-header
-          sticky
-          top-0
-          z-30
-          flex
-          items-center
-          gap-3
-          border-b
-          border-white/70
-          px-4
-          py-3
-          sm:px-6
-          lg:px-8
-        ">
-          <div className="
-            hidden
-            shrink-0
-            items-center
-            gap-2
-            sm:flex
-          ">
-            <Compass
-              size={18}
-              className="text-[#6f456f]"
-            />
-            <h1 className="
-              text-base
-              font-bold
-              text-[#49334f]
-            ">
-              Explore
-            </h1>
-          </div>
-
-          <div className="
-            relative
-            min-w-0
-            flex-1
-            sm:mx-auto
-            sm:max-w-xl
-          ">
-            <Search className="
-              absolute
-              left-3.5
-              top-1/2
-              h-4
-              w-4
-              -translate-y-1/2
-              text-[#8c7f90]
-            " />
-
-            <input
-              value={searchText}
-              onChange={(event) =>
-                setSearchText(
-                  event.target.value
-                )
-              }
-              placeholder="ค้นหาสถานที่ จังหวัด หรือกิจกรรม"
-              className="
-                h-11
-                w-full
-                rounded-2xl
-                border
-                border-[#e6dce8]
-                bg-white
-                pl-10
-                pr-10
-                text-sm
-                text-[#49334f]
-                outline-none
-                placeholder:text-[#a79dab]
-                focus:border-[#b99bc5]
-                focus:ring-2
-                focus:ring-[#b99bc5]/15
-              "
-            />
-
-            {searchText && (
-              <button
-                type="button"
-                onClick={() =>
-                  setSearchText("")
-                }
-                className="
-                  absolute
-                  right-3
-                  top-1/2
-                  -translate-y-1/2
-                  rounded-full
-                  p-1
-                  text-[#8c7f90]
-                  hover:bg-[#f5eef7]
-                "
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
-              setShowFilters(
-                (value) => !value
-              )
-            }
-            className={`
-              relative
-              flex
-              h-11
-              shrink-0
-              items-center
-              gap-2
-              rounded-2xl
-              border
-              px-3
-              text-sm
-              font-semibold
-              transition
-              ${showFilters ||
-              activeFilterCount > 0
-                ? "border-[#c9afd2] bg-[#f5eef7] text-[#573d63]"
-                : "border-[#e6dce8] bg-white text-[#685b6d] hover:bg-[#faf6fb]"
-              }
-            `}
-          >
-            <SlidersHorizontal
-              size={16}
-            />
-            <span className="hidden sm:inline">
-              Filters
-            </span>
-
-            {activeFilterCount > 0 && (
-              <span className="
-                flex
-                h-5
-                min-w-5
-                items-center
-                justify-center
-                rounded-full
-                bg-[#573d63]
-                px-1
-                text-[10px]
-                text-white
-              ">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
-        </header>
-
         <div className="
           mx-auto
           w-full
           max-w-7xl
           px-4
           pb-12
-          pt-6
+          pt-16
           sm:px-6
+          md:pt-7
           lg:px-8
         ">
           <section className="
@@ -1070,6 +916,138 @@ function Explore() {
           </section>
 
           <div className="
+            mb-5
+            flex
+            items-center
+            gap-2.5
+          ">
+            <div className="
+              relative
+              min-w-0
+              flex-1
+            ">
+              <Search className="
+                absolute
+                left-3.5
+                top-1/2
+                h-4
+                w-4
+                -translate-y-1/2
+                text-[#8c7f90]
+              " />
+
+              <input
+                value={searchText}
+                onChange={(event) =>
+                  setSearchText(
+                    event.target.value
+                  )
+                }
+                placeholder="ค้นหาสถานที่ จังหวัด หรือกิจกรรม"
+                className="
+                  h-11
+                  w-full
+                  rounded-2xl
+                  border
+                  border-[#e6dce8]
+                  bg-white
+                  pl-10
+                  pr-10
+                  text-sm
+                  text-[#49334f]
+                  shadow-[0_4px_18px_rgba(91,72,117,0.04)]
+                  outline-none
+                  placeholder:text-[#a79dab]
+                  focus:border-[#b99bc5]
+                  focus:ring-2
+                  focus:ring-[#b99bc5]/15
+                "
+              />
+
+              {searchText && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSearchText("")
+                  }
+                  className="
+                    absolute
+                    right-3
+                    top-1/2
+                    -translate-y-1/2
+                    rounded-full
+                    p-1
+                    text-[#8c7f90]
+                    hover:bg-[#f5eef7]
+                  "
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowFilters(
+                  (value) => !value
+                )
+              }
+              style={
+                showFilters ||
+                activeFilterCount > 0
+                  ? {
+                      color: "#ffffff",
+                    }
+                  : undefined
+              }
+              className={`
+                relative
+                flex
+                h-11
+                shrink-0
+                items-center
+                gap-2
+                rounded-2xl
+                border
+                px-3.5
+                text-sm
+                font-semibold
+                transition
+                ${showFilters ||
+                activeFilterCount > 0
+                  ? "border-transparent bg-gradient-to-r from-[#6f456f] via-[#936493] to-[#c28eaa] !text-white shadow-[0_7px_18px_rgba(111,69,111,0.20)]"
+                  : "border-[#e6dce8] bg-white text-[#685b6d] hover:border-[#cdb8d4] hover:bg-[#faf6fb]"
+                }
+              `}
+            >
+              <SlidersHorizontal
+                size={16}
+              />
+              <span className="hidden sm:inline">
+                Filters
+              </span>
+
+              {activeFilterCount > 0 && (
+                <span className="
+                  flex
+                  h-5
+                  min-w-5
+                  items-center
+                  justify-center
+                  rounded-full
+                  bg-white/20
+                  px-1
+                  text-[10px]
+                  !text-white
+                ">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div className="
             -mx-1
             flex
             gap-2
@@ -1090,6 +1068,14 @@ function Explore() {
                       category.value
                     )
                   }
+                  style={
+                    selectedCategory ===
+                    category.value
+                      ? {
+                          color: "#ffffff",
+                        }
+                      : undefined
+                  }
                   className={`
                     shrink-0
                     rounded-full
@@ -1101,7 +1087,7 @@ function Explore() {
                     transition
                     ${selectedCategory ===
                     category.value
-                      ? "border-[#573d63] bg-[#573d63] text-white shadow-sm"
+                      ? "border-transparent bg-gradient-to-r from-[#6f456f] via-[#936493] to-[#c28eaa] !text-white shadow-[0_7px_18px_rgba(111,69,111,0.18)]"
                       : "border-[#e6dce8] bg-[#fffdfb] text-[#685b6d] hover:border-[#cdb8d4] hover:bg-[#f8f2fa]"
                     }
                   `}
