@@ -3604,6 +3604,13 @@ function Home() {
   const [waitingPlanConfirm, setWaitingPlanConfirm] = useState(false);
   const [collectingTrip, setCollectingTrip] = useState(false);
   const [plannerJson, setPlannerJson] = useState<any[]>([]);
+  const [tripEditConstraints, setTripEditConstraints] = useState<{
+    rejectedPlaceIds: string[];
+    excludeKeywords: string[];
+  }>({
+    rejectedPlaceIds: [],
+    excludeKeywords: []
+  });
   const [activeStep, setActiveStep] =
     useState<
       "where" |
@@ -3785,6 +3792,49 @@ const formatted = data.map((m) => ({
 }));
 
 setMessages(formatted);
+
+// สร้าง history ของสถานที่ที่ถูกเปลี่ยนออกจาก planner เวอร์ชันก่อนหน้า
+const plannerHistory = data
+  .filter(
+    (m) =>
+      m.role === "ai" &&
+      m.planner_json != null
+  )
+  .map(m =>
+    typeof m.planner_json === "string"
+      ? JSON.parse(m.planner_json)
+      : m.planner_json
+  )
+  .filter(Array.isArray);
+
+const latestPlannerHistory =
+  plannerHistory.at(-1) ?? [];
+
+const latestIds = new Set(
+  latestPlannerHistory
+    .map((item: any) => item?.place_id)
+    .filter(Boolean)
+    .map(String)
+);
+
+const rejectedFromHistory = [
+  ...new Set(
+    plannerHistory
+      .slice(0, -1)
+      .flatMap((plan: any[]) =>
+        plan
+          .map(item => item?.place_id)
+          .filter(Boolean)
+          .map(String)
+      )
+      .filter(id => !latestIds.has(id))
+  )
+];
+
+setTripEditConstraints({
+  rejectedPlaceIds: rejectedFromHistory,
+  excludeKeywords: []
+});
 // ===============================
 // โหลด planner_json
 // ===============================
@@ -4176,6 +4226,10 @@ ${active
 
   setPlan(null);
   setPlannerJson([]);
+  setTripEditConstraints({
+    rejectedPlaceIds: [],
+    excludeKeywords: []
+  });
   setShowTripPlan(false);
 
   setWaitingPlanConfirm(false);
@@ -4547,11 +4601,16 @@ const handleSend = async () => {
               plannerJson,
               intent: editIntent,
               tripInput,
-              userId: user.id
+              userId: user.id,
+              constraints:
+                tripEditConstraints
             });
 
           setPlannerJson(
             editResult.plannerJson
+          );
+          setTripEditConstraints(
+            editResult.constraints
           );
           setShowTripPlan(true);
           setExploreOpen(false);
