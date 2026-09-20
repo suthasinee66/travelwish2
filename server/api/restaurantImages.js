@@ -140,29 +140,6 @@ async function findRestaurant(
     }
   }
 
-  // 3) รองรับ planner ใหม่/ข้อมูลเก่าบางชุดที่เก็บ id ภายใน
-  if (/^\d+$/.test(value)) {
-    const {
-      data,
-      error
-    } = await supabase
-      .from("restaurant")
-      .select("*")
-      .eq("id", value)
-      .maybeSingle();
-
-    if (error) {
-      console.error(
-        "Restaurant id lookup error:",
-        error
-      );
-    }
-
-    if (data) {
-      return data;
-    }
-  }
-
   return null;
 }
 
@@ -352,26 +329,16 @@ async function updateRestaurantGoogleData(
       googleImages;
   }
 
-  let query = supabase
-    .from("restaurant")
-    .update(updatePayload);
-
-  if (restaurant.id != null) {
-    query = query.eq(
-      "id",
-      restaurant.id
-    );
-  } else {
-    query = query.eq(
-      "place_id",
-      restaurant.place_id
-    );
-  }
-
   const {
     data,
     error
-  } = await query
+  } = await supabase
+    .from("restaurant")
+    .update(updatePayload)
+    .eq(
+      "place_id",
+      restaurant.place_id
+    )
     .select("*")
     .maybeSingle();
 
@@ -425,7 +392,7 @@ async function ensureRestaurantGoogleData(
 
 // =========================================================
 // GET /api/restaurant-images?restaurant_id=...
-// Resolve id ภายใน/place_id -> google_place_id -> Google photos
+// Resolve place_id/google_place_id -> Google photos
 // =========================================================
 router.get(
   "/restaurant-images",
@@ -562,7 +529,6 @@ router.post(
             );
 
           results.push({
-            id: restaurant.id,
             place_id:
               restaurant.place_id,
             name:
@@ -581,7 +547,6 @@ router.post(
           });
         } catch (error) {
           results.push({
-            id: restaurant.id,
             place_id:
               restaurant.place_id,
             name:
