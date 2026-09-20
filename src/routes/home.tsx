@@ -455,178 +455,6 @@ function MapUpdater({
   return null;
 }
 
-function MapRoute({
-  places,
-  onRouteLoaded,
-}: {
-  places: any[];
-  onRouteLoaded: (legs: any[]) => void;
-}) {
-
-  const map = useMap();
-
-
-  useEffect(() => {
-    if (!map) return;
-
-    if (places.length < 2) {
-      onRouteLoaded([]);
-      return;
-    }
-
-    let polyline: google.maps.Polyline | null = null;
-    let cancelled = false;
-
-    async function drawRoute() {
-      try {
-        const apiKey =
-          import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-        if (!apiKey) {
-          console.error(
-            "❌ VITE_GOOGLE_MAPS_API_KEY is missing"
-          );
-          onRouteLoaded([]);
-          return;
-        }
-
-        const response = await fetch(
-          "https://routes.googleapis.com/directions/v2:computeRoutes",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Goog-Api-Key": apiKey,
-              "X-Goog-FieldMask":
-                "routes.polyline.encodedPolyline,routes.legs.distanceMeters,routes.legs.duration",
-            },
-            body: JSON.stringify({
-              origin: {
-                location: {
-                  latLng: {
-                    latitude: Number(
-                      places[0].location.latitude
-                    ),
-                    longitude: Number(
-                      places[0].location.longitude
-                    ),
-                  },
-                },
-              },
-              destination: {
-                location: {
-                  latLng: {
-                    latitude: Number(
-                      places[places.length - 1]
-                        .location.latitude
-                    ),
-                    longitude: Number(
-                      places[places.length - 1]
-                        .location.longitude
-                    ),
-                  },
-                },
-              },
-              intermediates: places
-                .slice(1, -1)
-                .map((place) => ({
-                  location: {
-                    latLng: {
-                      latitude: Number(
-                        place.location.latitude
-                      ),
-                      longitude: Number(
-                        place.location.longitude
-                      ),
-                    },
-                  },
-                })),
-              travelMode: "DRIVE",
-              optimizeWaypointOrder: false,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const errorText =
-            await response.text();
-
-          console.error(
-            "❌ GOOGLE ROUTES API ERROR:",
-            {
-              status: response.status,
-              statusText: response.statusText,
-              body: errorText,
-            }
-          );
-
-          if (!cancelled) {
-            onRouteLoaded([]);
-          }
-
-          return;
-        }
-
-        const data =
-          await response.json();
-
-        if (cancelled) return;
-
-        onRouteLoaded(
-          data.routes?.[0]?.legs || []
-        );
-
-        const encoded =
-          data.routes?.[0]
-            ?.polyline
-            ?.encodedPolyline;
-
-        if (!encoded) return;
-
-        const path =
-          google.maps.geometry.encoding.decodePath(
-            encoded
-          );
-
-        polyline =
-          new google.maps.Polyline({
-            path,
-            strokeColor: "#4285F4",
-            strokeWeight: 6,
-            strokeOpacity: 1,
-          });
-
-        polyline.setMap(map);
-      } catch (error) {
-        console.error(
-          "❌ DRAW ROUTE ERROR:",
-          error
-        );
-
-        if (!cancelled) {
-          onRouteLoaded([]);
-        }
-      }
-    }
-
-    drawRoute();
-
-    return () => {
-      cancelled = true;
-
-      if (polyline) {
-        polyline.setMap(null);
-      }
-    };
-  }, [
-    map,
-    JSON.stringify(places)
-  ]);
-
-
-  return null;
-
-}
 function SortablePlaceItem({
   item,
   index,
@@ -1237,7 +1065,6 @@ export function TripPlanPanel({
 const [showAllDays, setShowAllDays] = useState(false);
   const [routePlaces, setRoutePlaces] = useState<any[]>([]);
   const [routePlacesByDay,setRoutePlacesByDay] = useState<any>({});
-  const [routeLegs, setRouteLegs] = useState<any[]>([]);
   const [liveRestaurants, setLiveRestaurants] = useState<any[]>(restaurants);
   const [livePlaces, setLivePlaces] = useState<any[]>(allPlaces);
   const [hotelModal, setHotelModal] = useState(false);
@@ -2363,7 +2190,6 @@ const sensors = useSensors(
 
     setRoutePlaces([]);
     setRoutePlacesByDay({});
-    setRouteLegs([]);
   }, [plannerVersion]);
 
   useEffect(() => {
@@ -2961,11 +2787,6 @@ mapCenter;
         >
           <MapUpdater center={markerCenter} />
 
-          <MapRoute
-            places={routePlaces}
-            onRouteLoaded={setRouteLegs}
-          />
-
           {routePlaces
             .filter(
               (place) =>
@@ -2983,10 +2804,20 @@ mapCenter;
                   lat: Number(place.location.latitude),
                   lng: Number(place.location.longitude),
                 }}
+                icon={{
+                  url:
+                    "data:image/svg+xml;charset=UTF-8," +
+                    encodeURIComponent(
+                      '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
+                      '<circle cx="16" cy="16" r="14" fill="#573d63" stroke="#ffffff" stroke-width="2"/>' +
+                      "</svg>"
+                    ),
+                }}
                 label={{
                   text: String(index + 1),
                   color: "#ffffff",
                   fontWeight: "700",
+                  fontSize: "14px",
                 }}
                 title={place.name}
               />
@@ -3510,49 +3341,6 @@ justify-center
               }
             />
 
-
-            {/* DISTANCE */}
-            {index <
-              routePlaces.length - 1 &&
-              routeLegs[index] && (
-
-                <div
-                  className="
-                    travel-route-distance
-                    ml-10
-                    py-1.5
-                    flex
-                    items-center
-                    gap-2
-                    text-xs
-                  "
-                >
-
-                  <div
-                    className="
-                      travel-route-line
-                      w-px
-                      h-7
-                      ml-2
-                    "
-                  />
-
-                  <span>
-                    {routeLegs[index]
-                      .distanceMeters < 1000
-
-                      ? `${routeLegs[index]
-                          .distanceMeters} เมตร`
-
-                      : `${(
-                          routeLegs[index]
-                            .distanceMeters / 1000
-                        ).toFixed(1)} กม.`}
-                  </span>
-
-                </div>
-
-              )}
 
           </Fragment>
 
