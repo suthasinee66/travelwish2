@@ -1,13 +1,20 @@
-const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const API_URL = (import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:5000" : "")).replace(/\/$/, "");
 export async function getPlaceImage(
   placeName: string,
   province?: string
 ) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
   const res = await fetch(
-    `http://localhost:5000/api/place-image?name=${encodeURIComponent(
+    `${API_URL}/api/place-image?name=${encodeURIComponent(
       placeName
-    )}&province=${encodeURIComponent(province || "")}`
+    )}&province=${encodeURIComponent(province || "")}`,
+    { signal: controller.signal }
   );
+
+  if (!res.ok) throw new Error(`Place images unavailable (${res.status})`);
 
   const json = await res.json();
 
@@ -19,7 +26,12 @@ export async function getPlaceImage(
   console.groupEnd();
 
 
-  return json.images;
+  return Array.isArray(json.images)
+    ? json.images.filter((image: unknown) => typeof image === "string" && image.length > 0)
+    : [];
+  } finally {
+    clearTimeout(timeout);
+  }
 
 
   } 
@@ -30,7 +42,7 @@ export async function getPlaceImage(
   province?: string
 ) {
   const res = await fetch(
-    `http://localhost:5000/api/nearby-restaurants?lat=${latitude}&lng=${longitude}&province=${encodeURIComponent(
+    `${API_URL}/api/nearby-restaurants?lat=${latitude}&lng=${longitude}&province=${encodeURIComponent(
       province || ""
     )}`
   );
