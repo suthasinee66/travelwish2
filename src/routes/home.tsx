@@ -1225,6 +1225,7 @@ export function TripPlanPanel({
   existingTripId,
   existingTripTitle,
   onExistingTripSaved,
+  onRouteChange,
 }: {
   plannerJson: any;
   plan: string;
@@ -1241,6 +1242,9 @@ export function TripPlanPanel({
   existingTripId?: string | null;
   existingTripTitle?: string | null;
   onExistingTripSaved?: (title: string) => void;
+  onRouteChange?: (
+    routesByDay: Record<number, any[]>
+  ) => void;
 }) {
   console.log("🔥 TripPlanPanel RENDER");
 
@@ -2659,11 +2663,27 @@ const handleDragEnd = (event: any) => {
       return items;
     }
 
-    return arrayMove(
-      items,
-      oldIndex,
-      newIndex
+    const reordered =
+      arrayMove(
+        items,
+        oldIndex,
+        newIndex
+      );
+
+    const nextByDay = {
+      ...routePlacesByDay,
+      [selectedDay]: reordered,
+    };
+
+    setRoutePlacesByDay(
+      nextByDay
     );
+
+    onRouteChange?.(
+      nextByDay
+    );
+
+    return reordered;
 
   });
 
@@ -2856,6 +2876,10 @@ const handleAllDaysDragEnd = (
   );
 
   setRoutePlacesByDay(
+    nextByDay
+  );
+
+  onRouteChange?.(
     nextByDay
   );
 
