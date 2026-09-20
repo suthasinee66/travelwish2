@@ -455,6 +455,121 @@ function MapUpdater({
   return null;
 }
 
+function getDistanceMeters(
+  from: any,
+  to: any
+) {
+  const lat1 = Number(
+    from?.location?.latitude
+  );
+  const lng1 = Number(
+    from?.location?.longitude
+  );
+  const lat2 = Number(
+    to?.location?.latitude
+  );
+  const lng2 = Number(
+    to?.location?.longitude
+  );
+
+  if (
+    !Number.isFinite(lat1) ||
+    !Number.isFinite(lng1) ||
+    !Number.isFinite(lat2) ||
+    !Number.isFinite(lng2)
+  ) {
+    return null;
+  }
+
+  const R = 6371000;
+  const toRad = (degree: number) =>
+    (degree * Math.PI) / 180;
+
+  const dLat =
+    toRad(lat2 - lat1);
+  const dLng =
+    toRad(lng2 - lng1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) ** 2;
+
+  return (
+    2 *
+    R *
+    Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    )
+  );
+}
+
+function formatCompactDistance(
+  meters: number | null
+) {
+  if (
+    meters == null ||
+    !Number.isFinite(meters)
+  ) {
+    return null;
+  }
+
+  if (meters < 1000) {
+    return `${Math.round(meters)} ม.`;
+  }
+
+  return `${(
+    meters / 1000
+  ).toFixed(1)} กม.`;
+}
+
+function DistanceBetweenItems({
+  from,
+  to
+}: {
+  from: any;
+  to: any;
+}) {
+  const label =
+    formatCompactDistance(
+      getDistanceMeters(
+        from,
+        to
+      )
+    );
+
+  if (!label) {
+    return null;
+  }
+
+  return (
+    <div
+      className="
+        ml-8
+        my-0.5
+        flex
+        h-4
+        items-center
+        gap-1.5
+        text-[10px]
+        leading-none
+        text-gray-400
+      "
+    >
+      <div
+        className="
+          h-3
+          w-px
+          bg-gray-200
+        "
+      />
+      <span>≈ {label}</span>
+    </div>
+  );
+}
+
 function SortablePlaceItem({
   item,
   index,
@@ -3256,6 +3371,18 @@ justify-center
                       }
                     />
 
+                    {index <
+                      dayData.items.length - 1 && (
+                      <DistanceBetweenItems
+                        from={item}
+                        to={
+                          dayData.items[
+                            index + 1
+                          ]
+                        }
+                      />
+                    )}
+
                   </Fragment>
 
                 )
@@ -3341,6 +3468,17 @@ justify-center
               }
             />
 
+            {index <
+              routePlaces.length - 1 && (
+              <DistanceBetweenItems
+                from={item}
+                to={
+                  routePlaces[
+                    index + 1
+                  ]
+                }
+              />
+            )}
 
           </Fragment>
 
