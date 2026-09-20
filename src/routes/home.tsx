@@ -65,6 +65,10 @@ import {
   detectPlannerDecision,
   resetTrip
 } from "@/lib/ai/chat";
+import {
+  detectTripPlanEdit,
+  applyTripPlanEdit
+} from "@/lib/ai/tripEditor";
 import { Bot, Copy, ThumbsUp, ThumbsDown } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { loadRecommendationCache } from "@/lib/recommend/loadRecommendationCache";
@@ -3786,8 +3790,12 @@ setMessages(formatted);
 // ===============================
 
 const planner = data
-  .filter((m) => m.role === "ai")
-  .find((m) => m.planner_json != null);
+  .filter(
+    (m) =>
+      m.role === "ai" &&
+      m.planner_json != null
+  )
+  .at(-1);
 
 console.log("🔎 PLANNER MESSAGE:", planner);
 
@@ -4493,7 +4501,131 @@ const handleSend = async () => {
   }
 
   // =====================================
-  // 3. ตรวจว่าเป็นคำขอสร้างทริปหรือไม่
+  // 3. ถ้ามี Planner อยู่แล้ว ให้ตรวจคำสั่งแก้ทริปก่อน
+  // เช่น "ไม่เอาอุทยาน", "วันที่ 2 บ่ายขอคาเฟ่แทน"
+  // =====================================
+  if (
+    Array.isArray(plannerJson) &&
+    plannerJson.length > 0
+  ) {
+    try {
+      const editIntent =
+        await detectTripPlanEdit(
+          text,
+          plannerJson,
+          selectedModel
+        );
+
+      console.log(
+        "🛠️ TRIP PLAN EDIT INTENT:",
+        editIntent
+      );
+
+      if (editIntent.isEdit) {
+        setMessages(prev => [
+          ...prev,
+          { role: "user", text },
+          {
+            role: "ai",
+            text: "กำลังปรับทริป...",
+            loading: true
+          }
+        ]);
+
+        await supabase
+          .from("chat_messages")
+          .insert({
+            session_id: chatId,
+            user_id: user.id,
+            role: "user",
+            content: text
+          });
+
+        try {
+          const editResult =
+            await applyTripPlanEdit({
+              plannerJson,
+              intent: editIntent,
+              tripInput,
+              userId: user.id
+            });
+
+          setPlannerJson(
+            editResult.plannerJson
+          );
+          setShowTripPlan(true);
+          setExploreOpen(false);
+
+          setMessages(prev => [
+            ...prev.slice(0, -1),
+            {
+              role: "ai",
+              text: editResult.reply
+            }
+          ]);
+
+          const {
+            error: saveEditError
+          } = await supabase
+            .from("chat_messages")
+            .insert({
+              session_id: chatId,
+              user_id: user.id,
+              role: "ai",
+              content: editResult.reply,
+              planner_json:
+                editResult.plannerJson
+            });
+
+          if (saveEditError) {
+            console.error(
+              "❌ SAVE EDITED PLANNER ERROR:",
+              saveEditError
+            );
+          }
+
+          return;
+        } catch (editError) {
+          console.error(
+            "❌ APPLY TRIP EDIT ERROR:",
+            editError
+          );
+
+          const fallbackReply =
+            "ยังหาสถานที่ทดแทนที่ตรงเงื่อนไขไม่ได้ครับ ลองระบุให้เจาะจงขึ้น เช่น **วันที่ 2 ช่วงบ่ายขอคาเฟ่แทน**";
+
+          setMessages(prev => [
+            ...prev.slice(0, -1),
+            {
+              role: "ai",
+              text: fallbackReply
+            }
+          ]);
+
+          await supabase
+            .from("chat_messages")
+            .insert({
+              session_id: chatId,
+              user_id: user.id,
+              role: "ai",
+              content: fallbackReply
+            });
+
+          return;
+        }
+      }
+    } catch (editIntentError) {
+      console.error(
+        "❌ DETECT TRIP EDIT ERROR:",
+        editIntentError
+      );
+      // ถ้าตรวจ intent แก้ทริปล้มเหลว
+      // ให้ไหลต่อไปยัง flow เดิม
+    }
+  }
+
+  // =====================================
+  // 4. ตรวจว่าเป็นคำขอสร้างทริปหรือไม่
   // ถ้าก่อนหน้านี้ถามจังหวัดอยู่ collectingTrip จะทำให้
   // คำตอบสั้น ๆ เช่น "เชียงใหม่" ยังอยู่ใน flow สร้างทริป
   // =====================================
