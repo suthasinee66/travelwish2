@@ -760,7 +760,19 @@ const mapCenter = useMemo(() => {
   mapCenter={mapCenter}
   chatId={null}
   showMap={false}
-   onDayChange={(day) => {
+  existingTripId={String(tripId)}
+  existingTripTitle={trip?.title || ""}
+  onExistingTripSaved={(title) => {
+    setTrip((prev: any) =>
+      prev
+        ? {
+            ...prev,
+            title,
+          }
+        : prev
+    );
+  }}
+  onDayChange={(day) => {
     setSelectedDay(day);
   }}
 />
