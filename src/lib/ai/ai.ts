@@ -55,5 +55,46 @@ export async function generateWithSelectedModel(
         );
     }
 
-    return data.content;
+    const content = String(data.content).trim();
+
+    // บางโมเดลอาจครอบคำตอบจริงด้วย JSON เช่น
+    // {"response":"## หัวข้อ\n..."}
+    // แกะเฉพาะ wrapper ที่มี key เดียว เพื่อไม่กระทบ JSON
+    // ที่ระบบใช้สำหรับ intent / trip extraction
+    try {
+        const parsed = JSON.parse(content);
+
+        if (
+            parsed &&
+            typeof parsed === "object" &&
+            !Array.isArray(parsed)
+        ) {
+            const keys = Object.keys(parsed);
+
+            if (
+                keys.length === 1 &&
+                typeof parsed.response === "string"
+            ) {
+                return parsed.response.trim();
+            }
+
+            if (
+                keys.length === 1 &&
+                typeof parsed.content === "string"
+            ) {
+                return parsed.content.trim();
+            }
+
+            if (
+                keys.length === 1 &&
+                typeof parsed.reply === "string"
+            ) {
+                return parsed.reply.trim();
+            }
+        }
+    } catch {
+        // ไม่ใช่ JSON wrapper: คืนข้อความเดิมให้ ReactMarkdown render
+    }
+
+    return content;
 }
