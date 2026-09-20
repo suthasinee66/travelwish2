@@ -376,6 +376,7 @@ export default function Sidebar({
 
                 <div
                     className="
+        travel-modal-overlay
         fixed
         inset-0
         bg-black/40
@@ -391,6 +392,7 @@ export default function Sidebar({
 
                     <div
                         className="
+        travel-modal-card
         bg-white
         rounded-3xl
         p-8
