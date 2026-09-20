@@ -2429,8 +2429,10 @@ const sensors = useSensors(
     }
 
     // ร้านที่มีอยู่ใน props แล้ว
+    // รองรับทั้ง place_id และ id ภายใน
     const existingRestaurants = restaurants.filter((r: any) =>
-      restaurantIds.includes(String(r.place_id))
+      restaurantIds.includes(String(r.place_id)) ||
+      restaurantIds.includes(String(r.id))
     );
 
     console.log(
@@ -2438,11 +2440,12 @@ const sensors = useSensors(
       existingRestaurants
     );
 
-    // หาเฉพาะร้านที่ยังไม่มีใน props
     const missingIds = restaurantIds.filter(
       id =>
         !existingRestaurants.some(
-          (r: any) => String(r.place_id) === id
+          (r: any) =>
+            String(r.place_id) === id ||
+            String(r.id) === id
         )
     );
 
@@ -2451,48 +2454,166 @@ const sensors = useSensors(
       missingIds
     );
 
-    if (missingIds.length === 0) {
-      setLiveRestaurants(restaurants);
-      return;
-    }
+    const restaurantSelect = `
+      id,
+      place_id,
+      google_place_id,
+      place_name_th,
+      place_name_en,
+      place_address,
+      place_phone,
+      place_website,
+      place_type,
+      province_name_th,
+      latitude,
+      longitude,
+      images,
+      rating,
+      user_ratings_total
+    `;
 
-    // โหลดร้านใหม่จาก Supabase
-    const { data, error } = await supabase
-      .from("restaurant")
-      .select(`
-        place_id,
-        place_name_th,
-        place_name_en,
-        place_address,
-        place_phone,
-        place_website,
-        place_type,
-        province_name_th,
-        latitude,
-        longitude,
-        images,
-        rating,
-        user_ratings_total
-      `)
-      .in("place_id", missingIds);
+    let loadedRestaurants: any[] = [];
 
-    if (error) {
-      console.error(
-        "❌ LOAD PLANNER RESTAURANTS ERROR:",
-        error
+    if (missingIds.length > 0) {
+      const numericIds =
+        missingIds.filter(
+          id => /^\\d+$/.test(id)
+        );
+
+      const [
+        byPlaceIdResult,
+        byInternalIdResult
+      ] = await Promise.all([
+        supabase
+          .from("restaurant")
+          .select(restaurantSelect)
+          .in("place_id", missingIds),
+
+        numericIds.length > 0
+          ? supabase
+              .from("restaurant")
+              .select(restaurantSelect)
+              .in("id", numericIds)
+          : Promise.resolve({
+              data: [],
+              error: null
+            } as any)
+      ]);
+
+      if (
+        byPlaceIdResult.error ||
+        byInternalIdResult.error
+      ) {
+        console.error(
+          "❌ LOAD PLANNER RESTAURANTS ERROR:",
+          byPlaceIdResult.error ||
+          byInternalIdResult.error
+        );
+      }
+
+      loadedRestaurants = [
+        ...(byPlaceIdResult.data || []),
+        ...(byInternalIdResult.data || [])
+      ].filter(
+        (restaurant, index, array) =>
+          array.findIndex(
+            item =>
+              String(item.id) ===
+              String(restaurant.id)
+          ) === index
       );
-      return;
     }
 
-    console.log(
-      "🍜 NEW RESTAURANTS LOADED:",
-      data
+    const allResolvedRestaurants = [
+      ...existingRestaurants,
+      ...loadedRestaurants
+    ].filter(
+      (restaurant, index, array) =>
+        array.findIndex(
+          item =>
+            String(item.id ?? item.place_id) ===
+            String(
+              restaurant.id ??
+              restaurant.place_id
+            )
+        ) === index
     );
 
-    setLiveRestaurants([
-      ...existingRestaurants,
-      ...(data || [])
-    ]);
+    const API_URL =
+      import.meta.env.DEV
+        ? "http://localhost:5000"
+        : import.meta.env.VITE_API_URL;
+
+    // ร้านเก่าที่ไม่มี google_place_id หรือรูป
+    // ให้ backend หา Google Place แล้ว cache ลง Supabase
+    const hydratedRestaurants =
+      await Promise.all(
+        allResolvedRestaurants.map(
+          async (restaurant: any) => {
+            const hasImages =
+              Array.isArray(restaurant.images) &&
+              restaurant.images.length > 0;
+
+            if (
+              restaurant.google_place_id &&
+              hasImages
+            ) {
+              return restaurant;
+            }
+
+            const identifier =
+              restaurant.place_id ??
+              restaurant.id;
+
+            if (!identifier) {
+              return restaurant;
+            }
+
+            try {
+              const response = await fetch(
+                `${API_URL}/api/restaurant-images?restaurant_id=${encodeURIComponent(
+                  String(identifier)
+                )}`
+              );
+
+              if (!response.ok) {
+                console.warn(
+                  "⚠️ RESTAURANT GOOGLE RESOLVE ERROR:",
+                  identifier,
+                  response.status
+                );
+
+                return restaurant;
+              }
+
+              const json =
+                await response.json();
+
+              return (
+                json.restaurant ||
+                restaurant
+              );
+            } catch (error) {
+              console.warn(
+                "⚠️ RESTAURANT GOOGLE RESOLVE FAILED:",
+                identifier,
+                error
+              );
+
+              return restaurant;
+            }
+          }
+        )
+      );
+
+    console.log(
+      "🍜 RESTAURANTS READY:",
+      hydratedRestaurants
+    );
+
+    setLiveRestaurants(
+      hydratedRestaurants
+    );
   };
 
   loadPlannerRestaurants();
@@ -2577,7 +2698,8 @@ const findRestaurant = (restaurantId: string) => {
 
   const result = liveRestaurants.find(
     r =>
-      String(r.place_id) === String(restaurantId)
+      String(r.place_id) === String(restaurantId) ||
+      String(r.id) === String(restaurantId)
   );
 
   console.log(
