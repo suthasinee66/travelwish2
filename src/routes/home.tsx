@@ -2456,10 +2456,9 @@ const sensors = useSensors(
       missingIds
     );
 
-    const restaurantSelect = `
+    const baseRestaurantSelect = `
       id,
       place_id,
-      google_place_id,
       place_name_th,
       place_name_en,
       place_address,
@@ -2474,63 +2473,146 @@ const sensors = useSensors(
       user_ratings_total
     `;
 
+    const restaurantSelectWithGoogle = `
+      ${baseRestaurantSelect},
+      google_place_id
+    `;
+
     let loadedRestaurants: any[] = [];
 
     if (missingIds.length > 0) {
       const numericIds =
         missingIds.filter(
-          id => /^\\d+$/.test(id)
+          id => /^\d+$/.test(id)
         );
 
-      const [
-        byPlaceIdResult,
-        byGooglePlaceIdResult,
-        byInternalIdResult
-      ] = await Promise.all([
-        supabase
+      // place_id เป็น field เดิมของระบบและสำหรับร้านจาก Google
+      // จะเป็น ChIJ... อยู่แล้ว จึงโหลดเส้นนี้ก่อนเสมอ
+      const byPlaceIdResult =
+        await supabase
           .from("restaurant")
-          .select(restaurantSelect)
-          .in("place_id", missingIds),
+          .select(
+            restaurantSelectWithGoogle
+          )
+          .in("place_id", missingIds);
 
-        supabase
+      let byPlaceIdData =
+        byPlaceIdResult.data || [];
+
+      // ถ้า schema ฝั่ง Supabase ยังไม่มี google_place_id
+      // ให้ fallback เพื่อให้ UI ยังโหลดร้านเดิมได้
+      if (byPlaceIdResult.error) {
+        console.warn(
+          "⚠️ google_place_id schema/query unavailable, fallback to place_id:",
+          byPlaceIdResult.error
+        );
+
+        const fallback =
+          await supabase
+            .from("restaurant")
+            .select(baseRestaurantSelect)
+            .in("place_id", missingIds);
+
+        if (fallback.error) {
+          console.error(
+            "❌ LOAD RESTAURANTS BY place_id ERROR:",
+            fallback.error
+          );
+        }
+
+        byPlaceIdData =
+          (fallback.data || []).map(
+            (restaurant: any) => ({
+              ...restaurant,
+              google_place_id:
+                String(
+                  restaurant.place_id ?? ""
+                ).startsWith("ChIJ")
+                  ? restaurant.place_id
+                  : null
+            })
+          );
+      }
+
+      let byGooglePlaceIdData: any[] = [];
+
+      // query google_place_id แยกออกมา
+      // ถ้าคอลัมน์ยังไม่มี จะไม่ทำให้ place_id query พัง
+      const byGooglePlaceIdResult =
+        await supabase
           .from("restaurant")
-          .select(restaurantSelect)
-          .in("google_place_id", missingIds),
+          .select(
+            restaurantSelectWithGoogle
+          )
+          .in(
+            "google_place_id",
+            missingIds
+          );
 
-        numericIds.length > 0
-          ? supabase
+      if (byGooglePlaceIdResult.error) {
+        console.warn(
+          "⚠️ LOAD BY google_place_id SKIPPED:",
+          byGooglePlaceIdResult.error
+        );
+      } else {
+        byGooglePlaceIdData =
+          byGooglePlaceIdResult.data || [];
+      }
+
+      let byInternalIdData: any[] = [];
+
+      if (numericIds.length > 0) {
+        const byInternalIdResult =
+          await supabase
+            .from("restaurant")
+            .select(
+              restaurantSelectWithGoogle
+            )
+            .in("id", numericIds);
+
+        if (byInternalIdResult.error) {
+          const fallback =
+            await supabase
               .from("restaurant")
-              .select(restaurantSelect)
-              .in("id", numericIds)
-          : Promise.resolve({
-              data: [],
-              error: null
-            } as any)
-      ]);
+              .select(baseRestaurantSelect)
+              .in("id", numericIds);
 
-      if (
-        byPlaceIdResult.error ||
-        byGooglePlaceIdResult.error ||
-        byInternalIdResult.error
-      ) {
-        console.error(
-          "❌ LOAD PLANNER RESTAURANTS ERROR:",
-          byPlaceIdResult.error ||
-          byGooglePlaceIdResult.error ||
-          byInternalIdResult.error
-        );
+          if (fallback.error) {
+            console.error(
+              "❌ LOAD RESTAURANTS BY id ERROR:",
+              fallback.error
+            );
+          }
+
+          byInternalIdData =
+            (fallback.data || []).map(
+              (restaurant: any) => ({
+                ...restaurant,
+                google_place_id: null
+              })
+            );
+        } else {
+          byInternalIdData =
+            byInternalIdResult.data || [];
+        }
       }
 
       loadedRestaurants = [
-        ...(byPlaceIdResult.data || []),
-        ...(byGooglePlaceIdResult.data || []),
-        ...(byInternalIdResult.data || [])
+        ...byPlaceIdData,
+        ...byGooglePlaceIdData,
+        ...byInternalIdData
       ].filter(
         (restaurant, index, array) =>
           array.findIndex(
             item =>
-              String(item.id) ===
-              String(restaurant.id)
+              String(
+                item.id ??
+                item.place_id
+              ) ===
+              String(
+                restaurant.id ??
+                restaurant.place_id
+              )
           ) === index
       );
     }
@@ -2542,7 +2624,10 @@ const sensors = useSensors(
       (restaurant, index, array) =>
         array.findIndex(
           item =>
-            String(item.id ?? item.place_id) ===
+            String(
+              item.id ??
+              item.place_id
+            ) ===
             String(
               restaurant.id ??
               restaurant.place_id
@@ -2551,29 +2636,50 @@ const sensors = useSensors(
     );
 
     const API_URL =
-      import.meta.env.DEV
-        ? "http://localhost:5000"
-        : import.meta.env.VITE_API_URL;
+      (
+        import.meta.env.VITE_API_URL ||
+        (
+          import.meta.env.DEV
+            ? "http://localhost:5000"
+            : ""
+        )
+      ).replace(/\/$/, "");
 
-    // ร้านเก่าที่ไม่มี google_place_id หรือรูป
-    // ให้ backend หา Google Place แล้ว cache ลง Supabase
     const hydratedRestaurants =
       await Promise.all(
         allResolvedRestaurants.map(
           async (restaurant: any) => {
             const hasImages =
-              Array.isArray(restaurant.images) &&
+              Array.isArray(
+                restaurant.images
+              ) &&
               restaurant.images.length > 0;
 
+            // ร้านที่ place_id เป็น Google Place ID อยู่แล้ว
+            // ใช้เป็น google_place_id ได้โดยตรง
+            const inferredGooglePlaceId =
+              restaurant.google_place_id ||
+              (
+                String(
+                  restaurant.place_id ?? ""
+                ).startsWith("ChIJ")
+                  ? restaurant.place_id
+                  : null
+              );
+
             if (
-              restaurant.google_place_id &&
+              inferredGooglePlaceId &&
               hasImages
             ) {
-              return restaurant;
+              return {
+                ...restaurant,
+                google_place_id:
+                  inferredGooglePlaceId
+              };
             }
 
             const identifier =
-              restaurant.google_place_id ??
+              inferredGooglePlaceId ??
               restaurant.place_id ??
               restaurant.id;
 
@@ -2595,15 +2701,25 @@ const sensors = useSensors(
                   response.status
                 );
 
-                return restaurant;
+                return {
+                  ...restaurant,
+                  google_place_id:
+                    inferredGooglePlaceId
+                };
               }
 
               const json =
                 await response.json();
 
               return (
-                json.restaurant ||
-                restaurant
+                json.restaurant || {
+                  ...restaurant,
+                  google_place_id:
+                    inferredGooglePlaceId,
+                  images:
+                    json.images ||
+                    restaurant.images
+                }
               );
             } catch (error) {
               console.warn(
@@ -2612,7 +2728,11 @@ const sensors = useSensors(
                 error
               );
 
-              return restaurant;
+              return {
+                ...restaurant,
+                google_place_id:
+                  inferredGooglePlaceId
+              };
             }
           }
         )
@@ -2620,7 +2740,19 @@ const sensors = useSensors(
 
     console.log(
       "🍜 RESTAURANTS READY:",
-      hydratedRestaurants
+      hydratedRestaurants.map(
+        (restaurant: any) => ({
+          id: restaurant.id,
+          place_id:
+            restaurant.place_id,
+          google_place_id:
+            restaurant.google_place_id,
+          name:
+            restaurant.place_name_th,
+          images:
+            restaurant.images?.length ?? 0
+        })
+      )
     );
 
     setLiveRestaurants(
