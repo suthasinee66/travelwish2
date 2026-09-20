@@ -5807,12 +5807,11 @@ mt-8
                 key={i}
                 className={`
 flex
-gap-4
 ${m.role === "user"
                     ?
-                    "justify-end"
+                    "justify-end gap-4"
                     :
-                    "justify-start"
+                    "justify-start gap-0 sm:gap-4"
                   }
 `}
               >
@@ -5823,12 +5822,13 @@ ${m.role === "user"
                 {m.role === "ai" && (
   <div
     className="
+      hidden
+      sm:flex
       w-9
       h-9
       rounded-full
       bg-white
       border
-      flex
       items-center
       justify-center
       shrink-0
@@ -5851,14 +5851,10 @@ ${m.role === "user"
 
                 <div
                   className={`
-w-full
 min-w-0
 max-w-2xl
-text-[14px]
-sm:text-[15px]
-leading-6
-sm:leading-7
-break-words
+text-[15px]
+leading-7
 
 ${m.role === "user"
 
@@ -5868,7 +5864,7 @@ ${m.role === "user"
 
                       :
 
-                      ""
+                      "w-full"
 
                     }
 
@@ -5879,14 +5875,10 @@ ${m.role === "user"
   components={{
     h1: ({ children }) => (
       <h1 className="
-        mt-4
-        mb-2
-        text-[20px]
-        sm:text-2xl
-        leading-[1.35]
-        sm:leading-tight
+        text-2xl
         font-bold
-        tracking-[-0.01em]
+        mt-8
+        mb-4
       ">
         {children}
       </h1>
@@ -5894,96 +5886,28 @@ ${m.role === "user"
 
     h2: ({ children }) => (
       <h2 className="
-        mt-4
-        mb-2
-        text-[17px]
-        sm:text-xl
-        leading-snug
+        text-xl
         font-bold
+        mt-6
+        mb-3
       ">
         {children}
       </h2>
     ),
 
-    h3: ({ children }) => (
-      <h3 className="
-        mt-3
-        mb-1.5
-        text-[15px]
-        sm:text-lg
-        leading-snug
-        font-semibold
-      ">
-        {children}
-      </h3>
-    ),
-
     p: ({ children }) => (
       <p className="
-        mb-2
-        leading-6
-        sm:leading-7
+        leading-7
+        mb-3
       ">
         {children}
       </p>
     ),
 
-    ul: ({ children }) => (
-      <ul className="
-        mb-2
-        space-y-1
-        pl-5
-        list-disc
-      ">
-        {children}
-      </ul>
-    ),
-
-    ol: ({ children }) => (
-      <ol className="
-        mb-2
-        space-y-1
-        pl-5
-        list-decimal
-      ">
-        {children}
-      </ol>
-    ),
-
     li: ({ children }) => (
-      <li className="
-        pl-0.5
-        leading-6
-        sm:leading-7
-      ">
+      <li className="ml-5 list-disc">
         {children}
       </li>
-    ),
-
-    strong: ({ children }) => (
-      <strong className="font-semibold">
-        {children}
-      </strong>
-    ),
-
-    hr: () => (
-      <hr className="
-        my-3
-        sm:my-4
-        border-gray-200
-      " />
-    ),
-
-    blockquote: ({ children }) => (
-      <blockquote className="
-        my-2
-        border-l-2
-        border-[#b89bcb]
-        pl-3
-        text-gray-600
-      ">
-        {children}
-      </blockquote>
     ),
 
     // =========================
@@ -5994,19 +5918,16 @@ ${m.role === "user"
       <div className="
         w-full
         overflow-x-auto
-        my-3
-        sm:my-5
+        my-5
         rounded-xl
         border
         border-gray-200
       ">
         <table className="
-          min-w-[560px]
-          sm:min-w-[700px]
+          min-w-[700px]
           w-full
           border-collapse
-          text-[12px]
-          sm:text-sm
+          text-sm
         ">
           {children}
         </table>
@@ -6042,10 +5963,8 @@ ${m.role === "user"
 
     th: ({ children }) => (
       <th className="
-        px-3
-        sm:px-4
-        py-2
-        sm:py-3
+        px-4
+        py-3
         text-left
         font-semibold
         whitespace-nowrap
@@ -6057,13 +5976,10 @@ ${m.role === "user"
 
     td: ({ children }) => (
       <td className="
-        px-3
-        sm:px-4
-        py-2
-        sm:py-3
+        px-4
+        py-3
         align-top
-        leading-5
-        sm:leading-6
+        leading-6
         whitespace-normal
       ">
         {children}
