@@ -7,8 +7,11 @@ export async function loadTravelData() {
   // ==========================================
 
   const {
-    data: userData
+    data: userData,
+    error: userError
   } = await supabase.auth.getUser();
+
+  if (userError) throw userError;
 
   if (!userData.user) {
     return null;
@@ -23,12 +26,15 @@ export async function loadTravelData() {
   // ==========================================
 
   const {
-    data: pref
+    data: pref,
+    error: preferenceError
   } = await supabase
     .from("user_preferences")
     .select("*")
     .eq("profile_id", user.id)
     .single();
+
+  if (preferenceError) throw preferenceError;
 
 
   // ==========================================
@@ -58,7 +64,7 @@ export async function loadTravelData() {
         "LOAD ATTRACTION ERROR",
         error
       );
-      break;
+      throw error;
     }
 
     if (!data || data.length === 0) {
