@@ -1,63 +1,216 @@
-const API_URL = (import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "http://localhost:5000" : "")).replace(/\/$/, "");
-export async function getPlaceImage(
-  placeName: string,
-  province?: string
-) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-  const res = await fetch(
-    `${API_URL}/api/place-image?name=${encodeURIComponent(
-      placeName
-    )}&province=${encodeURIComponent(province || "")}`,
-    { signal: controller.signal }
+const API_URL =
+  (
+    import.meta.env.VITE_API_URL ||
+    (
+      import.meta.env.DEV
+        ? "http://localhost:5000"
+        : ""
+    )
+  ).replace(
+    /\/$/,
+    ""
   );
 
-  if (!res.ok) throw new Error(`Place images unavailable (${res.status})`);
 
-  const json = await res.json();
+// ============================================================
+// ATTRACTION IMAGE
+// ============================================================
 
-  console.group("🖼️ Place Image");
-  console.log("attid :", placeName);
-  console.log("Place :", placeName);
-  console.log("Province :", province);
-  console.log("Images :", json.images);
-  console.groupEnd();
+export async function getPlaceImage(
+  attId: string | number,
+  googlePlaceId?: string | null
+) {
 
+  if (!attId) {
 
-  return Array.isArray(json.images)
-    ? json.images.filter((image: unknown) => typeof image === "string" && image.length > 0)
-    : [];
-  } finally {
-    clearTimeout(timeout);
+    console.warn(
+      "⚠️ getPlaceImage ไม่มี att_id"
+    );
+
+    return [];
+
   }
 
 
-  } 
+  const params =
+    new URLSearchParams();
 
-  export async function getNearbyRestaurants(
+
+  params.set(
+    "att_id",
+    String(attId)
+  );
+
+
+  if (
+    googlePlaceId
+  ) {
+
+    params.set(
+      "google_place_id",
+      googlePlaceId
+    );
+
+  }
+
+
+  const controller =
+    new AbortController();
+
+
+  const timeout =
+    setTimeout(
+      () =>
+        controller.abort(),
+      10000
+    );
+
+
+  try {
+
+    console.log(
+      "🖼️ REQUEST ATTRACTION IMAGE:",
+      {
+        attId,
+        googlePlaceId
+      }
+    );
+
+
+    const response =
+      await fetch(
+
+        `${API_URL}/api/attraction-images?${params.toString()}`,
+
+        {
+          signal:
+            controller.signal
+        }
+
+      );
+
+
+    if (
+      !response.ok
+    ) {
+
+      const errorText =
+        await response.text();
+
+
+      console.error(
+        "❌ ATTRACTION IMAGE API ERROR:",
+        response.status,
+        errorText
+      );
+
+
+      return [];
+
+    }
+
+
+    const json =
+      await response.json();
+
+
+    console.log(
+      "🖼️ ATTRACTION IMAGE RESPONSE:",
+      json
+    );
+
+
+    const images =
+      Array.isArray(
+        json.images
+      )
+        ? json.images.filter(
+            (
+              image: unknown
+            ) =>
+              typeof image ===
+                "string" &&
+              image.length > 0
+          )
+        : [];
+
+
+    return images;
+
+
+  } catch (error) {
+
+    if (
+      error instanceof DOMException &&
+      error.name ===
+        "AbortError"
+    ) {
+
+      console.warn(
+        "⚠️ IMAGE API TIMEOUT:",
+        attId
+      );
+
+    } else {
+
+      console.error(
+        "❌ GET PLACE IMAGE ERROR:",
+        error
+      );
+
+    }
+
+
+    return [];
+
+
+  } finally {
+
+    clearTimeout(
+      timeout
+    );
+
+  }
+
+}
+
+
+// ============================================================
+// NEARBY RESTAURANTS
+// ============================================================
+
+export async function getNearbyRestaurants(
   latitude: number,
   longitude: number,
   province?: string
 ) {
-  const res = await fetch(
-    `${API_URL}/api/nearby-restaurants?lat=${latitude}&lng=${longitude}&province=${encodeURIComponent(
-      province || ""
-    )}`
-  );
+
+  const res =
+    await fetch(
+
+      `${API_URL}/api/nearby-restaurants?lat=${latitude}&lng=${longitude}&province=${encodeURIComponent(
+        province || ""
+      )}`
+
+    );
+
 
   if (!res.ok) {
-    throw new Error("Failed to fetch nearby restaurants");
+
+    throw new Error(
+      "Failed to fetch nearby restaurants"
+    );
+
   }
 
-  const json = await res.json();
 
-  console.log("🍜 Nearby Restaurants");
-  console.log("Latitude:", latitude);
-  console.log("Longitude:", longitude);
-  console.log("Province:", province);
-  console.log("Restaurants:", json.restaurants);
+  const json =
+    await res.json();
 
-  return json.restaurants ?? [];
+
+  return (
+    json.restaurants ??
+    []
+  );
+
 }

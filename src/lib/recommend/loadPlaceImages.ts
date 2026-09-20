@@ -1,73 +1,149 @@
-import { supabase } from "@/lib/supabase";
-import { getPlaceImage } from "@/lib/google/places";
+import {
+  getPlaceImage
+} from "@/lib/google/places";
 
 
-export async function loadPlaceImages(place:any) {
+export async function loadPlaceImages(
+  place: any
+) {
+
+  // ============================================================
+  // 1. มีรูปอยู่แล้ว
+  // ใช้ทันที
+  // ============================================================
+
+  const existingImages =
+    Array.isArray(place?.images)
+      ? place.images.filter(Boolean)
+      : [];
 
 
-  // 1. มีรูปใน Supabase แล้ว
   if (
-    place.images &&
-    place.images.length > 0
+    existingImages.length > 0
   ) {
+
+    console.log(
+      "✅ USE EXISTING IMAGE:",
+      place.name_th
+    );
+
 
     return {
       ...place,
-      image: place.images[0]
+
+      images:
+        existingImages,
+
+      image:
+        existingImages[0]
     };
 
   }
 
 
+  // ============================================================
+  // 2. ต้องมี att_id
+  // ============================================================
 
-  // 2. ไม่มีรูป -> ยิง Google API
+  if (
+    !place?.att_id
+  ) {
 
-  try {
-
-    const images = await getPlaceImage(
-      place.name_th,
-      place.province
+    console.warn(
+      "⚠️ ไม่มี att_id:",
+      place?.name_th
     );
 
-
-    if(images?.length){
-
-
-      // 3. save กลับ Supabase
-
-      await supabase
-        .from("attraction")
-        .update({
-          images
-        })
-        .eq(
-          "att_id",
-          place.att_id
-        );
-
-
-
-      return {
-        ...place,
-        images,
-        image: images[0]
-      };
-
-
-    }
-
-
-  } catch(err){
-
-    console.error(
-      "image load error",
-      err
-    );
+    return place;
 
   }
 
 
+  // ============================================================
+  // 3. ถ้าไม่มี google_place_id
+  // Backend จะเช็กจาก attraction ให้อีกทีได้
+  // ============================================================
 
-  return place;
+  console.log(
+    "🌐 LOAD GOOGLE PLACE IMAGE:",
+    {
+      att_id:
+        place.att_id,
+
+      name:
+        place.name_th,
+
+      google_place_id:
+        place.google_place_id
+    }
+  );
+
+
+  try {
+
+    // ==========================================================
+    // Backend จะทำทั้งหมด:
+    //
+    // 1. หา attraction ด้วย att_id
+    // 2. เช็ก images
+    // 3. เอา google_place_id
+    // 4. เรียก Google Places API
+    // 5. save images ลง Supabase
+    // ==========================================================
+
+    const images =
+      await getPlaceImage(
+        place.att_id,
+        place.google_place_id
+      );
+
+
+    if (
+      !Array.isArray(images) ||
+      images.length === 0
+    ) {
+
+      console.warn(
+        "⚠️ NO IMAGE:",
+        place.name_th
+      );
+
+
+      return place;
+
+    }
+
+
+    console.log(
+      "✅ GOOGLE PLACE IMAGE SUCCESS:",
+      place.name_th,
+      images.length
+    );
+
+
+    return {
+
+      ...place,
+
+      images,
+
+      image:
+        images[0]
+
+    };
+
+
+  } catch (error) {
+
+    console.error(
+      "❌ IMAGE LOAD ERROR:",
+      place.name_th,
+      error
+    );
+
+
+    return place;
+
+  }
 
 }

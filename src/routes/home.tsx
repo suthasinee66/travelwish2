@@ -57,6 +57,7 @@ import { useTravelStore } from "@/store/travelStore";
 import { loadTravelData } from "@/lib/travel/loadTravelData";
 import { getUserLocation } from "@/lib/location/getUserLocation";
 import { createPlanner } from "@/lib/ai/planner";
+import { loadAllPlaces } from "@/lib/travel/loadAllPlaces";
 import {
   chatWithAI,
   generalChatWithAI,
@@ -4087,17 +4088,71 @@ ${active
     });
 
   };
-  const handleExplore = () => {
+  const handleExplore =
+  async () => {
 
-    setVisibleCount(20);
-
-
-    setExplorePlaces(
-      allRecommend
+    setVisibleCount(
+      20
     );
 
 
-    setExploreOpen(true);
+    setExploreLoading(
+      true
+    );
+
+
+    try {
+
+      // =====================================================
+      // เปิด Explore ถึงค่อยโหลด attraction ทั้งหมด
+      // =====================================================
+
+      if (
+        allPlaces.length === 0
+      ) {
+
+        console.log(
+          "📦 LOAD ALL PLACES FOR EXPLORE"
+        );
+
+
+        const places =
+          await loadAllPlaces();
+
+
+        setAllPlaces(
+          places
+        );
+
+      }
+
+
+      // Recommendation 50 ตัว
+      setExplorePlaces(
+        allRecommend
+      );
+
+
+      setExploreOpen(
+        true
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "❌ LOAD EXPLORE ERROR:",
+        error
+      );
+
+
+    } finally {
+
+      setExploreLoading(
+        false
+      );
+
+    }
 
   };
   const checkTripInput = () => {
@@ -4798,192 +4853,350 @@ const handleSend = async () => {
 
   }, []);
   useEffect(() => {
+
   let cancelled = false;
 
+
   async function init() {
+
     try {
+
       console.log("🚀 HOME INIT");
-      setRecommendLoading(true);
+
       setRecommendError(null);
 
-      // ==========================================
-      // 1. ถ้ามีข้อมูลใน Zustand อยู่แล้ว → แสดงทันที
-      // ==========================================
+
+      // =====================================================
+      // 1. ถ้ามี Recommend ใน Zustand แล้ว
+      //    แสดงทันที ไม่ต้องสนว่า allPlaces โหลดหรือยัง
+      // =====================================================
 
       if (
-        allPlaces.length > 0 &&
         recommend.length > 0 &&
         explorePlaces.length > 0
       ) {
-        console.log("⚡ ใช้ข้อมูลจาก STORE ทันที");
+
+        console.log(
+          "⚡ USE RECOMMEND FROM STORE"
+        );
+
 
         setRecommendLoading(false);
 
-        // ร้านอาหารไม่ต้องบล็อกหน้า
-        loadAllRestaurants().then((data) => {
-          if (!cancelled) {
-            setRestaurants(data);
-          }
-        });
 
+        return;
+
+      }
+
+
+      // =====================================================
+      // 2. หน้าเพิ่งเปิดใหม่
+      // =====================================================
+
+      setRecommendLoading(true);
+
+
+      console.time(
+        "loadTravelData"
+      );
+
+
+      // ตอนนี้ loadTravelData
+      // โหลดแค่ user + preference
+      const data =
+        await loadTravelData();
+
+
+      console.timeEnd(
+        "loadTravelData"
+      );
+
+
+      if (cancelled) {
         return;
       }
 
-      // ==========================================
-      // 2. โหลด Travel Data
-      // ==========================================
 
-      console.time("loadTravelData");
+      if (!data) {
 
-      const data = await loadTravelData();
+        throw new Error(
+          "Please sign in again to load recommendations"
+        );
 
-      console.timeEnd("loadTravelData");
+      }
 
-      if (cancelled) return;
-      if (!data) throw new Error("Please sign in again to load recommendations");
-      if (!data.preferences) throw new Error("Preferences could not be loaded");
 
-      setUser(data.user);
-      setPreferences(data.preferences);
-      setAllPlaces(data.allPlaces);
+      if (!data.preferences) {
 
-      // ==========================================
-      // 3. Recommendation ต้องโหลดทันที
-      // ==========================================
+        throw new Error(
+          "Preferences could not be loaded"
+        );
 
-      console.time("recommendation");
+      }
+
+
+      // =====================================================
+      // 3. Set user
+      // =====================================================
+
+      setUser(
+        data.user
+      );
+
+
+      setPreferences(
+        data.preferences
+      );
+
+
+      // ❌ ไม่ทำแล้ว
+      //
+      // setAllPlaces(data.allPlaces);
+      //
+      // เพราะ loadTravelData
+      // ไม่โหลด attraction แล้ว
+
+
+      // =====================================================
+      // 4. Recommendation
+      // =====================================================
+
+      console.time(
+        "recommendation"
+      );
+
 
       const {
         data: recommendData,
         fromCache,
-      } = await loadRecommendationCache(
-        data.user.id,
-        data.preferences,
-        data.allPlaces,
-        (places) => {
-          if (cancelled) return;
-          setRecommend(places.slice(0, 6));
-          setExplorePlaces(places);
-          setAllRecommend(places);
-          setRecommendLoading(false);
-        },
+      } =
+        await loadRecommendationCache(
+
+          data.user.id,
+
+          data.preferences,
+
+          // ไม่ส่ง allPlaces
+          // ให้ cache เช็กก่อน
+          undefined,
+
+          // =================================================
+          // onReady
+          //
+          // Recommendation พร้อมเมื่อไหร่
+          // แสดงทันที
+          // ไม่ต้องรอรูปทั้งหมด
+          // =================================================
+          (places) => {
+
+            if (cancelled) {
+              return;
+            }
+
+
+            console.log(
+              "⚡ RECOMMEND READY:",
+              places.length
+            );
+
+
+            setRecommend(
+              places.slice(
+                0,
+                6
+              )
+            );
+
+
+            setExplorePlaces(
+              places
+            );
+
+
+            setAllRecommend(
+              places
+            );
+
+
+            // ปิด skeleton ทันที
+            setRecommendLoading(
+              false
+            );
+
+          }
+
+        );
+
+
+      console.timeEnd(
+        "recommendation"
       );
 
-      console.timeEnd("recommendation");
 
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
+
 
       console.log(
         fromCache
-          ? "⚡ ใช้ Recommendation จาก Cache"
-          : "🔥 สร้าง Recommendation ใหม่"
+          ? "⚡ RECOMMEND CACHE HIT"
+          : "🔥 RECOMMEND CACHE MISS"
       );
 
-      // ==========================================
-      // สำคัญมาก
-      // SET UI ทันที
-      // ==========================================
+
+      // =====================================================
+      // 5. Update อีกรอบ
+      //    หลังรูปของ 6 ตัวแรกโหลดเสร็จ
+      // =====================================================
 
       setRecommend(
-        recommendData.slice(0, 6)
+        recommendData.slice(
+          0,
+          6
+        )
       );
+
 
       setExplorePlaces(
         recommendData
       );
 
+
       setAllRecommend(
         recommendData
       );
 
-      setRecommendLoading(false);
 
-      console.log(
-        "✅ RECOMMEND แสดงแล้ว"
+      setRecommendLoading(
+        false
       );
 
-      // ==========================================
-      // 4. งานที่ไม่จำเป็นต่อ Recommend
-      //    ให้ทำ BACKGROUND
-      // ==========================================
 
-      Promise.allSettled([
+      console.log(
+        "✅ RECOMMEND COMPLETE"
+      );
 
-        // Restaurants
-        loadAllRestaurants()
-          .then((restaurantsData) => {
 
-            if (!cancelled) {
-              console.log(
-                "🍜 RESTAURANT TOTAL",
-                restaurantsData.length
-              );
+      // =====================================================
+      // 6. งานอื่นให้ทำทีหลัง
+      //
+      // ไม่โหลด allPlaces
+      // ไม่โหลด restaurant ทั้งหมดตรงนี้
+      // =====================================================
 
-              setRestaurants(
-                restaurantsData
-              );
+
+      // Location ไม่เกี่ยวกับ Recommend
+      // ให้ทำ background
+      getUserLocation()
+
+        .then(
+          async (location) => {
+
+            if (cancelled) {
+              return;
             }
 
-          }),
-
-        // Location
-        getUserLocation()
-          .then(async (location) => {
 
             try {
 
               await supabase
-                .from("user_locations")
+
+                .from(
+                  "user_locations"
+                )
+
                 .upsert(
                   {
-                    user_id: data.user.id,
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                    updated_at: new Date(),
+
+                    user_id:
+                      data.user.id,
+
+                    latitude:
+                      location.latitude,
+
+                    longitude:
+                      location.longitude,
+
+                    updated_at:
+                      new Date(),
+
                   },
+
                   {
-                    onConflict: "user_id",
+                    onConflict:
+                      "user_id"
                   }
+
                 );
 
+
               console.log(
-                "📍 saved location",
+                "📍 SAVED LOCATION:",
                 location
               );
 
-            } catch (err) {
 
-              console.log(
-                "location save error",
-                err
+            } catch (error) {
+
+              console.warn(
+                "LOCATION SAVE ERROR:",
+                error
               );
 
             }
 
-          })
+          }
 
-      ]);
+        )
 
-    } catch (err) {
+        .catch(
+          error => {
+
+            console.warn(
+              "LOCATION ERROR:",
+              error
+            );
+
+          }
+        );
+
+
+    } catch (error) {
 
       console.error(
-        "❌ LOAD HOME ERROR",
-        err
+        "❌ LOAD HOME ERROR:",
+        error
       );
 
+
       if (!cancelled) {
-        setRecommendError("โหลดสถานที่แนะนำไม่สำเร็จ กรุณาลองอีกครั้ง");
-        setRecommendLoading(false);
+
+        setRecommendError(
+          "โหลดสถานที่แนะนำไม่สำเร็จ กรุณาลองอีกครั้ง"
+        );
+
+
+        setRecommendLoading(
+          false
+        );
+
       }
 
     }
+
   }
+
 
   init();
 
+
   return () => {
+
     cancelled = true;
+
   };
+
 
 }, [recommendAttempt]);
 
