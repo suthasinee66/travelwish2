@@ -3608,6 +3608,13 @@ mapCenter;
 
   {hotelModal && (
     <div
+  style={{
+    backgroundColor: "#fffdfb",
+    opacity: 1,
+    backgroundImage: "none",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
+  }}
   className="
     travel-hotel-modal
     absolute
@@ -6389,6 +6396,13 @@ justify-center
 
             <div
               onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: "#fffdfb",
+                opacity: 1,
+                backgroundImage: "none",
+                backdropFilter: "none",
+                WebkitBackdropFilter: "none",
+              }}
               className="
 travel-modal-card
 w-[520px]
