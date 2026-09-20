@@ -97,9 +97,9 @@ import {
 
 import { CSS } from "@dnd-kit/utilities";
 import googleMapIcon from "../assets/google-map.png";
-import geminiIcon from "../assets/ai/gemini.png";
-import gptIcon from "../assets/ai/gpt.png";
-import claudeIcon from "../assets/ai/claude.png";
+import ai1Icon from "../assets/ai/ai1.svg";
+import ai2Icon from "../assets/ai/ai2.svg";
+import ai3Icon from "../assets/ai/ai3.svg";
 
 
 
@@ -3832,21 +3832,21 @@ useEffect(() => {
 const aiModels = [
   {
     id: "gemini" as const,
-    name: "Gemini",
-    icon: geminiIcon,
-    description: "Google AI",
+    name: "AI 1",
+    icon: ai1Icon,
+    description: "Model 1",
   },
   {
     id: "gpt" as const,
-    name: "GPT",
-    icon: gptIcon,
-    description: "OpenAI",
+    name: "AI 2",
+    icon: ai2Icon,
+    description: "Model 2",
   },
   {
     id: "claude" as const,
-    name: "Claude",
-    icon: claudeIcon,
-    description: "Anthropic",
+    name: "AI 3",
+    icon: ai3Icon,
+    description: "Model 3",
   },
 ];
 
