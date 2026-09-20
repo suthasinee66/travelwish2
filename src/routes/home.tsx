@@ -3580,6 +3580,8 @@ function Home() {
   const [imageIndex, setImageIndex] = useState<Record<string, number>>({});
   const imageSwipeProps = useImageSwipe();
   const [recommendLoading, setRecommendLoading] = useState(true);
+  const [recommendError, setRecommendError] = useState<string | null>(null);
+  const [recommendAttempt, setRecommendAttempt] = useState(0);
   const [searchText, setSearchText] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedTravelType, setSelectedTravelType] = useState<string[]>([]);
@@ -4801,6 +4803,8 @@ const handleSend = async () => {
   async function init() {
     try {
       console.log("🚀 HOME INIT");
+      setRecommendLoading(true);
+      setRecommendError(null);
 
       // ==========================================
       // 1. ถ้ามีข้อมูลใน Zustand อยู่แล้ว → แสดงทันที
@@ -4835,7 +4839,9 @@ const handleSend = async () => {
 
       console.timeEnd("loadTravelData");
 
-      if (!data || cancelled) return;
+      if (cancelled) return;
+      if (!data) throw new Error("Please sign in again to load recommendations");
+      if (!data.preferences) throw new Error("Preferences could not be loaded");
 
       setUser(data.user);
       setPreferences(data.preferences);
@@ -4852,7 +4858,15 @@ const handleSend = async () => {
         fromCache,
       } = await loadRecommendationCache(
         data.user.id,
-        data.preferences
+        data.preferences,
+        data.allPlaces,
+        (places) => {
+          if (cancelled) return;
+          setRecommend(places.slice(0, 6));
+          setExplorePlaces(places);
+          setAllRecommend(places);
+          setRecommendLoading(false);
+        },
       );
 
       console.timeEnd("recommendation");
@@ -4957,7 +4971,10 @@ const handleSend = async () => {
         err
       );
 
-      setRecommendLoading(false);
+      if (!cancelled) {
+        setRecommendError("โหลดสถานที่แนะนำไม่สำเร็จ กรุณาลองอีกครั้ง");
+        setRecommendLoading(false);
+      }
 
     }
   }
@@ -4968,7 +4985,7 @@ const handleSend = async () => {
     cancelled = true;
   };
 
-}, []);
+}, [recommendAttempt]);
 
 
   return (
@@ -6387,6 +6404,17 @@ focus:ring-black/20
                 </div>
 
 
+                {!recommendLoading && recommendError && (
+                  <div role="alert" className="rounded-2xl bg-white/80 p-4 text-sm">
+                    <p>{recommendError}</p>
+                    <button className="mt-3 min-h-11 rounded-xl border px-4" onClick={() => setRecommendAttempt(value => value + 1)}>
+                      ลองอีกครั้ง
+                    </button>
+                  </div>
+                )}
+                {!recommendLoading && !recommendError && recommend.length === 0 && (
+                  <p className="p-4 text-sm text-muted-foreground">ยังไม่พบสถานที่ที่ตรงกับความสนใจของคุณ</p>
+                )}
                 <div
                   className={`
         travel-recommend-grid
