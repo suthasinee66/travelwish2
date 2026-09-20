@@ -77,7 +77,7 @@ function LoginPage() {
       .select(`
         profile_id,
         travel_type,
-        activity,
+        activities,
         atmosphere,
         travel_companion,
         budget,
@@ -98,7 +98,7 @@ function LoginPage() {
     if (
       !preferences ||
       !preferences.travel_type ||
-      !preferences.activity ||
+      !preferences.activities ||
       !preferences.atmosphere ||
       !preferences.travel_companion ||
       !preferences.budget ||
@@ -126,7 +126,7 @@ function LoginPage() {
       setLoading(true);
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
