@@ -349,6 +349,13 @@ export default function AddPlaceToTripModal({
       onClick={onClose}
     >
       <div
+        style={{
+          backgroundColor: "#fffdfb",
+          opacity: 1,
+          backgroundImage: "none",
+          backdropFilter: "none",
+          WebkitBackdropFilter: "none",
+        }}
         className="
           travel-modal-card
           w-full
