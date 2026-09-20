@@ -3799,6 +3799,9 @@ function SmoothRecommendationImage({
         select-none
         transition-opacity
         duration-200
+        [backface-visibility:hidden]
+        [transform:translateZ(0)]
+        [will-change:opacity]
       "
     />
   );
@@ -6509,7 +6512,7 @@ hover:bg-gray-100
     border-l
     shadow-2xl
     z-50
-    transition-all
+    transition-[width]
     duration-500
     overflow-hidden
     ${exploreOpen ? "w-[80vw]" : "w-[600px]"}
@@ -7167,11 +7170,15 @@ focus:ring-black/20
                           : c?.images
                       }
                       className="
+                        travel-recommend-card
                         relative
+                        isolate
                         rounded-xl
                         overflow-hidden
                         aspect-[3/4]
                         bg-gray-100
+                        [contain:layout_paint]
+                        [transform:translateZ(0)]
                       "
                     >
                       {({
@@ -7242,7 +7249,6 @@ focus:ring-black/20
   top-2
   left-2
   rounded-full
-  backdrop-blur-md
   flex
   items-center
   justify-center
