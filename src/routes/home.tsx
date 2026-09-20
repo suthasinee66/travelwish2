@@ -43,6 +43,9 @@ import {
   Coins,
   Gem,
   Star,
+  CircleCheck,
+  TriangleAlert,
+  Info,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Fragment, useEffect, useState, useMemo } from "react";
@@ -1260,6 +1263,23 @@ const [hotels, setHotels] = useState<any[]>([]);
 const [hotelLoading, setHotelLoading] = useState(false);
 const [showSaveTripModal, setShowSaveTripModal] = useState(false);
 const [tripTitle, setTripTitle] = useState("");
+const [appAlert, setAppAlert] = useState<{
+  type: "success" | "error" | "info";
+  title: string;
+  message: string;
+} | null>(null);
+
+const showAppAlert = (
+  type: "success" | "error" | "info",
+  title: string,
+  message: string
+) => {
+  setAppAlert({
+    type,
+    title,
+    message,
+  });
+};
 const [showMoreRestaurants, setShowMoreRestaurants] = useState<
   Record<string, boolean>
 >({});
@@ -1365,7 +1385,11 @@ const saveTripToSupabase = async () => {
     );
 
     if (!tripTitle.trim()) {
-      alert("กรุณาใส่ชื่อทริป");
+      showAppAlert(
+        "info",
+        "ยังไม่ได้ตั้งชื่อทริป",
+        "กรุณาใส่ชื่อทริปก่อนบันทึก"
+      );
       return;
     }
 
@@ -1379,7 +1403,11 @@ const saveTripToSupabase = async () => {
         "❌ USER ERROR:",
         userError
       );
-      alert("กรุณาเข้าสู่ระบบก่อน");
+      showAppAlert(
+        "error",
+        "ไม่สามารถบันทึกได้",
+        "กรุณาเข้าสู่ระบบก่อนบันทึกทริป"
+      );
       return;
     }
 
@@ -1397,7 +1425,11 @@ const saveTripToSupabase = async () => {
         "❌ PROFILE ERROR:",
         profileError
       );
-      alert("ไม่พบข้อมูล Profile");
+      showAppAlert(
+        "error",
+        "ไม่พบข้อมูลโปรไฟล์",
+        "ไม่สามารถบันทึกทริปได้ในขณะนี้"
+      );
       return;
     }
 
@@ -1857,12 +1889,16 @@ const saveTripToSupabase = async () => {
         tripTitle.trim()
       );
 
-      alert(
-        "อัปเดตทริปเรียบร้อยแล้ว"
+      showAppAlert(
+        "success",
+        "อัปเดตทริปแล้ว",
+        "บันทึกการเปลี่ยนแปลงลงในทริปเดิมเรียบร้อยแล้ว"
       );
     } else {
-      alert(
-        "บันทึกทริปเรียบร้อยแล้ว"
+      showAppAlert(
+        "success",
+        "บันทึกทริปแล้ว",
+        "ทริปของคุณถูกบันทึกเรียบร้อยแล้ว"
       );
     }
   } catch (error) {
@@ -1871,10 +1907,12 @@ const saveTripToSupabase = async () => {
       error
     );
 
-    alert(
+    showAppAlert(
+      "error",
       existingTripId
-        ? "เกิดข้อผิดพลาดในการอัปเดตทริป"
-        : "เกิดข้อผิดพลาดในการบันทึกทริป"
+        ? "อัปเดตทริปไม่สำเร็จ"
+        : "บันทึกทริปไม่สำเร็จ",
+      "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
     );
   }
 };
@@ -2524,7 +2562,11 @@ const saveEditedPlan = async () => {
       "✅ SAVE SUCCESS"
     );
 
-    alert("บันทึกแผนเรียบร้อยแล้ว");
+    showAppAlert(
+      "success",
+      "บันทึกแผนแล้ว",
+      "ลำดับและการแก้ไขแผนถูกบันทึกเรียบร้อยแล้ว"
+    );
 
   } catch (error) {
 
@@ -4297,6 +4339,110 @@ justify-center
 
       </div>
 
+    </div>
+  </div>
+)}
+
+{appAlert && (
+  <div
+    className="
+      fixed
+      inset-0
+      z-[220]
+      flex
+      items-center
+      justify-center
+      bg-[#302b43]/20
+      p-4
+    "
+    onClick={() => setAppAlert(null)}
+  >
+    <div
+      style={{
+        backgroundColor: "#fffdfb",
+        opacity: 1,
+        backgroundImage: "none",
+        backdropFilter: "none",
+        WebkitBackdropFilter: "none",
+      }}
+      className="
+        w-full
+        max-w-[380px]
+        rounded-[26px]
+        border
+        border-[#eadfeb]
+        !bg-[#fffdfb]
+        p-6
+        text-center
+        shadow-[0_24px_70px_rgba(91,72,117,0.22)]
+      "
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div
+        className={`
+          mx-auto
+          flex
+          h-14
+          w-14
+          items-center
+          justify-center
+          rounded-full
+          ${appAlert.type === "success"
+            ? "bg-[#edf7f1] text-[#4f8a67]"
+            : appAlert.type === "error"
+              ? "bg-[#fff0f0] text-[#c45f68]"
+              : "bg-[#f4edf7] text-[#6f456f]"
+          }
+        `}
+      >
+        {appAlert.type === "success" ? (
+          <CircleCheck size={26} strokeWidth={2} />
+        ) : appAlert.type === "error" ? (
+          <TriangleAlert size={25} strokeWidth={2} />
+        ) : (
+          <Info size={25} strokeWidth={2} />
+        )}
+      </div>
+
+      <h3 className="
+        mt-4
+        text-lg
+        font-bold
+        text-[#49334f]
+      ">
+        {appAlert.title}
+      </h3>
+
+      <p className="
+        mt-2
+        text-sm
+        leading-6
+        text-[#7f7185]
+      ">
+        {appAlert.message}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => setAppAlert(null)}
+        className="
+          mt-5
+          w-full
+          rounded-2xl
+          bg-[#573d63]
+          px-4
+          py-2.5
+          text-sm
+          font-semibold
+          text-white
+          shadow-[0_10px_24px_rgba(87,61,99,0.18)]
+          transition
+          hover:bg-[#684974]
+          active:scale-[0.99]
+        "
+      >
+        ตกลง
+      </button>
     </div>
   </div>
 )}
