@@ -52,6 +52,7 @@ import { Link } from "@tanstack/react-router";
 import { getPlaceImage } from "@/lib/google/places";
 import { loadPlaceImages } from "@/lib/recommend/loadPlaceImages";
 import Sidebar from "@/components/Sidebar";
+import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { useTravelStore } from "@/store/travelStore";
 import { loadTravelData } from "@/lib/travel/loadTravelData";
@@ -4229,6 +4230,7 @@ function Home() {
   const [savedIds, setSavedIds] = useState<number[]>([]);
   const [showProvinceDropdown, setShowProvinceDropdown] = useState(false);
   const [tripModal, setTripModal] = useState(false);
+  const [placeToAddTrip, setPlaceToAddTrip] = useState<any | null>(null);
   const [waitingPlanConfirm, setWaitingPlanConfirm] = useState(false);
   const [collectingTrip, setCollectingTrip] = useState(false);
   const [plannerJson, setPlannerJson] = useState<any[]>([]);
@@ -6157,7 +6159,15 @@ text-xl
       }
 
 
-      {/* Center */}
+      <AddPlaceToTripModal
+        open={!!placeToAddTrip}
+        place={placeToAddTrip}
+        onClose={() =>
+          setPlaceToAddTrip(null)
+        }
+      />
+
+            {/* Center */}
       <main
         className={`
     travel-main
@@ -7567,7 +7577,7 @@ focus:ring-black/20
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                console.log("add trip", c.att_id);
+                                setPlaceToAddTrip(c);
                               }}
                               className={`
 absolute
