@@ -1202,6 +1202,29 @@
     flex-shrink: 0;
   }
 
+  /* Avoid large compositor repaints when carousel images change on mobile. */
+  .travel-home .travel-right-panel {
+    transition: none !important;
+    overflow: visible;
+  }
+
+  .travel-home .travel-recommend-card {
+    contain: layout paint;
+    isolation: isolate;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .travel-home .travel-recommend-card img {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .travel-home .travel-recommend-card button {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
   /* Home must grow with its contents instead of compressing the header/hero. */
   .travel-home > main:has(.travel-composer) {
     flex: none;
