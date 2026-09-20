@@ -3671,6 +3671,139 @@ async function loadAllRestaurants() {
 
 }
 
+function SmoothRecommendationImage({
+  images,
+  fallback,
+  index,
+  alt,
+  onImageError,
+}: {
+  images?: string[];
+  fallback?: string | null;
+  index: number;
+  alt?: string;
+  onImageError?: () => void;
+}) {
+  const sources = useMemo(
+    () =>
+      (Array.isArray(images) ? images : [])
+        .filter(
+          (src): src is string =>
+            typeof src === "string" &&
+            src.length > 0
+        ),
+    [images]
+  );
+
+  const requestedSrc =
+    sources[index] ||
+    fallback ||
+    "";
+
+  const [displayedSrc, setDisplayedSrc] =
+    useState(requestedSrc);
+
+  useEffect(() => {
+    if (!requestedSrc) {
+      setDisplayedSrc("");
+      return;
+    }
+
+    if (requestedSrc === displayedSrc) {
+      return;
+    }
+
+    let active = true;
+    const image = new Image();
+
+    image.onload = async () => {
+      try {
+        if ("decode" in image) {
+          await image.decode();
+        }
+      } catch {
+        // Browser may already have decoded it.
+      }
+
+      if (active) {
+        setDisplayedSrc(requestedSrc);
+      }
+    };
+
+    image.onerror = () => {
+      if (active) {
+        onImageError?.();
+      }
+    };
+
+    image.src = requestedSrc;
+
+    return () => {
+      active = false;
+    };
+  }, [
+    requestedSrc,
+    displayedSrc,
+    onImageError
+  ]);
+
+  // Preload รูปก่อนหน้าและรูปถัดไป
+  useEffect(() => {
+    if (sources.length <= 1) {
+      return;
+    }
+
+    const next =
+      sources[
+        (index + 1) % sources.length
+      ];
+
+    const previous =
+      sources[
+        (
+          index -
+          1 +
+          sources.length
+        ) % sources.length
+      ];
+
+    [next, previous]
+      .filter(Boolean)
+      .forEach((src) => {
+        const image = new Image();
+        image.src = src;
+      });
+  }, [sources, index]);
+
+  if (!displayedSrc) {
+    return (
+      <div className="
+        absolute
+        inset-0
+        bg-gray-200
+      " />
+    );
+  }
+
+  return (
+    <img
+      src={displayedSrc}
+      alt={alt || ""}
+      draggable={false}
+      className="
+        absolute
+        inset-0
+        h-full
+        w-full
+        object-cover
+        select-none
+        transition-opacity
+        duration-200
+      "
+    />
+  );
+}
+
 function Home() {
   const {
     user,
@@ -3697,7 +3830,6 @@ function Home() {
   const [tripPlaces, setTripPlaces] = useState<any[]>([]);
   const [exploreOpen, setExploreOpen] = useState(false);
   const [exploreLoading, setExploreLoading] = useState(false);
-  const [loadedImages, setLoadedImages] = useState<Record<string, boolean>>({});
   const [imageIndex, setImageIndex] = useState<Record<string, number>>({});
   const imageSwipeProps = useImageSwipe();
   const [recommendLoading, setRecommendLoading] = useState(true);
@@ -7047,24 +7179,19 @@ focus:ring-black/20
 
                           <>
 
-                            <img
-                              src={
-                                c.images?.[imageIndex[c.att_id] || 0]
-                                || c.image
+                            <SmoothRecommendationImage
+                              images={c.images}
+                              fallback={c.image}
+                              index={
+                                imageIndex[c.att_id] || 0
                               }
-                              onError={() =>
+                              alt={c.name_th}
+                              onImageError={() =>
                                 handleImageError(
                                   c.att_id,
                                   c.images?.length || 0
                                 )
                               }
-                              className="
-  absolute
-  inset-0
-  h-full
-  w-full
-  object-cover
-  "
                             />
 
                             {/* Save Heart */}
