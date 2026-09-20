@@ -1222,6 +1222,9 @@ export function TripPlanPanel({
   chatId,
   showMap = true,
   onDayChange,
+  existingTripId,
+  existingTripTitle,
+  onExistingTripSaved,
 }: {
   plannerJson: any;
   plan: string;
@@ -1235,6 +1238,9 @@ export function TripPlanPanel({
   chatId: string | null | undefined;
   showMap?: boolean;
   onDayChange?: (day: number | "all") => void;
+  existingTripId?: string | null;
+  existingTripTitle?: string | null;
+  onExistingTripSaved?: (title: string) => void;
 }) {
   console.log("🔥 TripPlanPanel RENDER");
 
@@ -1345,28 +1351,34 @@ const getDefaultTripTitle = () => {
 
 const saveTripToSupabase = async () => {
   try {
-    console.log("💾 START SAVE TRIP");
+    const isUpdateMode =
+      Boolean(existingTripId);
+
+    console.log(
+      isUpdateMode
+        ? "💾 START UPDATE TRIP"
+        : "💾 START SAVE TRIP"
+    );
 
     if (!tripTitle.trim()) {
       alert("กรุณาใส่ชื่อทริป");
       return;
     }
 
-    // 1. ดึง user ปัจจุบัน
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      console.error("❌ USER ERROR:", userError);
+      console.error(
+        "❌ USER ERROR:",
+        userError
+      );
       alert("กรุณาเข้าสู่ระบบก่อน");
       return;
     }
 
-    console.log("👤 USER:", user.id);
-
-    // 2. หา profile_id
     const {
       data: profile,
       error: profileError,
@@ -1377,165 +1389,438 @@ const saveTripToSupabase = async () => {
       .single();
 
     if (profileError || !profile) {
-      console.error("❌ PROFILE ERROR:", profileError);
+      console.error(
+        "❌ PROFILE ERROR:",
+        profileError
+      );
       alert("ไม่พบข้อมูล Profile");
       return;
     }
 
-    console.log("👤 PROFILE:", profile);
+    // ถ้าอยู่หน้า "ทั้งหมด" routePlacesByDay
+    // คือข้อมูลล่าสุดจากการลากข้ามวันอยู่แล้ว
+    const updatedRoutePlacesByDay =
+      showAllDays
+        ? {
+            ...routePlacesByDay,
+          }
+        : {
+            ...routePlacesByDay,
+            [selectedDay]:
+              routePlaces,
+          };
 
-    // 3. เตรียมข้อมูลทุกวัน
-    const updatedRoutePlacesByDay = {
-      ...routePlacesByDay,
-      [selectedDay]: routePlaces,
+    const tripPayload = {
+      title: tripTitle.trim(),
+      destination:
+        tripInput?.destination ||
+        tripInput?.province ||
+        null,
+      people:
+        tripInput?.companion ||
+        tripInput?.travel_companion ||
+        null,
+      budget:
+        tripInput?.budget
+          ? Number(tripInput.budget)
+          : null,
     };
 
-    // 4. สร้าง Trip
-    const { data: trip, error: tripError } =
-      await supabase
+    let tripIdToSave: string;
+
+    if (isUpdateMode) {
+      // ==========================================
+      // UPDATE EXISTING TRIP
+      // ==========================================
+      const {
+        data: updatedTrip,
+        error: updateTripError,
+      } = await supabase
         .from("trips")
-        .insert({
-          profile_id: profile.profile_id,
-          title: tripTitle.trim(),
-          destination:
-            tripInput?.destination ||
-            tripInput?.province ||
-            null,
-          people:
-            tripInput?.companion ||
-            tripInput?.travel_companion ||
-            null,
-          budget:
-            tripInput?.budget
-              ? Number(tripInput.budget)
-              : null,
-        })
-        .select()
+        .update(tripPayload)
+        .eq(
+          "id",
+          existingTripId
+        )
+        .eq(
+          "profile_id",
+          profile.profile_id
+        )
+        .select("id")
         .single();
 
-    if (tripError || !trip) {
-      console.error("❌ CREATE TRIP ERROR:", tripError);
-      alert("สร้างทริปไม่สำเร็จ");
-      return;
-    }
-
-    console.log("✅ TRIP CREATED:", trip);
-
-    // 5. สร้างแต่ละวัน
-    for (const dayData of days) {
-      const dayNumber = Number(dayData.day);
-
-      const { data: tripDay, error: dayError } =
-        await supabase
-          .from("trip_days")
-          .insert({
-            trip_id: trip.id,
-            day_number: dayNumber,
-            title: dayData.title || null,
-          })
-          .select()
-          .single();
-
-      if (dayError || !tripDay) {
+      if (
+        updateTripError ||
+        !updatedTrip
+      ) {
         console.error(
-          "❌ CREATE DAY ERROR:",
-          dayError
+          "❌ UPDATE TRIP ERROR:",
+          updateTripError
         );
-        throw dayError;
+        throw (
+          updateTripError ||
+          new Error(
+            "Update trip failed"
+          )
+        );
       }
 
-      console.log(
-        `✅ DAY ${dayNumber}:`,
-        tripDay
+      tripIdToSave =
+        String(updatedTrip.id);
+    } else {
+      // ==========================================
+      // CREATE NEW TRIP
+      // ==========================================
+      const {
+        data: newTrip,
+        error: tripError,
+      } = await supabase
+        .from("trips")
+        .insert({
+          profile_id:
+            profile.profile_id,
+          ...tripPayload,
+        })
+        .select("id")
+        .single();
+
+      if (
+        tripError ||
+        !newTrip
+      ) {
+        console.error(
+          "❌ CREATE TRIP ERROR:",
+          tripError
+        );
+        throw (
+          tripError ||
+          new Error(
+            "Create trip failed"
+          )
+        );
+      }
+
+      tripIdToSave =
+        String(newTrip.id);
+    }
+
+    // โหลดวันเดิมไว้สำหรับ update mode
+    let existingDays: any[] = [];
+
+    if (isUpdateMode) {
+      const {
+        data: oldDays,
+        error: oldDaysError,
+      } = await supabase
+        .from("trip_days")
+        .select(
+          "id, day_number"
+        )
+        .eq(
+          "trip_id",
+          tripIdToSave
+        );
+
+      if (oldDaysError) {
+        throw oldDaysError;
+      }
+
+      existingDays =
+        oldDays || [];
+    }
+
+    const existingDayByNumber =
+      new Map<number, any>(
+        existingDays.map(
+          (day: any) => [
+            Number(
+              day.day_number
+            ),
+            day,
+          ]
+        )
       );
 
-      // 6. เอาข้อมูลที่แก้ไขแล้วของวันนั้น
+    const currentDayNumbers =
+      new Set(
+        days.map(
+          (dayData: any) =>
+            Number(dayData.day)
+        )
+      );
+
+    // ถ้าจำนวนวันลดลง ให้ลบวันที่ไม่ใช้แล้ว
+    if (isUpdateMode) {
+      const removedDayIds =
+        existingDays
+          .filter(
+            (day: any) =>
+              !currentDayNumbers.has(
+                Number(
+                  day.day_number
+                )
+              )
+          )
+          .map(
+            (day: any) =>
+              day.id
+          );
+
+      if (
+        removedDayIds.length > 0
+      ) {
+        const {
+          error:
+            deleteOldItemsError,
+        } = await supabase
+          .from("trip_items")
+          .delete()
+          .in(
+            "trip_day_id",
+            removedDayIds
+          );
+
+        if (
+          deleteOldItemsError
+        ) {
+          throw deleteOldItemsError;
+        }
+
+        const {
+          error:
+            deleteOldDaysError,
+        } = await supabase
+          .from("trip_days")
+          .delete()
+          .in(
+            "id",
+            removedDayIds
+          );
+
+        if (
+          deleteOldDaysError
+        ) {
+          throw deleteOldDaysError;
+        }
+      }
+    }
+
+    // ==========================================
+    // SAVE / REPLACE EACH DAY
+    // ==========================================
+    for (
+      const dayData of days
+    ) {
+      const dayNumber =
+        Number(dayData.day);
+
+      let tripDay =
+        existingDayByNumber.get(
+          dayNumber
+        );
+
+      if (
+        isUpdateMode &&
+        tripDay
+      ) {
+        const {
+          error: dayUpdateError,
+        } = await supabase
+          .from("trip_days")
+          .update({
+            title:
+              dayData.title ||
+              null,
+          })
+          .eq(
+            "id",
+            tripDay.id
+          );
+
+        if (
+          dayUpdateError
+        ) {
+          throw dayUpdateError;
+        }
+      } else {
+        const {
+          data: createdDay,
+          error: dayError,
+        } = await supabase
+          .from("trip_days")
+          .insert({
+            trip_id:
+              tripIdToSave,
+            day_number:
+              dayNumber,
+            title:
+              dayData.title ||
+              null,
+          })
+          .select(
+            "id, day_number"
+          )
+          .single();
+
+        if (
+          dayError ||
+          !createdDay
+        ) {
+          console.error(
+            "❌ CREATE DAY ERROR:",
+            dayError
+          );
+          throw (
+            dayError ||
+            new Error(
+              "Create day failed"
+            )
+          );
+        }
+
+        tripDay =
+          createdDay;
+      }
+
+      // Update mode = ล้าง items ของวันเดิม
+      // แล้วเขียนลำดับล่าสุดทับลงไป
+      if (isUpdateMode) {
+        const {
+          error:
+            deleteItemsError,
+        } = await supabase
+          .from("trip_items")
+          .delete()
+          .eq(
+            "trip_day_id",
+            tripDay.id
+          );
+
+        if (
+          deleteItemsError
+        ) {
+          throw deleteItemsError;
+        }
+      }
+
       const items =
-        updatedRoutePlacesByDay[dayNumber - 1] ??
+        updatedRoutePlacesByDay[
+          dayNumber - 1
+        ] ??
         dayData.items ??
         [];
 
-      // 7. เตรียม trip_items
-      const tripItems = items
-  .map((item: any, index: number) => {
+      const tripItems =
+        items
+          .map(
+            (
+              item: any,
+              index: number
+            ) => {
+              const isRestaurant =
+                item.type ===
+                  "restaurant" ||
+                Boolean(
+                  item.restaurant_id
+                );
 
-    const isRestaurant =
-      item.type === "restaurant" ||
-      !!item.restaurant_id;
+              if (
+                isRestaurant
+              ) {
+                if (
+                  !item.restaurant_id
+                ) {
+                  return null;
+                }
 
-    if (isRestaurant) {
-      if (!item.restaurant_id) {
-        console.warn(
-          "⚠️ Restaurant ไม่มี restaurant_id:",
-          item
-        );
+                return {
+                  trip_day_id:
+                    tripDay.id,
+                  item_type:
+                    "restaurant",
+                  att_id: null,
+                  restaurant_id:
+                    String(
+                      item.restaurant_id
+                    ),
+                  sort_order:
+                    index + 1,
+                };
+              }
 
-        return null;
+              const placeId =
+                item.place_id ??
+                item.att_id;
+
+              if (!placeId) {
+                return null;
+              }
+
+              return {
+                trip_day_id:
+                  tripDay.id,
+                item_type:
+                  "place",
+                att_id:
+                  String(placeId),
+                restaurant_id:
+                  null,
+                sort_order:
+                  index + 1,
+              };
+            }
+          )
+          .filter(Boolean);
+
+      if (
+        tripItems.length > 0
+      ) {
+        const {
+          error: itemError,
+        } = await supabase
+          .from("trip_items")
+          .insert(
+            tripItems
+          );
+
+        if (itemError) {
+          console.error(
+            "❌ SAVE ITEMS ERROR:",
+            itemError
+          );
+          throw itemError;
+        }
       }
-
-      return {
-        trip_day_id: tripDay.id,
-        item_type: "restaurant",
-        att_id: null,
-        restaurant_id: String(item.restaurant_id),
-        sort_order: index + 1,
-      };
     }
 
-    if (!item.place_id) {
-      console.warn(
-        "⚠️ Place ไม่มี place_id:",
-        item
-      );
-
-      return null;
-    }
-
-    return {
-      trip_day_id: tripDay.id,
-      item_type: "place",
-      att_id: String(item.place_id),
-      restaurant_id: null,
-      sort_order: index + 1,
-    };
-  })
-  .filter(Boolean);
-
-console.log(
-  "📦 TRIP ITEMS TO INSERT:",
-  JSON.stringify(tripItems, null, 2)
-);
-
-if (tripItems.length > 0) {
-  const { error: itemError } =
-    await supabase
-      .from("trip_items")
-      .insert(tripItems);
-
-  if (itemError) {
-    console.error(
-      "❌ CREATE ITEMS ERROR:",
-      itemError
+    setShowSaveTripModal(
+      false
     );
-    throw itemError;
-  }
-}
 
-      console.log(
-        `✅ DAY ${dayNumber} ITEMS:`,
-        tripItems
+    if (isUpdateMode) {
+      onExistingTripSaved?.(
+        tripTitle.trim()
+      );
+
+      alert(
+        "อัปเดตทริปเรียบร้อยแล้ว"
+      );
+    } else {
+      alert(
+        "บันทึกทริปเรียบร้อยแล้ว"
       );
     }
-
-    console.log("🎉 SAVE TRIP SUCCESS");
-
-    setShowSaveTripModal(false);
-
-    alert("บันทึกทริปเรียบร้อยแล้ว");
-
   } catch (error) {
-    console.error("❌ SAVE TRIP FAILED:", error);
-    alert("เกิดข้อผิดพลาดในการบันทึกทริป");
+    console.error(
+      "❌ SAVE TRIP FAILED:",
+      error
+    );
+
+    alert(
+      existingTripId
+        ? "เกิดข้อผิดพลาดในการอัปเดตทริป"
+        : "เกิดข้อผิดพลาดในการบันทึกทริป"
+    );
   }
 };
 
@@ -3781,7 +4066,14 @@ justify-center
 <div className="flex justify-end mt-5 pt-4 border-t border-purple-100">
   <button
     onClick={() => {
-      setTripTitle(getDefaultTripTitle());
+      setTripTitle(
+        existingTripId
+          ? (
+              existingTripTitle ||
+              getDefaultTripTitle()
+            )
+          : getDefaultTripTitle()
+      );
       setShowSaveTripModal(true);
     }}
     className="travel-save-button px-6 py-2.5 rounded-xl font-semibold transition-all duration-200"
@@ -3821,11 +4113,15 @@ justify-center
     >
 
       <h2 className="text-xl font-semibold">
-        Save Trip
+        {existingTripId
+          ? "Update Trip"
+          : "Save Trip"}
       </h2>
 
       <p className="text-sm text-gray-500 mt-1">
-        Save your current itinerary as a trip.
+        {existingTripId
+          ? "Save changes to this trip."
+          : "Save your current itinerary as a trip."}
       </p>
 
       <div className="mt-5">
@@ -3884,7 +4180,9 @@ justify-center
             disabled:opacity-40
           "
         >
-          Save Trip
+          {existingTripId
+            ? "Update Trip"
+            : "Save Trip"}
         </button>
 
       </div>
