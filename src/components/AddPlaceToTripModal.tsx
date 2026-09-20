@@ -342,7 +342,7 @@ export default function AddPlaceToTripModal({
         flex
         items-center
         justify-center
-        bg-black/30
+        bg-[#302b43]/25
         p-4
       "
       onClick={onClose}
@@ -353,14 +353,15 @@ export default function AddPlaceToTripModal({
           max-w-[430px]
           max-h-[calc(100dvh-2rem)]
           overflow-y-auto
-          rounded-3xl
+          rounded-[28px]
           border
-          border-gray-200
-          !bg-white
+          border-[#eadfeb]
+          !bg-[#fffdfb]
           opacity-100
           backdrop-blur-none
           p-5
-          shadow-lg
+          sm:p-6
+          shadow-[0_24px_70px_rgba(91,72,117,0.20)]
         "
         onClick={event =>
           event.stopPropagation()
@@ -374,19 +375,26 @@ export default function AddPlaceToTripModal({
         ">
           <div className="min-w-0">
             <h2 className="
-              text-lg
+              text-[20px]
               font-bold
+              tracking-[-0.02em]
               text-[#49334f]
             ">
               เพิ่มลงทริป
             </h2>
             <div className="
-              mt-1
-              flex
+              mt-2
+              inline-flex
+              max-w-full
               items-center
-              gap-1
-              text-xs
-              text-gray-500
+              gap-1.5
+              rounded-full
+              bg-[#f5eef7]
+              px-2.5
+              py-1
+              text-[11px]
+              font-medium
+              text-[#78657e]
             ">
               <MapPin size={13} />
               <span className="truncate">
@@ -408,7 +416,12 @@ export default function AddPlaceToTripModal({
               items-center
               justify-center
               rounded-full
-              hover:bg-gray-100
+              border
+              border-[#eadfeb]
+              bg-white
+              text-[#6f456f]
+              transition
+              hover:bg-[#f7f0fa]
             "
           >
             <X size={17} />
@@ -440,10 +453,18 @@ export default function AddPlaceToTripModal({
                 className="
                   flex
                   items-center
-                  gap-1
+                  gap-1.5
+                  rounded-full
+                  border
+                  border-[#dac7df]
+                  bg-[#f8f2fa]
+                  px-3
+                  py-1.5
                   text-xs
                   font-semibold
                   text-[#6f456f]
+                  transition
+                  hover:bg-[#f1e7f4]
                 "
               >
                 <Plus size={14} />
@@ -477,9 +498,14 @@ export default function AddPlaceToTripModal({
                   rounded-2xl
                   border
                   border-dashed
+                  border-[#d8c6df]
+                  bg-[#faf6fb]
                   p-5
                   text-sm
-                  text-gray-500
+                  font-medium
+                  text-[#78657e]
+                  transition
+                  hover:bg-[#f5edf7]
                 "
               >
                 ยังไม่มี Trip — สร้างใหม่
@@ -504,8 +530,8 @@ export default function AddPlaceToTripModal({
                         border
                         transition
                         ${selected
-                          ? "border-[#b89bcb] bg-[#faf6fc]"
-                          : "border-gray-200"
+                          ? "border-[#b89bcb] bg-[#f8f1fa] shadow-[0_8px_24px_rgba(111,69,111,0.08)]"
+                          : "border-[#eadfeb] bg-white hover:border-[#d9c6df] hover:bg-[#fffafd]"
                         }
                       `}
                     >
@@ -536,8 +562,12 @@ export default function AddPlaceToTripModal({
                           items-center
                           justify-center
                           rounded-xl
-                          bg-[#f1e8f4]
+                          bg-gradient-to-br
+                          from-[#f0e4f3]
+                          to-[#edf7f8]
                           text-[#6f456f]
+                          ring-1
+                          ring-[#e4d6e8]
                         ">
                           <CalendarDays
                             size={17}
@@ -549,6 +579,7 @@ export default function AddPlaceToTripModal({
                             truncate
                             text-sm
                             font-semibold
+                            text-[#49334f]
                           ">
                             {trip.title ||
                               "Untitled Trip"}
@@ -556,7 +587,7 @@ export default function AddPlaceToTripModal({
                           <div className="
                             truncate
                             text-[11px]
-                            text-gray-500
+                            text-[#8a7b90]
                           ">
                             {trip.destination ||
                               "No destination"}
@@ -576,10 +607,11 @@ export default function AddPlaceToTripModal({
                       {selected && (
                         <div className="
                           border-t
-                          border-gray-100
+                          border-[#eadfeb]
+                          bg-white/70
                           px-3
                           pb-3
-                          pt-2
+                          pt-2.5
                         ">
                           <div className="
                             mb-2
@@ -625,11 +657,15 @@ export default function AddPlaceToTripModal({
                                     rounded-full
                                     border
                                     border-[#d8c6df]
+                                    bg-white
                                     px-3
                                     py-1.5
                                     text-xs
-                                    font-medium
+                                    font-semibold
                                     text-[#573d63]
+                                    shadow-sm
+                                    transition
+                                    hover:border-[#b89bcb]
                                     hover:bg-[#f4edf6]
                                     disabled:opacity-50
                                   "
@@ -662,10 +698,18 @@ export default function AddPlaceToTripModal({
                 setMessage("");
               }}
               className="
-                mb-3
+                mb-4
+                inline-flex
+                items-center
+                rounded-full
+                bg-[#f5eef7]
+                px-3
+                py-1.5
                 text-xs
                 font-medium
-                text-gray-500
+                text-[#6f456f]
+                transition
+                hover:bg-[#eee2f1]
               "
             >
               ← กลับไปเลือก Trip
@@ -689,14 +733,20 @@ export default function AddPlaceToTripModal({
               className="
                 mt-2
                 w-full
-                rounded-xl
+                rounded-2xl
                 border
-                border-gray-200
+                border-[#e3d7e6]
+                bg-white
                 px-4
                 py-3
                 text-sm
+                text-[#49334f]
                 outline-none
+                transition
+                placeholder:text-[#aaa0ae]
                 focus:border-[#b89bcb]
+                focus:ring-2
+                focus:ring-[#b89bcb]/15
               "
             />
 
@@ -711,13 +761,17 @@ export default function AddPlaceToTripModal({
                 items-center
                 justify-center
                 gap-2
-                rounded-xl
+                rounded-2xl
                 bg-[#573d63]
                 px-4
                 py-3
                 text-sm
                 font-semibold
                 text-white
+                shadow-[0_10px_24px_rgba(87,61,99,0.18)]
+                transition
+                hover:bg-[#684974]
+                active:scale-[0.99]
                 disabled:opacity-60
               "
             >
@@ -737,11 +791,14 @@ export default function AddPlaceToTripModal({
         {message && (
           <div className="
             mt-4
-            rounded-xl
-            bg-[#f7f2f8]
-            px-3
-            py-2
+            rounded-2xl
+            border
+            border-[#e4d6e8]
+            bg-[#f8f2fa]
+            px-3.5
+            py-2.5
             text-xs
+            font-medium
             text-[#573d63]
           ">
             {message}
