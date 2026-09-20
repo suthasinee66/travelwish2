@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Heart,
   MapPin,
@@ -843,13 +843,16 @@ function Explore() {
           max-w-7xl
           px-4
           pb-12
-          pt-16
+          pt-4
           sm:px-6
-          md:pt-7
+          sm:pt-5
+          md:pt-6
           lg:px-8
         ">
           <section className="
             mb-6
+            pl-12
+            sm:pl-0
             flex
             flex-col
             gap-4
@@ -1395,6 +1398,30 @@ function Explore() {
                       เลือกจากความชอบในโปรไฟล์ของคุณ
                     </p>
                   </div>
+
+                  <Link
+                    to="/explore_recommend_all"
+                    search={{
+                      type: "recommend",
+                    }}
+                    className="
+                      shrink-0
+                      rounded-full
+                      border
+                      border-[#dac9df]
+                      bg-[#fffdfb]
+                      px-3
+                      py-1.5
+                      text-xs
+                      font-semibold
+                      text-[#6f456f]
+                      transition
+                      hover:border-[#b99bc5]
+                      hover:bg-[#f5eef7]
+                    "
+                  >
+                    เพิ่มเติม →
+                  </Link>
                 </div>
 
                 <div className="
@@ -1442,6 +1469,30 @@ function Explore() {
                         เรียงจากสถานที่ที่อยู่ใกล้คุณ
                       </p>
                     </div>
+
+                    <Link
+                      to="/explore_nearby_all"
+                      search={{
+                        type: "nearby",
+                      }}
+                      className="
+                        shrink-0
+                        rounded-full
+                        border
+                        border-[#dac9df]
+                        bg-[#fffdfb]
+                        px-3
+                        py-1.5
+                        text-xs
+                        font-semibold
+                        text-[#6f456f]
+                        transition
+                        hover:border-[#b99bc5]
+                        hover:bg-[#f5eef7]
+                      "
+                    >
+                      เพิ่มเติม →
+                    </Link>
                   </div>
 
                   <div className="
