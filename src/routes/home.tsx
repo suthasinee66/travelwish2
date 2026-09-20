@@ -3804,6 +3804,98 @@ function SmoothRecommendationImage({
   );
 }
 
+function RecommendationCarouselCard({
+  images,
+  className,
+  children,
+}: {
+  images?: string[];
+  className?: string;
+  children: (state: {
+    index: number;
+    changeImage: (
+      direction: "next" | "prev"
+    ) => void;
+    handleImageError: () => void;
+  }) => React.ReactNode;
+}) {
+  const safeImages = useMemo(
+    () =>
+      (Array.isArray(images) ? images : [])
+        .filter(
+          (src): src is string =>
+            typeof src === "string" &&
+            src.length > 0
+        ),
+    [images]
+  );
+
+  const [index, setIndex] = useState(0);
+  const swipeProps = useImageSwipe();
+
+  useEffect(() => {
+    if (
+      safeImages.length > 0 &&
+      index >= safeImages.length
+    ) {
+      setIndex(0);
+    }
+  }, [
+    safeImages.length,
+    index
+  ]);
+
+  const changeImage = (
+    direction: "next" | "prev"
+  ) => {
+    if (safeImages.length <= 1) {
+      return;
+    }
+
+    setIndex(current => {
+      if (direction === "next") {
+        return (
+          (current + 1) %
+          safeImages.length
+        );
+      }
+
+      return (
+        current -
+        1 +
+        safeImages.length
+      ) % safeImages.length;
+    });
+  };
+
+  const handleImageError = () => {
+    if (safeImages.length <= 1) {
+      return;
+    }
+
+    setIndex(current =>
+      (current + 1) %
+      safeImages.length
+    );
+  };
+
+  return (
+    <div
+      {...swipeProps(
+        changeImage,
+        safeImages.length > 1
+      )}
+      className={className}
+    >
+      {children({
+        index,
+        changeImage,
+        handleImageError,
+      })}
+    </div>
+  );
+}
+
 function Home() {
   const {
     user,
@@ -3830,8 +3922,6 @@ function Home() {
   const [tripPlaces, setTripPlaces] = useState<any[]>([]);
   const [exploreOpen, setExploreOpen] = useState(false);
   const [exploreLoading, setExploreLoading] = useState(false);
-  const [imageIndex, setImageIndex] = useState<Record<string, number>>({});
-  const imageSwipeProps = useImageSwipe();
   const [recommendLoading, setRecommendLoading] = useState(true);
   const [recommendError, setRecommendError] = useState<string | null>(null);
   const [recommendAttempt, setRecommendAttempt] = useState(0);
@@ -4375,59 +4465,6 @@ ${active
     setExplorePlaces(recommend);
 
     setExploreLoading(false);
-
-  };
-  const handleImageError = (
-    id: string,
-    max: number
-  ) => {
-
-    setImageIndex(prev => {
-
-      const current = prev[id] || 0;
-
-      if (current >= max - 1) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        [id]: current + 1
-      };
-
-    });
-
-  };
-  const changeImage = (
-    id: string,
-    direction: "next" | "prev",
-    max: number
-  ) => {
-
-    setImageIndex(prev => {
-
-      const current = prev[id] || 0;
-
-      let nextIndex = current;
-
-      if (direction === "next") {
-        nextIndex = current + 1 >= max
-          ? 0
-          : current + 1;
-      }
-
-      if (direction === "prev") {
-        nextIndex = current - 1 < 0
-          ? max - 1
-          : current - 1;
-      }
-
-      return {
-        ...prev,
-        [id]: nextIndex
-      };
-
-    });
 
   };
   const handleExplore =
@@ -7122,20 +7159,26 @@ focus:ring-black/20
                         ? filteredPlaces.slice(0, visibleCount)
                         : recommend.slice(0, 6))
                   ).map((c: any, index) => (
-                    <div
+                    <RecommendationCarouselCard
                       key={c?.att_id ?? index}
-                      {...imageSwipeProps(
-                        direction => changeImage(c.att_id, direction, c.images.length),
-                        !recommendLoading && (c?.images?.length ?? 0) > 1,
-                      )}
+                      images={
+                        recommendLoading
+                          ? []
+                          : c?.images
+                      }
                       className="
-                    relative
-                    rounded-xl
-                    overflow-hidden
-                    aspect-[3/4]
-                    bg-gray-100
-                    "
+                        relative
+                        rounded-xl
+                        overflow-hidden
+                        aspect-[3/4]
+                        bg-gray-100
+                      "
                     >
+                      {({
+                        index: cardImageIndex,
+                        changeImage: changeCardImage,
+                        handleImageError: handleCardImageError,
+                      }) => (
 
 
                       {
@@ -7182,15 +7225,10 @@ focus:ring-black/20
                             <SmoothRecommendationImage
                               images={c.images}
                               fallback={c.image}
-                              index={
-                                imageIndex[c.att_id] || 0
-                              }
+                              index={cardImageIndex}
                               alt={c.name_th}
-                              onImageError={() =>
-                                handleImageError(
-                                  c.att_id,
-                                  c.images?.length || 0
-                                )
+                              onImageError={
+                                handleCardImageError
                               }
                             />
 
@@ -7268,10 +7306,8 @@ ${exploreOpen
                                   onClick={(e) => {
                                     e.stopPropagation();
 
-                                    changeImage(
-                                      c.att_id,
-                                      "prev",
-                                      c.images.length
+                                    changeCardImage(
+                                      "prev"
                                     );
                                   }}
                                   className="
@@ -7300,10 +7336,8 @@ ${exploreOpen
                                   onClick={(e) => {
                                     e.stopPropagation();
 
-                                    changeImage(
-                                      c.att_id,
-                                      "next",
-                                      c.images.length
+                                    changeCardImage(
+                                      "next"
                                     );
                                   }}
                                   className="
@@ -7352,7 +7386,7 @@ text-white
         h-1.5
         rounded-full
         transition-all
-        ${(imageIndex[c.att_id] || 0) === i
+        ${cardImageIndex === i
                                           ? "w-5 bg-white"
                                           : "w-1.5 bg-white/50"
                                         }
@@ -7395,8 +7429,8 @@ text-white/80
 
                       }
 
-
-                    </div>
+                      )}
+                    </RecommendationCarouselCard>
 
                   ))}
                 </div>
