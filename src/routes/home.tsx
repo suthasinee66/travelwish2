@@ -7179,9 +7179,6 @@ focus:ring-black/20
                         changeImage: changeCardImage,
                         handleImageError: handleCardImageError,
                       }) => (
-
-
-                      {
                         recommendLoading ? (
 
                           <div className="
@@ -7426,9 +7423,6 @@ text-white/80
                             </div>
                           </>
                         )
-
-                      }
-
                       )}
                     </RecommendationCarouselCard>
 
