@@ -4089,6 +4089,7 @@ justify-center
 {showSaveTripModal && (
   <div
     className="
+      travel-modal-overlay
       fixed
       inset-0
       z-[100]
@@ -4102,6 +4103,7 @@ justify-center
   >
     <div
       className="
+        travel-modal-card
         bg-white
         rounded-3xl
         p-6
@@ -6317,11 +6319,11 @@ const handleSend = async () => {
 
           <div
             className="
+travel-modal-overlay
 fixed
 inset-0
 z-[100]
 bg-black/40
-backdrop-blur-md
 flex
 items-center
 justify-center
@@ -6333,6 +6335,7 @@ justify-center
             <div
               onClick={(e) => e.stopPropagation()}
               className="
+travel-modal-card
 w-[520px]
 max-w-[calc(100vw-2rem)]
 max-h-[calc(100dvh-2rem)]
