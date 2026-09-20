@@ -10,6 +10,7 @@ import {
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
 import { useTravelStore } from "@/store/travelStore";
 import { supabase } from "@/lib/supabase";
 
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/explore_nearby_all")({
 });
 
 function ExploreNearbyAll() {
+  const [placeToAddTrip, setPlaceToAddTrip] = useState<any | null>(null);
   const {
     user,
     nearbyPlaces,
@@ -83,6 +85,13 @@ function ExploreNearbyAll() {
   return (
     <div className="flex h-screen bg-background text-foreground">
       <Sidebar user={user} />
+      <AddPlaceToTripModal
+        open={!!placeToAddTrip}
+        place={placeToAddTrip}
+        onClose={() =>
+          setPlaceToAddTrip(null)
+        }
+      />
 
       <main className="flex-1 overflow-y-auto px-8 py-8">
         {/* Header */}
@@ -223,7 +232,7 @@ function ExploreNearbyAll() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log("add trip", place.att_id);
+                    setPlaceToAddTrip(place);
                   }}
                   className="
                     absolute
