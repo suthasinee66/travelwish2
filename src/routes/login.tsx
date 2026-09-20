@@ -131,7 +131,19 @@ function LoginPage() {
       });
 
       if (error) {
-        alert("Login ไม่สำเร็จ: " + error.message);
+        console.error("Email login error:", error);
+
+        if (error.code === "email_not_confirmed") {
+          alert("ยังไม่ได้ยืนยันอีเมล กรุณาเปิดอีเมลและกดลิงก์ยืนยันบัญชีก่อนเข้าสู่ระบบ");
+          return;
+        }
+
+        if (error.code === "invalid_credentials") {
+          alert("อีเมลหรือรหัสผ่านไม่ถูกต้อง หากอีเมลนี้เคยสมัครด้วย Google กรุณาเข้าสู่ระบบด้วย Google");
+          return;
+        }
+
+        alert("เข้าสู่ระบบไม่สำเร็จ: " + error.message);
         return;
       }
 
