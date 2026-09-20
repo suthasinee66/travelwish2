@@ -607,6 +607,7 @@ function openTrip(tripId: string) {
 
         <div
           className="
+            travel-modal-overlay
             fixed
             inset-0
             bg-black/40
@@ -623,6 +624,7 @@ function openTrip(tripId: string) {
 
           <div
             className="
+              travel-modal-card
               bg-white
               rounded-2xl
               p-8
