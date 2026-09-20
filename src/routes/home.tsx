@@ -82,7 +82,7 @@ import {
 import {
   DndContext,
   closestCenter,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
@@ -697,31 +697,40 @@ function SortablePlaceItem({
           flex
           items-center
           gap-3
-          cursor-grab
-          active:cursor-grabbing
           select-none
-          touch-pan-y
         "
-        {...attributes}
-        {...listeners}
       >
 
         {/* ลำดับ */}
-        <div
-  className="
-    w-8
-    h-8
-    rounded-full
-    bg-[#573d63]
-    text-white
-    flex
-    items-center
-    justify-center
-    font-bold
-  "
->
-  {index + 1}
-</div>
+        <button
+          type="button"
+          aria-label="ลากเพื่อจัดลำดับ"
+          title="ลากเพื่อจัดลำดับ"
+          {...attributes}
+          {...listeners}
+          style={{
+            touchAction: "none",
+            WebkitUserSelect: "none",
+            userSelect: "none",
+          }}
+          className="
+            w-8
+            h-8
+            rounded-full
+            bg-[#573d63]
+            text-white
+            flex
+            items-center
+            justify-center
+            font-bold
+            shrink-0
+            cursor-grab
+            active:cursor-grabbing
+            select-none
+          "
+        >
+          {index + 1}
+        </button>
 
 
         {/* รูป */}
@@ -2522,24 +2531,24 @@ const handleAllDaysDragEnd = (
 };
 
 const sensors = useSensors(
-  // เมาส์ / trackpad
+  // Desktop only
   useSensor(
-    PointerSensor,
+    MouseSensor,
     {
       activationConstraint: {
-        distance: 5
+        distance: 4
       }
     }
   ),
 
-  // มือถือ / tablet:
-  // กดค้างสั้น ๆ ก่อนลาก เพื่อไม่ชนกับการ scroll หน้า
+  // Mobile / tablet only.
+  // Drag starts from the numbered handle below.
   useSensor(
     TouchSensor,
     {
       activationConstraint: {
-        delay: 180,
-        tolerance: 8
+        delay: 100,
+        tolerance: 10
       }
     }
   )
