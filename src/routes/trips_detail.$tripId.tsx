@@ -67,6 +67,7 @@ function TripsDetail() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | "all">("all");
+  const [liveRoutesByDay, setLiveRoutesByDay] = useState<Record<number, any[]> | null>(null);
   // =========================================================
   // LOAD TRIP
   // =========================================================
@@ -365,6 +366,54 @@ function TripsDetail() {
   // MAP ITEMS
   // =========================================================
 const mapPlaces = useMemo(() => {
+  if (liveRoutesByDay) {
+    return Object.entries(liveRoutesByDay)
+      .sort(
+        ([a], [b]) =>
+          Number(a) - Number(b)
+      )
+      .flatMap(
+        ([dayIndex, items]) =>
+          (items || []).map(
+            (
+              item: any,
+              index: number
+            ) => ({
+              ...item,
+              day:
+                Number(dayIndex) + 1,
+              sort_order:
+                index + 1,
+              location: {
+                latitude: Number(
+                  item.location?.latitude ??
+                  item.latitude
+                ),
+                longitude: Number(
+                  item.location?.longitude ??
+                  item.longitude
+                ),
+              },
+            })
+          )
+      )
+      .filter((item: any) => {
+        const lat = Number(
+          item.location?.latitude
+        );
+        const lng = Number(
+          item.location?.longitude
+        );
+
+        return (
+          Number.isFinite(lat) &&
+          Number.isFinite(lng) &&
+          lat !== 0 &&
+          lng !== 0
+        );
+      });
+  }
+
   return savedItems
     .filter((item: any) => {
       const lat = Number(item.place_data?.latitude);
@@ -389,7 +438,7 @@ const mapPlaces = useMemo(() => {
         ),
       },
     }));
-}, [savedItems]);
+}, [savedItems, liveRoutesByDay]);
 const selectedDayPlaces = useMemo(() => {
   if (selectedDay === "all") {
     return mapPlaces.map(
@@ -771,6 +820,11 @@ const mapCenter = useMemo(() => {
           }
         : prev
     );
+  }}
+  onRouteChange={(routesByDay) => {
+    setLiveRoutesByDay({
+      ...routesByDay,
+    });
   }}
   onDayChange={(day) => {
     setSelectedDay(day);
