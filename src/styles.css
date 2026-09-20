@@ -1171,6 +1171,12 @@
     margin-top: auto;
   }
 
+  .travel-home > main:has(.travel-composer):not(:has(.travel-hero)) > .text-center {
+    flex: 1 0 auto;
+    padding: 28px 16px;
+    min-height: 300px;
+  }
+
   .travel-home > aside:not(.travel-sidebar) > .h-full {
     height: auto;
     padding: 16px;
@@ -1183,6 +1189,335 @@
   .travel-home > aside:not(.travel-sidebar) > .flex > div {
     max-width: 100%;
     min-width: 0;
+  }
+
+  /* Shared page layout: Trips, Saved, Explore, creation and destination lists. */
+  body > div:has(> .travel-menu-trigger) {
+    height: 100dvh;
+    min-width: 0;
+  }
+
+  body > div:has(> .travel-menu-trigger) > main {
+    min-width: 0;
+    width: 100%;
+    overscroll-behavior-y: contain;
+  }
+
+  body > div:has(> .travel-menu-trigger):not(.travel-home) > main {
+    padding: 76px 16px 24px;
+    overflow-y: auto;
+    align-items: flex-start;
+  }
+
+  body > div:has(> .travel-menu-trigger) > main > .px-8 {
+    padding: 24px 16px;
+  }
+
+  .travel-home main:not(:has(.travel-composer)) > .travel-header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    padding: 10px 16px 12px 68px;
+    gap: 8px;
+  }
+
+  .travel-home .travel-header:has(input) > h1 {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .travel-home .travel-header:has(input) > div {
+    flex: 0 0 100%;
+    order: 3;
+    min-width: 0;
+  }
+
+  .travel-home .travel-header:has(input) > div > div {
+    max-width: none;
+  }
+
+  .travel-home .travel-header:has(input) > button {
+    min-height: 44px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  body > div:has(> .travel-menu-trigger):not(.travel-home) > main > .flex:first-child {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  body > div:has(> .travel-menu-trigger):not(.travel-home) > main > .flex:first-child > div {
+    min-width: 0;
+  }
+
+  body > div:has(> .travel-menu-trigger):not(.travel-home) main input.w-72 {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body > div:has(> .travel-menu-trigger):not(.travel-home) main .relative:has(> input) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Explore hero and swipeable category/destination rows. */
+  .travel-home main section[class*="aspect-"] {
+    aspect-ratio: auto;
+    min-height: 240px;
+  }
+
+  .travel-home main section[class*="aspect-"] > .absolute.px-8 {
+    padding-inline: 20px;
+  }
+
+  .travel-home main .overflow-x-auto {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+  }
+
+  .travel-home main article.w-72 {
+    width: min(78vw, 288px);
+  }
+
+  .travel-home main article > .h-52 {
+    height: 180px;
+  }
+
+  .travel-home main .overflow-x-auto > button {
+    min-height: 44px;
+  }
+
+  /* Recommendation cards remain readable rather than squeezing 3–4 across. */
+  .travel-home .travel-panel-content {
+    overflow: visible;
+  }
+
+  .travel-home .travel-panel-body {
+    gap: 24px;
+  }
+
+  .travel-home .travel-panel-body > * {
+    margin-block: 0;
+  }
+
+  .travel-home .travel-recommend-header,
+  .travel-home .travel-recommend-header > div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .travel-home .travel-recommend-header h2 {
+    font-size: 18px;
+    line-height: 1.4;
+  }
+
+  .travel-home .travel-recommend-header button {
+    min-height: 44px;
+    padding-inline: 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .travel-home .travel-recommend-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .travel-home .travel-recommend-grid > div {
+    min-width: 0;
+    aspect-ratio: 3 / 4;
+  }
+
+  .travel-home .travel-recommend-grid button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .travel-home .travel-recommend-grid img {
+    object-fit: cover;
+  }
+
+  .travel-home .travel-start-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .travel-home .travel-start-grid .text-6xl {
+    font-size: 40px;
+  }
+
+  .travel-home .travel-start-grid .bottom-3 {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    font-size: 13px;
+  }
+
+  .travel-home .travel-inspiration-grid {
+    display: grid;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 60%);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+    padding-bottom: 8px;
+  }
+
+  .travel-home .travel-inspiration-grid > div {
+    scroll-snap-align: start;
+  }
+
+  .travel-home .travel-panel-filter {
+    width: 100%;
+    height: auto;
+    padding: 32px 0 20px;
+    border-right: 0;
+    border-bottom: 1px solid #eadfeb;
+    overflow: visible;
+  }
+
+  /* Maps/itineraries retain usable height when stacked below the page header. */
+  .travel-home > main:not(:has(.travel-header)) > .h-full {
+    height: 52dvh;
+    min-height: 280px;
+    flex: none;
+  }
+
+  .travel-home > main:not(:has(.travel-header)) > .h-full > .absolute {
+    max-width: calc(100% - 40px);
+    padding: 12px;
+  }
+
+  .travel-home .travel-hotel-modal {
+    width: min(360px, calc(100vw - 32px));
+    max-height: 65dvh;
+    overflow-y: auto;
+  }
+
+  .travel-home .travel-itinerary {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Form and authentication pages use comfortable type and compact gutters. */
+  body :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+    font-size: 16px;
+    max-width: 100%;
+  }
+
+  body :is(h1, h2)[class~="text-3xl"] {
+    font-size: 24px;
+    line-height: 1.3;
+  }
+
+  body :is(h1, h2)[class~="text-4xl"] {
+    font-size: clamp(28px, 7.5vw, 34px);
+    line-height: 1.2;
+  }
+
+  body :is(h1, h2)[class~="text-5xl"] {
+    font-size: 32px;
+    line-height: 1.2;
+  }
+
+  .travel-home :is(h2, h3).text-lg {
+    font-size: 18px;
+    line-height: 1.4;
+  }
+
+  .travel-home :is(p, article, .travel-trip-plan) {
+    overflow-wrap: anywhere;
+  }
+
+  .travel-home article button.absolute {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  body > div:has(> .travel-menu-trigger) > main > .glass-surface {
+    padding: 24px 20px;
+    margin-block: auto;
+  }
+
+  .profile-header-inner,
+  .survey-header-inner {
+    gap: 12px;
+  }
+
+  .profile-user,
+  .survey-user {
+    min-width: 0;
+    max-width: 42%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .survey-section-description {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .survey-season,
+  .survey-region {
+    min-height: 52px;
+    height: auto;
+    padding: 8px;
+  }
+
+  .survey-budget button {
+    flex-wrap: wrap;
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  main.aurora-canvas > div.relative.z-10 {
+    padding: 24px 16px;
+  }
+
+  main.aurora-canvas form button[type="submit"] {
+    min-height: 48px;
+  }
+
+  #home {
+    min-height: 80svh;
+    padding-bottom: 32px;
+  }
+
+  /* Utility/admin data pages: retain scrolling inside tables, not the page. */
+  body > div.min-h-screen.p-8,
+  body > div.space-y-6.p-6 {
+    padding: 20px 16px;
+  }
+
+  body > div.space-y-6.p-6 > .flex,
+  body > div.min-h-screen.p-8 > div > .flex:first-child {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  body .overflow-x-auto > table {
+    min-width: 640px;
+  }
+}
+
+@media (max-width: 359px) {
+  .travel-home .travel-recommend-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .travel-home .travel-recommend-grid > div {
+    aspect-ratio: 4 / 3;
+  }
+
+  .survey-page .grid-cols-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2749,11 +3084,11 @@
   }
 
   .survey-section-description {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .survey-budget button {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 /* ============================================================
