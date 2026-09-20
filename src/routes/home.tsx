@@ -2432,6 +2432,7 @@ const sensors = useSensors(
     // รองรับทั้ง place_id และ id ภายใน
     const existingRestaurants = restaurants.filter((r: any) =>
       restaurantIds.includes(String(r.place_id)) ||
+      restaurantIds.includes(String(r.google_place_id)) ||
       restaurantIds.includes(String(r.id))
     );
 
@@ -2445,6 +2446,7 @@ const sensors = useSensors(
         !existingRestaurants.some(
           (r: any) =>
             String(r.place_id) === id ||
+            String(r.google_place_id) === id ||
             String(r.id) === id
         )
     );
@@ -2482,12 +2484,18 @@ const sensors = useSensors(
 
       const [
         byPlaceIdResult,
+        byGooglePlaceIdResult,
         byInternalIdResult
       ] = await Promise.all([
         supabase
           .from("restaurant")
           .select(restaurantSelect)
           .in("place_id", missingIds),
+
+        supabase
+          .from("restaurant")
+          .select(restaurantSelect)
+          .in("google_place_id", missingIds),
 
         numericIds.length > 0
           ? supabase
@@ -2502,17 +2510,20 @@ const sensors = useSensors(
 
       if (
         byPlaceIdResult.error ||
+        byGooglePlaceIdResult.error ||
         byInternalIdResult.error
       ) {
         console.error(
           "❌ LOAD PLANNER RESTAURANTS ERROR:",
           byPlaceIdResult.error ||
+          byGooglePlaceIdResult.error ||
           byInternalIdResult.error
         );
       }
 
       loadedRestaurants = [
         ...(byPlaceIdResult.data || []),
+        ...(byGooglePlaceIdResult.data || []),
         ...(byInternalIdResult.data || [])
       ].filter(
         (restaurant, index, array) =>
@@ -2562,6 +2573,7 @@ const sensors = useSensors(
             }
 
             const identifier =
+              restaurant.google_place_id ??
               restaurant.place_id ??
               restaurant.id;
 
@@ -2699,6 +2711,7 @@ const findRestaurant = (restaurantId: string) => {
   const result = liveRestaurants.find(
     r =>
       String(r.place_id) === String(restaurantId) ||
+      String(r.google_place_id) === String(restaurantId) ||
       String(r.id) === String(restaurantId)
   );
 
