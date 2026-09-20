@@ -83,6 +83,7 @@ import {
   DndContext,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDroppable,
@@ -697,6 +698,9 @@ function SortablePlaceItem({
           items-center
           gap-3
           cursor-grab
+          active:cursor-grabbing
+          select-none
+          touch-pan-y
         "
         {...attributes}
         {...listeners}
@@ -2518,11 +2522,27 @@ const handleAllDaysDragEnd = (
 };
 
 const sensors = useSensors(
-  useSensor(PointerSensor,{
-    activationConstraint:{
-      distance:5
+  // เมาส์ / trackpad
+  useSensor(
+    PointerSensor,
+    {
+      activationConstraint: {
+        distance: 5
+      }
     }
-  })
+  ),
+
+  // มือถือ / tablet:
+  // กดค้างสั้น ๆ ก่อนลาก เพื่อไม่ชนกับการ scroll หน้า
+  useSensor(
+    TouchSensor,
+    {
+      activationConstraint: {
+        delay: 180,
+        tolerance: 8
+      }
+    }
+  )
 );
 
   const plannerItems = Array.isArray(plannerJson)
