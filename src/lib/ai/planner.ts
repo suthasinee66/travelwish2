@@ -17,7 +17,7 @@ import {
  โหลดสถานที่เที่ยวทั้งหมด
  ไม่จำกัด 1000 row
 */
-async function loadAllAttractions(
+export async function loadAllAttractions(
     province: string
 ) {
 
@@ -75,7 +75,7 @@ async function loadAllAttractions(
 
 }
 
-async function loadUserPreferences(
+export async function loadUserPreferences(
     userId: string
 ) {
 
@@ -110,7 +110,7 @@ async function loadUserPreferences(
 /*
  โหลดร้านอาหารทั้งหมด
 */
-async function loadAllRestaurants(province: string) {
+export async function loadAllRestaurants(province: string) {
 
     let all: any[] = [];
 
