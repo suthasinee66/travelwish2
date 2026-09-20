@@ -5423,6 +5423,78 @@ ${active
   });
 };
 
+const buildChatTitle = (trip: TripInput) => {
+  const province =
+    trip?.province?.trim();
+
+  if (province) {
+    return `ทริป${province}`;
+  }
+
+  if (trip?.days) {
+    return `แผนทริป ${trip.days} วัน`;
+  }
+
+  return "แชทใหม่";
+};
+
+const buildChatSummary = (trip: TripInput) => {
+  return [
+    trip?.days
+      ? `${trip.days} วัน`
+      : null,
+    trip?.companion
+      ? trip.companion
+      : null,
+    trip?.budget
+      ? `${Number(
+          trip.budget
+        ).toLocaleString()} บาท`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+};
+
+const updateChatSessionTrip = async (
+  sessionId: string,
+  trip: TripInput
+) => {
+  const title =
+    buildChatTitle(trip);
+
+  const { data, error } =
+    await supabase
+      .from("chat_sessions")
+      .update({
+        title,
+        trip_preferences: trip,
+      })
+      .eq("id", sessionId)
+      .select()
+      .single();
+
+  if (error) {
+    console.error(
+      "❌ UPDATE CHAT SESSION TRIP:",
+      error
+    );
+    return;
+  }
+
+  setChatSessions(prev =>
+    prev.map(chat =>
+      String(chat.id) ===
+      String(sessionId)
+        ? {
+            ...chat,
+            ...data,
+          }
+        : chat
+    )
+  );
+};
+
 const ensureChatSession = async (): Promise<string | null> => {
   // มี session อยู่แล้ว
   if (currentChatId) {
@@ -5434,14 +5506,8 @@ const ensureChatSession = async (): Promise<string | null> => {
     return null;
   }
 
-  const title = [
-  tripInput.province && tripInput.province,
-  tripInput.days && `${tripInput.days} วัน`,
-  tripInput.companion && `กับ${tripInput.companion}`,
-  tripInput.budget && `งบ ${tripInput.budget.toLocaleString()} บาท`,
-]
-  .filter(Boolean)
-  .join(" ");
+  const title =
+    buildChatTitle(tripInput);
 
   console.log("🔥 CREATE CHAT SESSION");
   console.log({
@@ -5492,6 +5558,11 @@ const handleTripComplete = async () => {
 
     return;
   }
+
+  await updateChatSessionTrip(
+    chatId,
+    tripInput
+  );
 
   setMessages(prev => [
     ...prev,
@@ -5912,6 +5983,11 @@ const handleSend = async () => {
 
     console.log("🧳 UPDATED TRIP:", updatedTrip);
     setTripInput(updatedTrip);
+
+    await updateChatSessionTrip(
+      chatId,
+      updatedTrip
+    );
 
     setMessages(prev => [
       ...prev,
