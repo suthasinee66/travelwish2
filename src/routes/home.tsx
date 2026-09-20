@@ -712,13 +712,14 @@ function SortablePlaceItem({
             touchAction: "none",
             WebkitUserSelect: "none",
             userSelect: "none",
+            color: "#ffffff",
           }}
           className="
             w-8
             h-8
             rounded-full
             bg-[#573d63]
-            text-white
+            !text-white
             flex
             items-center
             justify-center
