@@ -2428,12 +2428,11 @@ const sensors = useSensors(
       return;
     }
 
-    // ร้านที่มีอยู่ใน props แล้ว
-    // รองรับทั้ง place_id และ id ภายใน
+    // ตาราง restaurant ใช้ place_id เป็น primary key
+    // และเก็บ Google Place ID แยกใน google_place_id
     const existingRestaurants = restaurants.filter((r: any) =>
       restaurantIds.includes(String(r.place_id)) ||
-      restaurantIds.includes(String(r.google_place_id)) ||
-      restaurantIds.includes(String(r.id))
+      restaurantIds.includes(String(r.google_place_id))
     );
 
     console.log(
@@ -2446,8 +2445,7 @@ const sensors = useSensors(
         !existingRestaurants.some(
           (r: any) =>
             String(r.place_id) === id ||
-            String(r.google_place_id) === id ||
-            String(r.id) === id
+            String(r.google_place_id) === id
         )
     );
 
@@ -2457,7 +2455,6 @@ const sensors = useSensors(
     );
 
     const baseRestaurantSelect = `
-      id,
       place_id,
       place_name_th,
       place_name_en,
@@ -2481,138 +2478,41 @@ const sensors = useSensors(
     let loadedRestaurants: any[] = [];
 
     if (missingIds.length > 0) {
-      const numericIds =
-        missingIds.filter(
-          id => /^\d+$/.test(id)
-        );
-
-      // place_id เป็น field เดิมของระบบและสำหรับร้านจาก Google
-      // จะเป็น ChIJ... อยู่แล้ว จึงโหลดเส้นนี้ก่อนเสมอ
-      const byPlaceIdResult =
-        await supabase
+      const [
+        byPlaceIdResult,
+        byGooglePlaceIdResult
+      ] = await Promise.all([
+        supabase
           .from("restaurant")
-          .select(
-            restaurantSelectWithGoogle
-          )
-          .in("place_id", missingIds);
+          .select(restaurantSelectWithGoogle)
+          .in("place_id", missingIds),
 
-      let byPlaceIdData =
-        byPlaceIdResult.data || [];
-
-      // ถ้า schema ฝั่ง Supabase ยังไม่มี google_place_id
-      // ให้ fallback เพื่อให้ UI ยังโหลดร้านเดิมได้
-      if (byPlaceIdResult.error) {
-        console.warn(
-          "⚠️ google_place_id schema/query unavailable, fallback to place_id:",
-          byPlaceIdResult.error
-        );
-
-        const fallback =
-          await supabase
-            .from("restaurant")
-            .select(baseRestaurantSelect)
-            .in("place_id", missingIds);
-
-        if (fallback.error) {
-          console.error(
-            "❌ LOAD RESTAURANTS BY place_id ERROR:",
-            fallback.error
-          );
-        }
-
-        byPlaceIdData =
-          (fallback.data || []).map(
-            (restaurant: any) => ({
-              ...restaurant,
-              google_place_id:
-                String(
-                  restaurant.place_id ?? ""
-                ).startsWith("ChIJ")
-                  ? restaurant.place_id
-                  : null
-            })
-          );
-      }
-
-      let byGooglePlaceIdData: any[] = [];
-
-      // query google_place_id แยกออกมา
-      // ถ้าคอลัมน์ยังไม่มี จะไม่ทำให้ place_id query พัง
-      const byGooglePlaceIdResult =
-        await supabase
+        supabase
           .from("restaurant")
-          .select(
-            restaurantSelectWithGoogle
-          )
-          .in(
-            "google_place_id",
-            missingIds
-          );
+          .select(restaurantSelectWithGoogle)
+          .in("google_place_id", missingIds)
+      ]);
 
-      if (byGooglePlaceIdResult.error) {
-        console.warn(
-          "⚠️ LOAD BY google_place_id SKIPPED:",
+      if (
+        byPlaceIdResult.error ||
+        byGooglePlaceIdResult.error
+      ) {
+        console.error(
+          "❌ LOAD PLANNER RESTAURANTS ERROR:",
+          byPlaceIdResult.error ||
           byGooglePlaceIdResult.error
         );
-      } else {
-        byGooglePlaceIdData =
-          byGooglePlaceIdResult.data || [];
-      }
-
-      let byInternalIdData: any[] = [];
-
-      if (numericIds.length > 0) {
-        const byInternalIdResult =
-          await supabase
-            .from("restaurant")
-            .select(
-              restaurantSelectWithGoogle
-            )
-            .in("id", numericIds);
-
-        if (byInternalIdResult.error) {
-          const fallback =
-            await supabase
-              .from("restaurant")
-              .select(baseRestaurantSelect)
-              .in("id", numericIds);
-
-          if (fallback.error) {
-            console.error(
-              "❌ LOAD RESTAURANTS BY id ERROR:",
-              fallback.error
-            );
-          }
-
-          byInternalIdData =
-            (fallback.data || []).map(
-              (restaurant: any) => ({
-                ...restaurant,
-                google_place_id: null
-              })
-            );
-        } else {
-          byInternalIdData =
-            byInternalIdResult.data || [];
-        }
       }
 
       loadedRestaurants = [
-        ...byPlaceIdData,
-        ...byGooglePlaceIdData,
-        ...byInternalIdData
+        ...(byPlaceIdResult.data || []),
+        ...(byGooglePlaceIdResult.data || [])
       ].filter(
         (restaurant, index, array) =>
           array.findIndex(
             item =>
-              String(
-                item.id ??
-                item.place_id
-              ) ===
-              String(
-                restaurant.id ??
-                restaurant.place_id
-              )
+              String(item.place_id) ===
+              String(restaurant.place_id)
           ) === index
       );
     }
@@ -2624,14 +2524,8 @@ const sensors = useSensors(
       (restaurant, index, array) =>
         array.findIndex(
           item =>
-            String(
-              item.id ??
-              item.place_id
-            ) ===
-            String(
-              restaurant.id ??
-              restaurant.place_id
-            )
+            String(item.place_id) ===
+            String(restaurant.place_id)
         ) === index
     );
 
@@ -2680,8 +2574,7 @@ const sensors = useSensors(
 
             const identifier =
               inferredGooglePlaceId ??
-              restaurant.place_id ??
-              restaurant.id;
+              restaurant.place_id;
 
             if (!identifier) {
               return restaurant;
@@ -2742,7 +2635,6 @@ const sensors = useSensors(
       "🍜 RESTAURANTS READY:",
       hydratedRestaurants.map(
         (restaurant: any) => ({
-          id: restaurant.id,
           place_id:
             restaurant.place_id,
           google_place_id:
@@ -2843,8 +2735,7 @@ const findRestaurant = (restaurantId: string) => {
   const result = liveRestaurants.find(
     r =>
       String(r.place_id) === String(restaurantId) ||
-      String(r.google_place_id) === String(restaurantId) ||
-      String(r.id) === String(restaurantId)
+      String(r.google_place_id) === String(restaurantId)
   );
 
   console.log(
