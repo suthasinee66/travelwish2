@@ -38,11 +38,17 @@ export type TripPlanEditChange = {
   newPlaceName: string;
 };
 
+export type TripEditConstraints = {
+  rejectedPlaceIds: string[];
+  excludeKeywords: string[];
+};
+
 export type TripPlanEditResult = {
   plannerJson: any[];
   reply: string;
   changedDays: number[];
   changes: TripPlanEditChange[];
+  constraints: TripEditConstraints;
 };
 
 const EMPTY_INTENT: TripPlanEditIntent = {
@@ -560,12 +566,14 @@ export async function applyTripPlanEdit({
   plannerJson,
   intent,
   tripInput,
-  userId
+  userId,
+  constraints
 }: {
   plannerJson: any;
   intent: TripPlanEditIntent;
   tripInput: any;
   userId: string;
+  constraints?: Partial<TripEditConstraints>;
 }): Promise<TripPlanEditResult> {
   const items = plannerItemsOf(plannerJson);
   const targets = resolveTargets(
@@ -578,6 +586,25 @@ export async function applyTripPlanEdit({
       "ไม่พบส่วนของทริปที่ตรงกับคำสั่งแก้ไข"
     );
   }
+
+  const rejectedPlaceIds = new Set<string>([
+    ...cleanStringArray(
+      constraints?.rejectedPlaceIds
+    ),
+    ...targets
+      .map(item => item?.place_id)
+      .filter(Boolean)
+      .map(String)
+  ]);
+
+  const persistentExcludeKeywords = [
+    ...new Set([
+      ...cleanStringArray(
+        constraints?.excludeKeywords
+      ),
+      ...intent.excludeKeywords
+    ])
+  ];
 
   const province = String(
     tripInput?.province ?? ""
@@ -616,16 +643,22 @@ export async function applyTripPlanEdit({
 
       if (!id) return false;
 
-      // ไม่วนกลับไปใช้สถานที่ที่มีอยู่ในทริปเดิม
+      // ไม่วนกลับไปใช้สถานที่ที่อยู่ในทริปปัจจุบัน
       if (usedPlaceIds.has(id)) {
         return false;
       }
 
+      // จำสถานที่ที่ผู้ใช้เคยปฏิเสธไว้ตลอดแชตนี้
+      if (rejectedPlaceIds.has(id)) {
+        return false;
+      }
+
+      // จำประเภท/คำที่ผู้ใช้เคยบอกว่าไม่เอา เช่น "อุทยาน"
       if (
-        intent.excludeKeywords.length > 0 &&
+        persistentExcludeKeywords.length > 0 &&
         matchesAnyKeyword(
           place,
-          intent.excludeKeywords
+          persistentExcludeKeywords
         )
       ) {
         return false;
@@ -694,12 +727,13 @@ export async function applyTripPlanEdit({
       tripForRanking as any,
       {
         limit: Math.min(
-          10,
+          30,
           Math.max(
-            4,
-            targets.length * 2
+            15,
+            targets.length * 5
           )
-        )
+        ),
+        candidateMultiplier: 5
       }
     );
 
@@ -805,6 +839,13 @@ export async function applyTripPlanEdit({
         changes.map(change => change.day)
       )
     ],
-    changes
+    changes,
+    constraints: {
+      rejectedPlaceIds: [
+        ...rejectedPlaceIds
+      ],
+      excludeKeywords:
+        persistentExcludeKeywords
+    }
   };
 }
