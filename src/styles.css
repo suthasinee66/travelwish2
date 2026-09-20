@@ -596,6 +596,27 @@
   isolation: isolate;
 }
 
+/* Image arrows are for hover/keyboard users; touch users swipe the photo. */
+[data-image-carousel] button[class~="top-1/2"] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-image-carousel]:hover button[class~="top-1/2"],
+  [data-image-carousel]:focus-within button[class~="top-1/2"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  [data-image-carousel] button[class~="top-1/2"] {
+    display: none;
+  }
+}
+
 /* Keep recommendation/itinerary panels in the original pastel palette. */
 .travel-home > aside:not(.travel-sidebar) {
   background: linear-gradient(180deg, #fffafd, #eff9fc);
