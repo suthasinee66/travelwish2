@@ -76,7 +76,7 @@ import remarkGfm from "remark-gfm";
 import {
   APIProvider,
   Map,
-  AdvancedMarker,
+  Marker,
   useMap,
 } from "@vis.gl/react-google-maps";
 import {
@@ -466,153 +466,162 @@ function MapRoute({
   const map = useMap();
 
 
-  useEffect(()=>{
+  useEffect(() => {
+    if (!map) return;
 
-    if(!map) return;
-
-    if(places.length < 2) return;
-
-
-    async function drawRoute(){
-
-      const response = await fetch(
-        "https://routes.googleapis.com/directions/v2:computeRoutes",
-        {
-          method:"POST",
-
-          headers:{
-            "Content-Type":"application/json",
-
-            "X-Goog-Api-Key":
-              import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-
-            "X-Goog-FieldMask":
-    "routes.polyline.encodedPolyline,routes.legs.distanceMeters,routes.legs.duration"
-          },
-
-
-          body:JSON.stringify({
-
-            origin:{
-              location:{
-                latLng:{
-                  latitude:
-                  Number(
-                    places[0].location.latitude
-                  ),
-
-                  longitude:
-                  Number(
-                    places[0].location.longitude
-                  )
-                }
-              }
-            },
-
-
-            destination:{
-              location:{
-                latLng:{
-                  latitude:
-                  Number(
-                    places[places.length-1]
-                    .location.latitude
-                  ),
-
-                  longitude:
-                  Number(
-                    places[places.length-1]
-                    .location.longitude
-                  )
-                }
-              }
-            },
-
-
-            intermediates:
-              places
-              .slice(1,-1)
-              .map(p=>({
-                location:{
-                  latLng:{
-                    latitude:
-                    Number(
-                    p.location.latitude
-                    ),
-
-                    longitude:
-                    Number(
-                    p.location.longitude
-                    )
-                  }
-                }
-              })),
-
-
-            travelMode:
-              "DRIVE",
-
-
-            optimizeWaypointOrder:false
-
-          })
-
-        }
-      );
-
-
-      const data =
-        await response.json();
-        onRouteLoaded(data.routes?.[0]?.legs || []);
-
-
-      const encoded =
-        data.routes?.[0]
-        ?.polyline
-        ?.encodedPolyline;
-
-
-      if(!encoded) return;
-
-const path =
-  google.maps.geometry.encoding.decodePath(encoded);
-
-
-      const polyline =
-        new google.maps.Polyline({
-
-          path,
-
-          strokeColor:"#4285F4",
-
-          strokeWeight:6,
-
-          strokeOpacity:1
-
-        });
-
-
-
-      polyline.setMap(map);
-
-
-
-      return ()=>{
-
-        polyline.setMap(null);
-
-      };
-
+    if (places.length < 2) {
+      onRouteLoaded([]);
+      return;
     }
 
+    let polyline: google.maps.Polyline | null = null;
+    let cancelled = false;
+
+    async function drawRoute() {
+      try {
+        const apiKey =
+          import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+        if (!apiKey) {
+          console.error(
+            "❌ VITE_GOOGLE_MAPS_API_KEY is missing"
+          );
+          onRouteLoaded([]);
+          return;
+        }
+
+        const response = await fetch(
+          "https://routes.googleapis.com/directions/v2:computeRoutes",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Goog-Api-Key": apiKey,
+              "X-Goog-FieldMask":
+                "routes.polyline.encodedPolyline,routes.legs.distanceMeters,routes.legs.duration",
+            },
+            body: JSON.stringify({
+              origin: {
+                location: {
+                  latLng: {
+                    latitude: Number(
+                      places[0].location.latitude
+                    ),
+                    longitude: Number(
+                      places[0].location.longitude
+                    ),
+                  },
+                },
+              },
+              destination: {
+                location: {
+                  latLng: {
+                    latitude: Number(
+                      places[places.length - 1]
+                        .location.latitude
+                    ),
+                    longitude: Number(
+                      places[places.length - 1]
+                        .location.longitude
+                    ),
+                  },
+                },
+              },
+              intermediates: places
+                .slice(1, -1)
+                .map((place) => ({
+                  location: {
+                    latLng: {
+                      latitude: Number(
+                        place.location.latitude
+                      ),
+                      longitude: Number(
+                        place.location.longitude
+                      ),
+                    },
+                  },
+                })),
+              travelMode: "DRIVE",
+              optimizeWaypointOrder: false,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText =
+            await response.text();
+
+          console.error(
+            "❌ GOOGLE ROUTES API ERROR:",
+            {
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText,
+            }
+          );
+
+          if (!cancelled) {
+            onRouteLoaded([]);
+          }
+
+          return;
+        }
+
+        const data =
+          await response.json();
+
+        if (cancelled) return;
+
+        onRouteLoaded(
+          data.routes?.[0]?.legs || []
+        );
+
+        const encoded =
+          data.routes?.[0]
+            ?.polyline
+            ?.encodedPolyline;
+
+        if (!encoded) return;
+
+        const path =
+          google.maps.geometry.encoding.decodePath(
+            encoded
+          );
+
+        polyline =
+          new google.maps.Polyline({
+            path,
+            strokeColor: "#4285F4",
+            strokeWeight: 6,
+            strokeOpacity: 1,
+          });
+
+        polyline.setMap(map);
+      } catch (error) {
+        console.error(
+          "❌ DRAW ROUTE ERROR:",
+          error
+        );
+
+        if (!cancelled) {
+          onRouteLoaded([]);
+        }
+      }
+    }
 
     drawRoute();
 
+    return () => {
+      cancelled = true;
 
-  },[
- map,
- JSON.stringify(places)
-]);
+      if (polyline) {
+        polyline.setMap(null);
+      }
+    };
+  }, [
+    map,
+    JSON.stringify(places)
+  ]);
 
 
   return null;
@@ -2957,34 +2966,31 @@ mapCenter;
             onRouteLoaded={setRouteLegs}
           />
 
-          {routePlaces.map((place, index) => (
-            <AdvancedMarker
-              key={`${place.type}-${place.restaurant_id ?? place.place_id}`}
-              position={{
-                lat: Number(place.location.latitude),
-                lng: Number(place.location.longitude),
-              }}
-            >
-              <div
-                className="
-                  w-8
-                  h-8
-                  rounded-full
-                  bg-[#573d63]
-                  text-white
-                  flex
-                  items-center
-                  justify-center
-                  font-bold
-                  shadow-lg
-                  border-2
-                  border-white
-                "
-              >
-                {index + 1}
-              </div>
-            </AdvancedMarker>
-          ))}
+          {routePlaces
+            .filter(
+              (place) =>
+                Number.isFinite(
+                  Number(place?.location?.latitude)
+                ) &&
+                Number.isFinite(
+                  Number(place?.location?.longitude)
+                )
+            )
+            .map((place, index) => (
+              <Marker
+                key={`${place.type}-${place.restaurant_id ?? place.place_id}`}
+                position={{
+                  lat: Number(place.location.latitude),
+                  lng: Number(place.location.longitude),
+                }}
+                label={{
+                  text: String(index + 1),
+                  color: "#ffffff",
+                  fontWeight: "700",
+                }}
+                title={place.name}
+              />
+            ))}
         </Map>
       </APIProvider>
     </div>
