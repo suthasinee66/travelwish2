@@ -5000,6 +5000,9 @@ justify-center
               onClick={(e) => e.stopPropagation()}
               className="
 w-[520px]
+max-w-[calc(100vw-2rem)]
+max-h-[calc(100dvh-2rem)]
+overflow-y-auto
 min-h-[260px]
 bg-white
 rounded-3xl
@@ -5754,6 +5757,7 @@ hover:bg-gray-100
       {/* Right panel */}
       <aside
         className={`
+    travel-right-panel
     fixed
     top-0
     right-0
@@ -5787,6 +5791,7 @@ hover:bg-gray-100
         )}
         <div
           className={`
+    travel-panel-content
     h-full
     overflow-y-auto
     p-5
@@ -5803,6 +5808,7 @@ pr-6
 space-y-6
 overflow-y-auto
 h-full
+travel-panel-filter
 "
             >
 
@@ -6340,7 +6346,7 @@ focus:ring-black/20
             </div>
 
           )}
-          <div className="flex-1 flex flex-col space-y-10">
+          <div className="travel-panel-body min-w-0 flex-1 flex flex-col space-y-10">
             {showTripPlan && (
   <TripPlanPanel
     key={currentChatId ?? "new"}
@@ -6358,7 +6364,7 @@ focus:ring-black/20
             {/* Recommend เดิม เอาออกจาก else */}
             {!showTripPlan && (
               <>
-                <div className="flex items-center justify-between mb-3">
+                <div className="travel-recommend-header flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <h2 className="font-semibold">
                       Recommend for you
@@ -6383,6 +6389,7 @@ focus:ring-black/20
 
                 <div
                   className={`
+        travel-recommend-grid
         grid
         gap-3
         ${exploreOpen
@@ -6709,7 +6716,7 @@ text-white/80
                   Get started
                 </h2>
 
-                <div className="grid grid-cols-2 gap-3 w-[430px]">
+                <div className="travel-start-grid grid grid-cols-2 gap-3 w-full">
 
                   <div className="rounded-2xl overflow-hidden aspect-[4/3] relative cursor-pointer"
                     style={{ background: "linear-gradient(135deg, oklch(0.7 0.15 230), oklch(0.65 0.18 250))" }}>
@@ -6778,9 +6785,9 @@ text-white/80
                 </h2>
 
                 <div
-                  className={`grid gap-3 ${exploreOpen
+                  className={`travel-inspiration-grid grid gap-3 ${exploreOpen
                     ? "grid-cols-4"
-                    : "grid-cols-3 w-[430px]"
+                    : "grid-cols-3 w-full"
                     }`}
                 >
                   {inspire.map((v) => (
