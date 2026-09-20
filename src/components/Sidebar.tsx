@@ -391,6 +391,13 @@ export default function Sidebar({
 
 
                     <div
+                        style={{
+                            backgroundColor: "#fffdfb",
+                            opacity: 1,
+                            backgroundImage: "none",
+                            backdropFilter: "none",
+                            WebkitBackdropFilter: "none",
+                        }}
                         className="
         travel-modal-card
         bg-white
