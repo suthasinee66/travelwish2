@@ -296,7 +296,7 @@ function ProfileSetup() {
 
           {/* Bottom text */}
           <p className="mt-6 text-center text-xs text-[#918899]">
-            Step 1 of 3 · Personal information
+            Step 1 of 2 · Personal information
           </p>
 
         </div>

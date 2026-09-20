@@ -263,11 +263,6 @@ function PersonalSurvey() {
 
                     <span>{item.value}</span>
 
-                    {selected && (
-                      <span className="survey-check">
-                        <Check className="h-3 w-3" />
-                      </span>
-                    )}
 
                   </button>
                 );
@@ -323,9 +318,7 @@ function PersonalSurvey() {
                         : ""
                     }`}
                   >
-                    {selected && (
-                      <Check className="h-3.5 w-3.5" />
-                    )}
+                    
 
                     {activity}
                   </button>
@@ -385,9 +378,6 @@ function PersonalSurvey() {
 
                     <span>{region}</span>
 
-                    {selected && (
-                      <Check className="h-4 w-4" />
-                    )}
 
                   </button>
                 );
@@ -543,9 +533,6 @@ function PersonalSurvey() {
                           : ""
                       }
                     >
-                      {budget === item.value && (
-                        <Check className="h-3.5 w-3.5" />
-                      )}
 
                       {item.label}
                     </button>
@@ -604,9 +591,6 @@ function PersonalSurvey() {
                         : ""
                     }`}
                   >
-                    {selected && (
-                      <Check className="h-4 w-4" />
-                    )}
 
                     {time}
                   </button>

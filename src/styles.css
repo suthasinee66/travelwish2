@@ -2594,12 +2594,6 @@
     box-shadow 180ms ease;
 }
 
-.survey-card:hover {
-  box-shadow:
-    0 22px 52px rgba(91, 72, 117, 0.11),
-    0 5px 18px rgba(91, 72, 117, 0.04);
-}
-
 
 /* ============================================================
    SECTION HEADER
@@ -2731,16 +2725,6 @@
     box-shadow 180ms ease;
 }
 
-.survey-choice:hover {
-  transform: translateY(-2px);
-
-  background: rgba(255, 255, 255, 0.78);
-
-  border-color: rgba(184, 155, 203, 0.42);
-
-  box-shadow:
-    0 8px 20px rgba(91, 72, 117, 0.07);
-}
 
 .survey-choice-selected {
   color: #674d76;
@@ -2829,13 +2813,6 @@
     box-shadow 180ms ease;
 }
 
-.survey-chip:hover {
-  transform: translateY(-1px);
-
-  background: rgba(255, 255, 255, 0.8);
-
-  border-color: rgba(184, 155, 203, 0.45);
-}
 
 .survey-chip-selected {
   color: white;
@@ -2883,13 +2860,6 @@
     border-color 180ms ease;
 }
 
-.survey-region:hover {
-  transform: translateY(-1px);
-
-  background: rgba(255, 255, 255, 0.8);
-
-  border-color: rgba(184, 155, 203, 0.45);
-}
 
 .survey-region-selected {
   color: white;
@@ -2978,11 +2948,6 @@
     background 180ms ease;
 }
 
-.survey-select:hover {
-  background: rgba(255, 255, 255, 0.8);
-
-  border-color: rgba(184, 155, 203, 0.45);
-}
 
 .survey-select:focus {
   background: rgba(255, 255, 255, 0.9);
@@ -3038,9 +3003,6 @@
   border-right: 0;
 }
 
-.survey-budget button:hover {
-  background: rgba(255, 255, 255, 0.65);
-}
 
 .survey-budget-active {
   color: white !important;
@@ -3084,13 +3046,6 @@
     border-color 180ms ease;
 }
 
-.survey-season:hover {
-  transform: translateY(-1px);
-
-  background: rgba(255, 255, 255, 0.8);
-
-  border-color: rgba(184, 155, 203, 0.45);
-}
 
 .survey-season-selected {
   color: white;
@@ -3152,14 +3107,6 @@
     filter 180ms ease;
 }
 
-.survey-submit:hover:not(:disabled) {
-  transform: translateY(-2px);
-
-  filter: brightness(1.02);
-
-  box-shadow:
-    0 17px 35px rgba(130, 90, 150, 0.27);
-}
 
 .survey-submit:active:not(:disabled) {
   transform: scale(0.99);
