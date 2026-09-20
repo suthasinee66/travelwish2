@@ -336,6 +336,7 @@ export default function AddPlaceToTripModal({
   return (
     <div
       className="
+        travel-modal-overlay
         fixed
         inset-0
         z-[200]
@@ -349,6 +350,7 @@ export default function AddPlaceToTripModal({
     >
       <div
         className="
+          travel-modal-card
           w-full
           max-w-[430px]
           max-h-[calc(100dvh-2rem)]
