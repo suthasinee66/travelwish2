@@ -61,7 +61,7 @@ const {
 }=useTravelStore();
 
   const safeSavedItems = Array.isArray(savedItems)
-    ? safeSavedItems.filter(Boolean)
+    ? savedItems.filter(Boolean)
     : [];
 
   const collections =
