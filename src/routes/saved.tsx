@@ -60,18 +60,22 @@ const {
   setSavedItems:setStoreSavedItems
 }=useTravelStore();
 
+  const safeSavedItems = Array.isArray(savedItems)
+    ? safeSavedItems.filter(Boolean)
+    : [];
+
   const collections =
   [
     {
       name:"All saved",
-      count:savedItems.length
+      count:safeSavedItems.length
     },
 
 
     {
       name:"Want to go",
       count:
-      savedItems.filter(
+      safeSavedItems.filter(
         x=>x.collection==="Want to go"
       ).length
     },
@@ -80,7 +84,7 @@ const {
     {
       name:"Food & drink",
       count:
-      savedItems.filter(
+      safeSavedItems.filter(
         x=>x.collection==="Food & drink"
       ).length
     },
@@ -89,7 +93,7 @@ const {
     {
       name:"Hotels",
       count:
-      savedItems.filter(
+      safeSavedItems.filter(
         x=>x.collection==="Hotels"
       ).length
     },
@@ -159,32 +163,59 @@ async function loadSaved(){
  }else{
 
 
+   const rows =
+     Array.isArray(data)
+       ? data
+       : [];
+
    const formatted =
-   data.map((item:any)=>({
+     rows
+       .filter(Boolean)
+       .map((item:any) => {
+         const attraction =
+           Array.isArray(item?.attraction)
+             ? item.attraction[0]
+             : item?.attraction;
 
-      id:item.id,
+         const province =
+           attraction?.province ||
+           "";
 
-      title:item.attraction?.name_th,
+         return {
+           id:
+             item?.id ??
+             `saved-${attraction?.att_id ?? Math.random()}`,
 
+           title:
+             attraction?.name_th ||
+             "Saved place",
 
-      place:
-      item.attraction?.province
-      + ", Thailand",
+           place:
+             province
+               ? `${province}, Thailand`
+               : "Thailand",
 
+           tag:
+             item?.collection ||
+             "Saved",
 
-      tag:item.collection,
+           collection:
+             item?.collection ||
+             "Saved",
 
+           img:
+             (
+               Array.isArray(attraction?.images)
+                 ? attraction.images[0]
+                 : null
+             ) ||
+             "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
 
-      collection:item.collection,
-
-
-      img:
-      item.attraction?.images?.[0]
-      ||
-      "https://images.unsplash.com/photo-1501785888041-af3ef285b470"
-
-
-   }));
+           rating:
+             attraction?.rating ??
+             null,
+         };
+       });
 
 
    // update Zustand
@@ -232,7 +263,7 @@ async function loadSaved(){
 
   // update zustand ทันที
   setStoreSavedItems(
-    savedItems.filter(
+    safeSavedItems.filter(
       item => item.id !== id
     )
   );
@@ -287,7 +318,7 @@ async function loadSaved(){
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold tracking-tight">
-                All saved <span className="text-muted-foreground font-normal">({savedItems.length})</span>
+                All saved <span className="text-muted-foreground font-normal">({safeSavedItems.length})</span>
               </h2>
               <div className="flex items-center gap-2">
                 <button className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
@@ -299,39 +330,47 @@ async function loadSaved(){
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-3">
-              {savedItems.map((s) => (
+              {safeSavedItems.map((s) => (
                 <article
                   key={s.id}
                   className="glass-surface rounded-2xl overflow-hidden cursor-pointer group hover-lift"
                 >
                   <div className="relative h-24 overflow-hidden sm:h-32 md:h-36">
                     <img
-                      src={s.img}
-                      alt={s.title}
+                      src={s?.img || "https://images.unsplash.com/photo-1501785888041-af3ef285b470"}
+                      alt={s?.title || "Saved place"}
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src =
+                          "https://images.unsplash.com/photo-1501785888041-af3ef285b470";
+                      }}
                       className="h-full w-full object-cover group-hover:scale-105 transition"
                     />
                     <button className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 text-rose-500 flex items-center justify-center hover:bg-white">
                       <Heart className="h-3.5 w-3.5 fill-current" />
                     </button>
                     <span className="absolute bottom-2 left-2 text-[9px] sm:text-[11px] rounded-full bg-black/60 text-white px-2 py-0.5">
-                      {s.tag}
+                      {s?.tag || "Saved"}
                     </span>
                   </div>
                   <div className="p-2 sm:p-3">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="truncate text-sm font-semibold leading-tight sm:text-base">{s.title}</h3>
+                        <h3 className="truncate text-sm font-semibold leading-tight sm:text-base">{s?.title || "Saved place"}</h3>
                         <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                          <MapPin className="h-3 w-3" /> {s.place}
+                          <MapPin className="h-3 w-3" /> {s?.place || "Thailand"}
                         </div>
                       </div>
-                      <div className="text-[10px] sm:text-xs font-medium flex items-center gap-0.5 shrink-0">
-                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {s.rating}
-                      </div>
+                      {s?.rating != null && (
+                        <div className="text-[10px] sm:text-xs font-medium flex items-center gap-0.5 shrink-0">
+                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                          {s.rating}
+                        </div>
+                      )}
                     </div>
                     <div className="mt-2 flex items-center justify-between sm:mt-3">
                       <span className="max-w-[78%] truncate text-[10px] sm:text-xs text-muted-foreground bg-secondary rounded-full px-2 py-0.5">
-                        {s.collection}
+                        {s?.collection || "Saved"}
                       </span>
                       <button
   onClick={(e)=>{
