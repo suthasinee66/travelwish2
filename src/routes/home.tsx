@@ -2331,6 +2331,32 @@ const sensors = useSensors(
   const plannerItems = Array.isArray(plannerJson)
   ? plannerJson
   : plannerJson?.selectedPlaces || [];
+
+  // ใช้ตรวจว่า AI ส่ง planner เวอร์ชันใหม่เข้ามาหรือไม่
+  // เพื่อเคลียร์ cache ภายใน TripPlanPanel ที่ใช้ตอน drag/edit
+  const plannerVersion = useMemo(
+    () =>
+      JSON.stringify(
+        plannerItems.map((item: any) => ({
+          day: item.day,
+          period: item.period,
+          place_id: item.place_id,
+          restaurant_id: item.restaurant_id
+        }))
+      ),
+    [plannerJson]
+  );
+
+  useEffect(() => {
+    console.log(
+      "🔄 PLANNER VERSION CHANGED → RESET LOCAL ROUTE CACHE"
+    );
+
+    setRoutePlaces([]);
+    setRoutePlacesByDay({});
+    setRouteLegs([]);
+  }, [plannerVersion]);
+
   useEffect(() => {
   const loadPlannerPlaces = async () => {
 
