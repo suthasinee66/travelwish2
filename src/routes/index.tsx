@@ -400,7 +400,7 @@ function Index() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#faf7ff] text-[#302b43]">
+    <div className="travel-landing-page relative isolate min-h-screen overflow-x-hidden bg-[#faf7ff] text-[#302b43]">
 
       {/* =====================================================
           GLOBAL AURORA BACKGROUND
@@ -458,6 +458,7 @@ function Index() {
           right-0
           top-0
           z-50
+          pointer-events-auto
           border-b
           border-white/70
           bg-white/60
@@ -792,6 +793,7 @@ function Index() {
           src={heroImg}
           alt="Beautiful tropical beach destination"
           className="
+            pointer-events-none
             absolute
             inset-0
             h-full
@@ -802,6 +804,7 @@ function Index() {
 
         <div
           className="
+            pointer-events-none
             absolute
             inset-0
             bg-gradient-to-b
@@ -813,6 +816,7 @@ function Index() {
 
         <div
           className="
+            pointer-events-none
             absolute
             -left-20
             top-20
@@ -826,6 +830,7 @@ function Index() {
 
         <div
           className="
+            pointer-events-none
             absolute
             -right-20
             bottom-10
@@ -840,7 +845,8 @@ function Index() {
         <div
           className="
             relative
-            z-10
+            z-20
+            pointer-events-auto
             mx-auto
             max-w-4xl
             px-5
@@ -943,6 +949,7 @@ function Index() {
 
         <div
           className="
+            pointer-events-none
             absolute
             bottom-0
             left-0
@@ -1679,6 +1686,7 @@ function DestinationCard({
 
         <div
           className="
+            pointer-events-none
             absolute
             inset-0
             bg-gradient-to-t
