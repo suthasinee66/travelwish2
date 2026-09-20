@@ -505,21 +505,36 @@ function buildReply(
   changes: TripPlanEditChange[],
   intent: TripPlanEditIntent
 ) {
+  const periodLabel: Record<string, string> = {
+    Morning: "ช่วงเช้า",
+    Lunch: "ช่วงกลางวัน",
+    Afternoon: "ช่วงบ่าย",
+    Evening: "ช่วงเย็น",
+    Dinner: "ช่วงค่ำ"
+  };
+
   const lines = changes.map(change => {
     const period =
       change.period
-        ? ` ช่วง${change.period}`
+        ? periodLabel[change.period] ?? change.period
         : "";
 
+    const when = [
+      `วันที่ ${change.day}`,
+      period
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
     return (
-      `- วันที่ ${change.day}${period}: ` +
-      `~~${change.oldPlaceName}~~ → **${change.newPlaceName}**`
+      `- **${when}** — ` +
+      `${change.oldPlaceName} → **${change.newPlaceName}**`
     );
   });
 
   const conditionParts = [
     intent.excludeKeywords.length
-      ? `ตัด **${intent.excludeKeywords.join(", ")}** ออก`
+      ? `ตัด **${intent.excludeKeywords.join(", ")}** ออกจากแผน`
       : null,
     intent.includeKeywords.length
       ? `เน้น **${intent.includeKeywords.join(", ")}** แทน`
@@ -527,16 +542,17 @@ function buildReply(
   ].filter(Boolean);
 
   const conditionText = conditionParts.length
-    ? ` โดย${conditionParts.join(" และ ")}`
-    : "";
+    ? conditionParts.join(" และ ")
+    : "ปรับเฉพาะจุดที่คุณขอ";
 
   return [
-    "## ปรับทริปให้แล้ว ✨",
-    `ผมแก้เฉพาะส่วนที่เกี่ยวข้องกับคำขอของคุณ${conditionText}`,
+    "**ปรับทริปให้แล้ว ✨**",
+    "",
+    `${conditionText} โดยเปลี่ยนทั้งหมด **${changes.length} จุด**`,
     "",
     ...lines,
     "",
-    "ส่วนอื่นของทริปยังคงเดิมครับ"
+    "_ส่วนอื่นของทริปยังคงเดิม_"
   ].join("\n");
 }
 
