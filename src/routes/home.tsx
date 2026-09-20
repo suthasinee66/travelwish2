@@ -85,6 +85,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
   DragEndEvent,
 } from "@dnd-kit/core";
 
@@ -570,6 +571,42 @@ function DistanceBetweenItems({
   );
 }
 
+function AllDaysDropZone({
+  dayIndex,
+  children,
+}: {
+  dayIndex: number;
+  children: React.ReactNode;
+}) {
+  const {
+    setNodeRef,
+    isOver
+  } = useDroppable({
+    id: `day-drop-${dayIndex}`,
+    data: {
+      dayIndex,
+      type: "day-container"
+    }
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`
+        space-y-3
+        rounded-2xl
+        transition
+        ${isOver
+          ? "ring-2 ring-[#b89bcb]/50 bg-[#f7f2f8]/50"
+          : ""
+        }
+      `}
+    >
+      {children}
+    </div>
+  );
+}
+
 function SortablePlaceItem({
   item,
   index,
@@ -585,12 +622,17 @@ function SortablePlaceItem({
   replaceRestaurantInPlan,
   removeRestaurantFromPlan,
   removePlaceFromPlan,
+  sortableIdOverride,
+  sortableDayIndex,
 }: any) {
 
   const sortableId =
-    item.type === "restaurant"
-      ? `restaurant-${item.restaurant_id}`
-      : `place-${item.place_id}`;
+    sortableIdOverride ??
+    (
+      item.type === "restaurant"
+        ? `restaurant-${item.restaurant_id}`
+        : `place-${item.place_id}`
+    );
 
   const {
     attributes,
@@ -600,6 +642,11 @@ function SortablePlaceItem({
     transition,
   } = useSortable({
     id: sortableId,
+    data: {
+      dayIndex: sortableDayIndex,
+      item,
+      type: "trip-item"
+    },
   });
 
   const attId = String(item.place_id);
@@ -2271,6 +2318,205 @@ const handleDragEnd = (event: any) => {
 
 };
 
+const getRouteSortableId = (
+  item: any
+) =>
+  item.type === "restaurant"
+    ? `restaurant-${item.restaurant_id}`
+    : `place-${item.place_id}`;
+
+const getAllDaySortableId = (
+  item: any,
+  dayIndex: number
+) =>
+  `all-day-${dayIndex}-${getRouteSortableId(item)}`;
+
+const handleAllDaysDragEnd = (
+  event: DragEndEvent
+) => {
+  const {
+    active,
+    over
+  } = event;
+
+  if (!over) return;
+
+  const sourceDayIndex =
+    Number(
+      active.data.current?.dayIndex
+    );
+
+  const targetDayIndex =
+    Number(
+      over.data.current?.dayIndex
+    );
+
+  if (
+    !Number.isInteger(sourceDayIndex) ||
+    !Number.isInteger(targetDayIndex)
+  ) {
+    console.warn(
+      "❌ Invalid cross-day drag target"
+    );
+    return;
+  }
+
+  const nextByDay: Record<
+    number,
+    any[]
+  > = {};
+
+  days.forEach(
+    (dayData, dayIndex) => {
+      const source =
+        dayIndex === selectedDay
+          ? routePlaces
+          : routePlacesByDay[
+              dayIndex
+            ] ??
+            buildRoutePlaces(
+              dayData.items ?? []
+            );
+
+      nextByDay[dayIndex] =
+        [...source];
+    }
+  );
+
+  const sourceItems =
+    nextByDay[sourceDayIndex] ?? [];
+
+  const targetItems =
+    nextByDay[targetDayIndex] ?? [];
+
+  const activeIndex =
+    sourceItems.findIndex(
+      item =>
+        getAllDaySortableId(
+          item,
+          sourceDayIndex
+        ) === String(active.id)
+    );
+
+  if (activeIndex === -1) {
+    console.warn(
+      "❌ Cross-day drag item not found"
+    );
+    return;
+  }
+
+  // เรียงลำดับภายในวันเดียวกัน
+  if (
+    sourceDayIndex ===
+    targetDayIndex
+  ) {
+    if (
+      over.data.current?.type ===
+      "day-container"
+    ) {
+      const [
+        movedItem
+      ] = sourceItems.splice(
+        activeIndex,
+        1
+      );
+
+      sourceItems.push(
+        movedItem
+      );
+    } else {
+      const overIndex =
+        sourceItems.findIndex(
+          item =>
+            getAllDaySortableId(
+              item,
+              sourceDayIndex
+            ) === String(over.id)
+        );
+
+      if (
+        overIndex !== -1 &&
+        overIndex !== activeIndex
+      ) {
+        nextByDay[
+          sourceDayIndex
+        ] = arrayMove(
+          sourceItems,
+          activeIndex,
+          overIndex
+        );
+      }
+    }
+  } else {
+    // ย้ายข้ามวัน
+    const [
+      movedItem
+    ] = sourceItems.splice(
+      activeIndex,
+      1
+    );
+
+    const movedWithDay = {
+      ...movedItem,
+      day:
+        days[targetDayIndex]?.day ??
+        targetDayIndex + 1
+    };
+
+    let insertIndex =
+      targetItems.length;
+
+    if (
+      over.data.current?.type !==
+      "day-container"
+    ) {
+      const foundIndex =
+        targetItems.findIndex(
+          item =>
+            getAllDaySortableId(
+              item,
+              targetDayIndex
+            ) === String(over.id)
+        );
+
+      if (foundIndex !== -1) {
+        insertIndex =
+          foundIndex;
+      }
+    }
+
+    targetItems.splice(
+      insertIndex,
+      0,
+      movedWithDay
+    );
+  }
+
+  console.log(
+    "🔀 CROSS DAY DRAG:",
+    {
+      from:
+        sourceDayIndex + 1,
+      to:
+        targetDayIndex + 1,
+      active: active.id,
+      over: over.id
+    }
+  );
+
+  setRoutePlacesByDay(
+    nextByDay
+  );
+
+  if (
+    nextByDay[selectedDay]
+  ) {
+    setRoutePlaces(
+      nextByDay[selectedDay]
+    );
+  }
+};
+
 const sensors = useSensors(
   useSensor(PointerSensor,{
     activationConstraint:{
@@ -3250,11 +3496,11 @@ justify-center
 
 </div>
 <DndContext
-  sensors={showAllDays ? [] : sensors}
+  sensors={sensors}
   collisionDetection={closestCenter}
   onDragEnd={
     showAllDays
-      ? undefined
+      ? handleAllDaysDragEnd
       : handleDragEnd
   }
 >
@@ -3279,9 +3525,9 @@ justify-center
           );
 
         return (
-          <div
+          <AllDaysDropZone
             key={`all-day-${dayData.day}`}
-            className="space-y-3"
+            dayIndex={dayIndex}
           >
 
             {/* DAY HEADER */}
@@ -3303,9 +3549,10 @@ justify-center
             <SortableContext
               items={dayData.items.map(
                 (item) =>
-                  item.type === "restaurant"
-                    ? `restaurant-${item.restaurant_id}`
-                    : `place-${item.place_id}`
+                  getAllDaySortableId(
+                    item,
+                    dayIndex
+                  )
               )}
               strategy={
                 verticalListSortingStrategy
@@ -3331,6 +3578,16 @@ justify-center
                       // ⭐ เลขต่อเนื่องทุก Day
                       index={
                         previousCount + index
+                      }
+
+                      sortableIdOverride={
+                        getAllDaySortableId(
+                          item,
+                          dayIndex
+                        )
+                      }
+                      sortableDayIndex={
+                        dayIndex
                       }
 
                       findPlace={findPlace}
@@ -3390,7 +3647,7 @@ justify-center
 
             </SortableContext>
 
-          </div>
+          </AllDaysDropZone>
         );
 
       }
