@@ -52,6 +52,7 @@ import { Link } from "@tanstack/react-router";
 import { getPlaceImage } from "@/lib/google/places";
 import { loadPlaceImages } from "@/lib/recommend/loadPlaceImages";
 import Sidebar from "@/components/Sidebar";
+import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { useTravelStore } from "@/store/travelStore";
 import { loadTravelData } from "@/lib/travel/loadTravelData";
 import { getUserLocation } from "@/lib/location/getUserLocation";
@@ -3577,6 +3578,7 @@ function Home() {
   const [exploreLoading, setExploreLoading] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Record<string, boolean>>({});
   const [imageIndex, setImageIndex] = useState<Record<string, number>>({});
+  const imageSwipeProps = useImageSwipe();
   const [recommendLoading, setRecommendLoading] = useState(true);
   const [searchText, setSearchText] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("");
@@ -6407,6 +6409,10 @@ focus:ring-black/20
                   ).map((c: any, index) => (
                     <div
                       key={c?.att_id ?? index}
+                      {...imageSwipeProps(
+                        direction => changeImage(c.att_id, direction, c.images.length),
+                        !recommendLoading && (c?.images?.length ?? 0) > 1,
+                      )}
                       className="
                     relative
                     rounded-xl

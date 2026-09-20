@@ -14,6 +14,7 @@ import {
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { supabase } from "@/lib/supabase";
 import { Link } from "@tanstack/react-router";
 import { useTravelStore } from "@/store/travelStore";
@@ -65,6 +66,7 @@ function Explore() {
 
 const [loading,setLoading] = useState(true);
 const [imageIndex,setImageIndex] = useState<Record<string,number>>({});
+const imageSwipeProps = useImageSwipe();
 
 
 useEffect(()=>{
@@ -387,7 +389,10 @@ Recommend for you
       key={place.att_id}
       className="glass-surface w-72 shrink-0 snap-start rounded-3xl overflow-hidden cursor-pointer group hover-lift"
     >
-      <div className="
+      <div {...imageSwipeProps(
+        direction => changeImage(place.att_id, direction, place.images.length),
+        (place.images?.length ?? 0) > 1,
+      )} className="
 relative
 h-52
 overflow-hidden
@@ -688,7 +693,10 @@ nearbyPlaces.map((f)=>(
 >
 
 
-<div className="
+<div {...imageSwipeProps(
+  direction => changeImage(f.att_id, direction, f.images.length),
+  (f.images?.length ?? 0) > 1,
+)} className="
 relative
 h-44
 ">
