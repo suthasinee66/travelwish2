@@ -117,7 +117,30 @@ async function findRestaurant(
     }
   }
 
-  // 2) รองรับ planner ใหม่/ข้อมูลเก่าบางชุดที่เก็บ id ภายใน
+  // 2) planner อาจเก็บ Google Place ID โดยตรง
+  {
+    const {
+      data,
+      error
+    } = await supabase
+      .from("restaurant")
+      .select("*")
+      .eq("google_place_id", value)
+      .maybeSingle();
+
+    if (error) {
+      console.error(
+        "Restaurant google_place_id lookup error:",
+        error
+      );
+    }
+
+    if (data) {
+      return data;
+    }
+  }
+
+  // 3) รองรับ planner ใหม่/ข้อมูลเก่าบางชุดที่เก็บ id ภายใน
   if (/^\d+$/.test(value)) {
     const {
       data,
