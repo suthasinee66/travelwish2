@@ -295,7 +295,7 @@ function openTrip(tripId: string) {
             CONTENT
         ==================================================== */}
 
-        <div className="px-8 py-7 max-w-6xl">
+        <div className="px-8 py-7 max-w-5xl mx-auto">
 
           {/* ==================================================
               PAGE TITLE
@@ -346,7 +346,7 @@ function openTrip(tripId: string) {
 
           <section>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
 
               {/* ==================================================
                   NEW TRIP CARD
@@ -358,9 +358,9 @@ function openTrip(tripId: string) {
                 }
                 className="
                   glass-surface
-                  rounded-3xl
+                  rounded-2xl
                   overflow-hidden
-                  min-h-[330px]
+                  min-h-[270px]
                   border-2
                   border-dashed
                   border-[#c9a8c8]/60
@@ -377,8 +377,8 @@ function openTrip(tripId: string) {
 
                 <div
                   className="
-                    h-12
-                    w-12
+                    h-10
+                    w-10
                     rounded-full
                     bg-secondary
                     flex
@@ -387,7 +387,7 @@ function openTrip(tripId: string) {
                     text-foreground
                   "
                 >
-                  <Plus className="h-5 w-5" />
+                  <Plus className="h-4 w-4" />
                 </div>
 
                 <span className="mt-3 font-semibold">
@@ -411,15 +411,15 @@ function openTrip(tripId: string) {
                       key={i}
                       className="
                         glass-surface
-                        rounded-3xl
+                        rounded-2xl
                         overflow-hidden
                         animate-pulse
                       "
                     >
 
-                      <div className="h-44 bg-secondary" />
+                      <div className="h-36 bg-secondary" />
 
-                      <div className="p-3.5 space-y-3">
+                      <div className="p-3 space-y-2">
 
                         <div className="h-5 bg-secondary rounded" />
 
@@ -447,7 +447,7 @@ function openTrip(tripId: string) {
                     }
                     className="
                       glass-surface
-                      rounded-3xl
+                      rounded-2xl
                       overflow-hidden
                       cursor-pointer
                       group
@@ -457,7 +457,7 @@ function openTrip(tripId: string) {
 
                     {/* IMAGE */}
 
-                    <div className="relative h-44 overflow-hidden">
+                    <div className="relative h-36 overflow-hidden">
 
                       <img
                         src={getCover(trip)}
@@ -494,7 +494,7 @@ function openTrip(tripId: string) {
 
                     {/* CONTENT */}
 
-                    <div className="p-3.5">
+                    <div className="p-3">
 
                       <div className="flex items-start justify-between gap-2">
 
@@ -521,7 +521,7 @@ function openTrip(tripId: string) {
 
                       {/* TRIP INFORMATION */}
 
-                      <div className="mt-3 space-y-2">
+                      <div className="mt-2.5 space-y-1.5">
 
                         <div className="text-xs text-muted-foreground flex items-center gap-1.5">
 
@@ -562,14 +562,14 @@ function openTrip(tripId: string) {
                           openTrip(trip.id);
                         }}
                         className="
-                          mt-4
+                          mt-3
                           w-full
-                          text-sm
+                          text-xs
                           font-medium
                           border
                           border-border
                           rounded-full
-                          py-2
+                          py-1.5
                           hover:bg-accent
                           transition
                         "
@@ -617,7 +617,7 @@ function openTrip(tripId: string) {
           <div
             className="
               bg-white
-              rounded-3xl
+              rounded-2xl
               p-8
               w-full
               max-w-[420px]
