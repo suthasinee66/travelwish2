@@ -3255,3 +3255,110 @@
   cursor: not-allowed;
   opacity: 0.55;
 }
+
+
+/* ============================================================
+   SHARED MODAL THEME
+   Solid TravelWise / pastel
+   ============================================================ */
+
+.travel-modal-overlay {
+  background: rgb(48 43 67 / 24%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.travel-modal-card {
+  background: #fffdfb !important;
+  opacity: 1 !important;
+  color: #49334f;
+  border: 1px solid #eadfeb !important;
+  border-radius: 28px !important;
+  box-shadow:
+    0 24px 70px rgb(91 72 117 / 18%),
+    0 6px 20px rgb(91 72 117 / 8%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.travel-modal-card h1,
+.travel-modal-card h2,
+.travel-modal-card h3 {
+  color: #49334f;
+  letter-spacing: -0.02em;
+}
+
+.travel-modal-card input,
+.travel-modal-card textarea,
+.travel-modal-card select {
+  background: #fff !important;
+  color: #49334f;
+  border-color: #e3d7e6 !important;
+  border-radius: 14px;
+}
+
+.travel-modal-card input:focus,
+.travel-modal-card textarea:focus,
+.travel-modal-card select:focus {
+  border-color: #b89bcb !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(184 155 203 / 14%);
+}
+
+.travel-modal-card button {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.travel-modal-card button:active {
+  transform: scale(0.99);
+}
+
+.travel-modal-card .bg-black {
+  background: #573d63 !important;
+}
+
+.travel-modal-card .hover\:bg-gray-50:hover,
+.travel-modal-card .hover\:bg-gray-100:hover {
+  background: #f7f0fa !important;
+}
+
+.travel-modal-card .border {
+  border-color: #e8dfea;
+}
+
+.travel-home .travel-hotel-modal {
+  background: #fffdfb !important;
+  color: #49334f;
+  border: 1px solid #eadfeb !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 18px 48px rgb(91 72 117 / 16%),
+    0 5px 16px rgb(91 72 117 / 7%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.travel-home .travel-hotel-modal input {
+  background: #fff;
+  border-color: #e3d7e6;
+  color: #49334f;
+}
+
+@media (max-width: 767px) {
+  .travel-modal-overlay {
+    padding:
+      max(12px, env(safe-area-inset-top))
+      12px
+      max(12px, env(safe-area-inset-bottom)) !important;
+  }
+
+  .travel-modal-card {
+    border-radius: 22px !important;
+    max-height: calc(100dvh - 24px) !important;
+  }
+}
