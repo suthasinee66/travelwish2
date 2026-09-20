@@ -1530,7 +1530,7 @@ const saveTripToSupabase = async () => {
     }
 
     const existingDayByNumber =
-      new Map<number, any>(
+      new globalThis.Map<number, any>(
         existingDays.map(
           (day: any) => [
             Number(
