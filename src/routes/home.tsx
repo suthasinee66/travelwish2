@@ -56,6 +56,7 @@ import { getPlaceImage } from "@/lib/google/places";
 import { loadPlaceImages } from "@/lib/recommend/loadPlaceImages";
 import Sidebar from "@/components/Sidebar";
 import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
+import { THAI_REGIONS, normalizeThaiRegion } from "@/lib/travel/thaiRegions";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { useTravelStore } from "@/store/travelStore";
 import { loadTravelData } from "@/lib/travel/loadTravelData";
@@ -5118,7 +5119,9 @@ if (planner?.planner_json) {
 
       const matchRegion =
         selectedRegion
-          ? place.region === selectedRegion
+          ? normalizeThaiRegion(
+              place.region
+            ) === selectedRegion
           : true;
 
 
@@ -7558,13 +7561,7 @@ focus:ring-black/20
                 <div className="grid grid-cols-2 gap-2 mt-3">
 
                   {
-                    [
-                      "ภาคเหนือ",
-                      "ภาคกลาง",
-                      "ภาคตะวันออกเฉียงเหนือ",
-                      "ภาคตะวันออก",
-                      "ภาคใต้"
-                    ].map(region => (
+                    THAI_REGIONS.map(region => (
 
                       <FilterButton
 
