@@ -15,6 +15,7 @@ import {
   Check,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { THAI_REGIONS } from "@/lib/travel/thaiRegions";
 
 export const Route = createFileRoute("/personal-survey")({
   component: PersonalSurvey,
@@ -122,12 +123,7 @@ function PersonalSurvey() {
     "พักผ่อน",
   ];
 
-  const regionOptions = [
-    "เหนือ",
-    "กลาง",
-    "ใต้",
-    "อีสาน",
-  ];
+  const regionOptions = THAI_REGIONS;
 
   return (
     <div className="survey-page relative min-h-screen overflow-x-hidden text-[#302b43]">
@@ -352,7 +348,7 @@ function PersonalSurvey() {
 
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
 
               {regionOptions.map((region) => {
                 const selected =
