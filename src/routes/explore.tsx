@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { useTravelStore } from "@/store/travelStore";
 import { getRecommendations } from "@/lib/recommend/getRecommendations";
 import { loadNearbyPlaces } from "@/lib/travel/loadNearbyPlaces";
+import { THAI_REGIONS, normalizeThaiRegion } from "@/lib/travel/thaiRegions";
 
 export const Route = createFileRoute("/explore")({
   head: () => ({
@@ -285,20 +286,7 @@ function Explore() {
     [explorePlaces, nearbyPlaces]
   );
 
-  const regionOptions = useMemo(
-    () =>
-      [
-        ...new Set(
-          allExplorePlaces
-            .map((place) => place.region)
-            .filter(Boolean)
-            .map(String)
-        ),
-      ].sort((a, b) =>
-        a.localeCompare(b, "th")
-      ),
-    [allExplorePlaces]
-  );
+  const regionOptions = THAI_REGIONS;
 
   const atmosphereOptions = useMemo(
     () =>
@@ -377,8 +365,9 @@ function Explore() {
 
     const matchesRegion =
       !selectedRegion ||
-      String(place.region || "") ===
-        selectedRegion;
+      normalizeThaiRegion(
+        place.region
+      ) === selectedRegion;
 
     const matchesAtmosphere =
       !selectedAtmosphere ||
