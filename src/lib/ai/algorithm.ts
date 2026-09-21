@@ -842,35 +842,39 @@ const attractionImages =
 
 /* =============================================
    5. ร้านอาหาร
-   ใช้ร้านจาก Supabase ก่อน
-   ถ้ามี → ไม่เรียก Google
+   ค้น Google Nearby ก่อน
+   ถ้าไม่ได้ผล → fallback ร้านจาก Supabase
    ============================================= */
 
-const cachedRestaurants =
-    findNearbyRestaurants(
-        tdmcPlace,
-        restaurants,
-        3
-    );
+console.log(
+    `🌐 ${attraction.name_th}: ค้นร้านอาหาร Nearby ก่อน`
+);
 
 let selectedRestaurants =
-    cachedRestaurants;
+    await loadNearbyRestaurantsFromGoogle(
+        tdmcPlace,
+        trip.province
+    );
 
-if (cachedRestaurants.length === 0) {
+if (selectedRestaurants.length === 0) {
+
+    const cachedRestaurants =
+        findNearbyRestaurants(
+            tdmcPlace,
+            restaurants,
+            3
+        );
 
     console.log(
-        `🔎 ${attraction.name_th}: ไม่พบร้านในข้อมูลเดิม → เรียก Google`
+        `♻️ ${attraction.name_th}: Nearby ไม่ได้ผล → fallback Supabase ${cachedRestaurants.length} ร้าน`
     );
 
     selectedRestaurants =
-        await loadNearbyRestaurantsFromGoogle(
-            tdmcPlace,
-            trip.province
-        );
+        cachedRestaurants;
 } else {
 
     console.log(
-        `♻️ ${attraction.name_th}: ใช้ร้านจาก Supabase ${cachedRestaurants.length} ร้าน`
+        `✅ ${attraction.name_th}: ใช้ผล Nearby ${selectedRestaurants.length} ร้าน`
     );
 }
 results.push({
