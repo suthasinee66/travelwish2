@@ -19,6 +19,7 @@ import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { useTravelStore } from "@/store/travelStore";
 import { supabase } from "@/lib/supabase";
+import { THAI_REGIONS, normalizeThaiRegion } from "@/lib/travel/thaiRegions";
 
 export const Route = createFileRoute("/explore_nearby_all")({
   component: ExploreNearbyAll,
@@ -172,20 +173,7 @@ function ExploreNearbyAll() {
     });
   }
 
-  const regionOptions = useMemo(
-    () =>
-      [
-        ...new Set(
-          nearbyPlaces
-            .map((place) => place.region)
-            .filter(Boolean)
-            .map(String)
-        ),
-      ].sort((a, b) =>
-        a.localeCompare(b, "th")
-      ),
-    [nearbyPlaces]
-  );
+  const regionOptions = THAI_REGIONS;
 
   const filteredPlaces = useMemo(() => {
     const keyword =
@@ -254,8 +242,9 @@ function ExploreNearbyAll() {
 
         const matchesRegion =
           !selectedRegion ||
-          String(place.region || "") ===
-            selectedRegion;
+          normalizeThaiRegion(
+            place.region
+          ) === selectedRegion;
 
         return (
           matchesSearch &&
