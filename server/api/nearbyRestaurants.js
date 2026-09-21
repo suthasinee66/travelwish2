@@ -256,59 +256,13 @@ router.get(
 
 
       // =====================================================
-      // ถ้ามีร้านเดิม และทุกร้านมีรูปแล้ว
-      // → ไม่เรียก Google API
-      // =====================================================
-
-      const hasCompleteCache =
-        cachedRestaurants.length > 0 &&
-        cachedRestaurants.every(
-          (restaurant) =>
-            restaurant.hasImages
-        );
-
-
-      if (hasCompleteCache) {
-
-        console.log(
-          "♻️ ใช้ข้อมูลจาก Supabase Cache"
-        );
-
-        console.log(
-          "🚫 ไม่เรียก Google Places API"
-        );
-
-        console.log(
-          "======================================\n"
-        );
-
-
-        return res.json({
-          success: true,
-
-          cached: true,
-
-          count:
-            cachedRestaurants.length,
-
-          restaurants:
-            cachedRestaurants,
-        });
-      }
-
-
-      // =====================================================
-      // ถ้ามาถึงตรงนี้
-      //
-      // 1. ยังไม่มี Cache
-      // หรือ
-      // 2. ร้านเดิมยังไม่มีรูป
-      //
-      // → ต้องเรียก Google
+      // Nearby-first policy
+      // มี cache ก็ยังค้น Google Nearby ก่อน
+      // cache ใช้เป็น fallback เท่านั้น
       // =====================================================
 
       console.log(
-        "🌐 เรียก Google Places API..."
+        "🌐 ค้น Google Places Nearby ก่อน..."
       );
 
 
@@ -382,6 +336,22 @@ router.get(
           "❌ Google Places Error:",
           errorText
         );
+
+        if (cachedRestaurants.length > 0) {
+          console.log(
+            "♻️ Google ล้มเหลว → fallback Supabase Cache"
+          );
+
+          return res.json({
+            success: true,
+            cached: true,
+            fallback: true,
+            count:
+              cachedRestaurants.length,
+            restaurants:
+              cachedRestaurants,
+          });
+        }
 
         return res.status(
           response.status
@@ -510,6 +480,25 @@ router.get(
         ),
         "รูป"
       );
+
+      if (
+        restaurants.length === 0 &&
+        cachedRestaurants.length > 0
+      ) {
+        console.log(
+          "♻️ Nearby ไม่พบร้าน → fallback Supabase Cache"
+        );
+
+        return res.json({
+          success: true,
+          cached: true,
+          fallback: true,
+          count:
+            cachedRestaurants.length,
+          restaurants:
+            cachedRestaurants,
+        });
+      }
 
 
       // =====================================================
