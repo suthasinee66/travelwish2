@@ -6348,13 +6348,52 @@ const handleSend = async () => {
 
       setRecommendError(null);
 
+      const {
+        data: authCheck
+      } =
+        await supabase.auth.getUser();
+
+      const currentUser =
+        authCheck.user;
+
+      const currentGuestMode =
+        isGuestUser(
+          currentUser
+        );
+
+      if (
+        currentUser &&
+        currentGuestMode
+      ) {
+        setIsGuestMode(true);
+        setUser(currentUser);
+
+        const guestPreferences =
+          getGuestPreferences();
+
+        if (!guestPreferences) {
+          setPreferences(null);
+          setRecommend([]);
+          setExplorePlaces([]);
+          setAllRecommend([]);
+          setShowGuestPreferences(true);
+          setRecommendLoading(false);
+          return;
+        }
+      } else {
+        setIsGuestMode(false);
+        setShowGuestPreferences(false);
+      }
+
 
       // =====================================================
       // 1. ถ้ามี Recommend ใน Zustand แล้ว
-      //    แสดงทันที ไม่ต้องสนว่า allPlaces โหลดหรือยัง
+      //    ใช้ cache ใน store เฉพาะบัญชีจริง
+      //    Guest ต้องคำนวณจาก Guest Preferences ของตัวเอง
       // =====================================================
 
       if (
+        !currentGuestMode &&
         recommend.length > 0 &&
         explorePlaces.length > 0
       ) {
