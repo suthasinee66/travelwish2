@@ -10,6 +10,147 @@ import {
 } from "./ai";
 
 
+const API_URL =
+    (
+        import.meta.env.VITE_API_URL ||
+        (
+            import.meta.env.DEV
+                ? "http://localhost:5000"
+                : ""
+        )
+    ).replace(/\/$/, "");
+
+async function resolveAIAttraction(
+    proposedPlace: any,
+    province: string
+) {
+    if (!API_URL) {
+        throw new Error(
+            "VITE_API_URL is required to resolve AI attractions"
+        );
+    }
+
+    const response =
+        await fetch(
+            `${API_URL}/api/resolve-ai-attraction`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    name:
+                        proposedPlace?.name_th ??
+                        proposedPlace?.name,
+
+                    province,
+
+                    aiData:
+                        proposedPlace
+                })
+            }
+        );
+
+    if (!response.ok) {
+        const errorText =
+            await response.text();
+
+        throw new Error(
+            `Resolve AI attraction failed: ${errorText}`
+        );
+    }
+
+    return response.json();
+}
+
+async function resolveAIProposedPlaces(
+    proposedPlaces: any[],
+    province: string
+) {
+    const resolvedByKey =
+        new Map<string, any>();
+
+    for (
+        const proposedPlace
+        of proposedPlaces
+    ) {
+        const key =
+            String(
+                proposedPlace?.key ??
+                ""
+            ).trim();
+
+        const name =
+            String(
+                proposedPlace?.name_th ??
+                proposedPlace?.name ??
+                ""
+            ).trim();
+
+        if (
+            !key ||
+            !name
+        ) {
+            continue;
+        }
+
+        try {
+            console.log(
+                "🌐 VERIFY AI PLACE:",
+                name
+            );
+
+            const response =
+                await resolveAIAttraction(
+                    proposedPlace,
+                    province
+                );
+
+            if (
+                response?.success &&
+                response?.attraction?.att_id
+            ) {
+                resolvedByKey.set(
+                    key,
+                    response.attraction
+                );
+
+                console.log(
+                    "✅ AI PLACE VERIFIED:",
+                    {
+                        key,
+                        att_id:
+                            response.attraction
+                                .att_id,
+                        name:
+                            response.attraction
+                                .name_th,
+                        images:
+                            response.attraction
+                                .images?.length ??
+                            0
+                    }
+                );
+            }
+        } catch (error) {
+            console.warn(
+                "⚠️ AI PLACE VERIFY FAILED:",
+                {
+                    key,
+                    name,
+                    error
+                }
+            );
+        }
+    }
+
+    return resolvedByKey;
+}
+
+
 
 
 
@@ -972,9 +1113,17 @@ console.log(
 const prompt = `
 คุณคือ TravelWish AI Travel Planner
 
-หน้าที่ของคุณคือสร้างแผนการเดินทางที่เป็น Personalized Itinerary
-โดยใช้ข้อมูลผู้ใช้ทั้งหมดที่ระบบส่งให้ เพื่อเลือกสถานที่ ร้านอาหาร
-จังหวะการเที่ยว และบรรยากาศที่เหมาะกับบุคคลนั้นมากที่สุด
+เป้าหมายของคุณคือสร้าง Personalized Itinerary
+ที่ใช้ข้อมูลผู้ใช้ทั้งหมดจริง ๆ ไม่ใช่แค่เลือกตาม ranking
+
+คุณสามารถเลือกสถานที่ได้ 3 แหล่ง:
+1. TDMC TOP 30
+2. PERSONALIZED EXPLORATION POOL จากฐานข้อมูล
+3. สถานที่ใหม่จากความรู้ของคุณเอง ซึ่งอาจยังไม่มีในฐานข้อมูล TravelWish
+
+สำหรับแหล่งที่ 3 คุณต้องเสนอเฉพาะสถานที่จริงที่คุณมีความมั่นใจว่าน่าจะมีอยู่จริง
+ระบบ TravelWish จะนำชื่อสถานที่ไปตรวจสอบกับแหล่งข้อมูลแผนที่อีกครั้ง
+ก่อนบันทึกลงฐานข้อมูลและใช้ในแผนจริง
 
 ห้ามตอบเป็นบทความ
 ห้ามเขียนเกริ่นนำ
@@ -986,16 +1135,17 @@ const prompt = `
 
 ${JSON.stringify(userContext, null, 2)}
 
-หลักในการใช้ข้อมูลผู้ใช้:
-- ใช้ preference ที่ผู้ใช้เลือกเองเป็นสัญญาณสำคัญที่สุด
-- ใช้ personality_tags เพื่อปรับสไตล์แผนอย่างละเอียด
-- ใช้อายุเพื่อพิจารณาความเหมาะสมของความเข้มข้น จังหวะ และกิจกรรม
-- generation เป็นเพียง contextual signal เสริมเท่านั้น
-- ห้ามเหมารวมว่าคนใน generation เดียวกันชอบเหมือนกัน
-- หาก generation ขัดกับ preference ที่ผู้ใช้เลือกเอง ให้ยึด preference ของผู้ใช้
-- ห้ามเดาความชอบจากเพศ
-- gender ใช้ได้เฉพาะเมื่อเกี่ยวข้องกับความสะดวก ความปลอดภัย
-  หรือ preference ที่ผู้ใช้ระบุไว้อย่างชัดเจน
+หลักการใช้ข้อมูลผู้ใช้:
+- preference ที่ผู้ใช้เลือกเองมีน้ำหนักสูงสุด
+- personality_tags ใช้ปรับรูปแบบทริปอย่างละเอียด
+- อายุใช้ช่วยพิจารณาความเข้มข้นของกิจกรรม จังหวะการเที่ยว และความเหมาะสม
+- generation ใช้เป็น contextual signal เสริมเท่านั้น
+- ห้ามเหมารวมว่าทุกคนใน generation เดียวกันมีพฤติกรรมเหมือนกัน
+- หาก generation ขัดกับ preference ที่ผู้ใช้เลือกเอง ให้ยึด preference
+- ห้ามเดาความชอบจาก gender
+- gender ไม่ควรถูกใช้สร้าง stereotype
+- ใช้ travel_goal, travel_time, companion และ budget ประกอบกัน
+- พยายามทำให้แผนสุดท้ายสะท้อนตัวตนของผู้ใช้หลายมิติพร้อมกัน
 
 ==================================================
 2. CURRENT TRIP
@@ -1007,142 +1157,172 @@ ${JSON.stringify(tripData, null, 2)}
 3. TDMC TOP 30
 ==================================================
 
-นี่คือสถานที่ Top 30 จาก Recommendation Algorithm
-ให้ถือเป็น strong candidates แต่ไม่จำเป็นต้องเลือกจาก Top 30 เท่านั้น
+นี่คือ strong candidates จาก Recommendation Algorithm
 
 ${JSON.stringify(plannerRanked)}
 
 ==================================================
-4. PERSONALIZED EXPLORATION POOL
+4. DATABASE EXPLORATION POOL
 ==================================================
 
-นี่คือสถานที่เพิ่มเติมนอก Top 30
-ระบบคัดมาจากฐานข้อมูลของจังหวัดเดียวกัน
-โดยอิงข้อมูลผู้ใช้และ metadata ของสถานที่
-
-AI สามารถเลือกสถานที่จากส่วนนี้แทน Top 30 ได้
-หากเห็นว่าเหมาะกับผู้ใช้มากกว่า
+นี่คือสถานที่อื่นในฐานข้อมูลที่ไม่ได้อยู่ Top 30
 
 ${JSON.stringify(explorationPool)}
 
 ==================================================
-5. หลักการเลือกสถานที่
+5. การเสนอ NEW AI PLACES
 ==================================================
 
-- สามารถเลือกได้ทั้งจาก TDMC TOP 30 และ PERSONALIZED EXPLORATION POOL
-- ไม่จำเป็นต้องเลือกตาม rank อย่างเคร่งครัด
-- ให้พิจารณาความเหมาะสมกับผู้ใช้ทั้งคนก่อนคะแนน ranking
-- อธิบายการเลือกผ่านคุณภาพของแผน ไม่ต้องเขียนเหตุผลยาว
-- ให้กระจายสถานที่ตามจำนวนวันอย่างสมเหตุสมผล
-- 1 สถานที่ใช้ได้เพียงครั้งเดียวตลอดทริป
-- ห้ามใช้สถานที่เดิมซ้ำ
-- พยายามลดการเดินทางย้อนเส้นทาง
-- พิจารณา suitable_duration หากมี
-- คาเฟ่เหมาะกับช่วงบ่ายเมื่อเข้ากับ preference
-- จุดชมวิวพระอาทิตย์ตกเหมาะกับช่วงเย็นเมื่อเข้ากับสถานที่
-- nightlife ให้ใช้เฉพาะเมื่อสอดคล้องกับผู้ใช้
-- หากผู้ใช้เป็นสายชิล / Slow Travel อย่าอัดสถานที่มากเกินไป
-- หากผู้ใช้เป็นสายเที่ยวแน่น / ชอบแวะหลายจุด สามารถเพิ่มจำนวนจุดได้
-- หากผู้ใช้ไม่อยากเดินเยอะ ให้หลีกเลี่ยงการจัดกิจกรรมเดินหนักติดกัน
-- หากผู้ใช้ไม่ชอบอยู่บนรถนาน ให้ให้น้ำหนักกับสถานที่ใกล้กัน
-- หากผู้ใช้ยอมเดินทางไกลเพื่อสิ่งที่ชอบ สามารถเลือก candidate ที่ไกลกว่าได้
-- ใช้ travel_goal เพื่อกำหนดภาพรวมของทริป
-- ใช้ travel_time/ฤดูกาลเป็นบริบทประกอบ
-- งบรวมควรสอดคล้องกับ budget ของทริป
+คุณสามารถเสนอ "สถานที่ใหม่" ที่ไม่มีอยู่ใน TDMC TOP 30
+และไม่มีอยู่ใน DATABASE EXPLORATION POOL ได้
+
+เหมาะสำหรับกรณีที่:
+- สถานที่ในฐานข้อมูลยังไม่ครอบคลุม preference ของผู้ใช้
+- มีสถานที่ที่คุณรู้จักซึ่งเข้ากับ personality_tags มากกว่าอย่างชัดเจน
+- ผู้ใช้มี preference เฉพาะ เช่น content, wellness, nightlife, hidden gem,
+  local experience, cafe style หรือ activity เฉพาะทาง
+- แผนจะดีขึ้นอย่างมีนัยสำคัญหากเพิ่มสถานที่ใหม่
+
+ข้อกำหนด NEW AI PLACES:
+- ต้องอยู่ในจังหวัด ${tripData.province}
+- ต้องเป็นสถานที่จริงที่คุณมีความมั่นใจ
+- ห้ามสร้างชื่อสมมติ
+- ห้ามสร้างพิกัดเอง
+- ห้ามสร้าง place_id เอง
+- ไม่ต้องส่ง latitude/longitude
+- ระบบจะตรวจสอบชื่อและหาพิกัดจริงภายหลัง
+- หากไม่มั่นใจว่าสถานที่มีจริง ให้ใช้สถานที่จากฐานข้อมูลแทน
+- ไม่ควรใช้สถานที่ใหม่ทั้งหมดทั้งทริป
+- ให้ใช้เมื่อช่วย personalization ได้ดีกว่า candidate ที่มีอยู่จริง
+
+สำหรับทุกสถานที่ใหม่ที่ใช้ใน selectedPlaces
+ต้องเพิ่มข้อมูลใน proposedNewPlaces ด้วย
 
 ==================================================
-6. ข้อจำกัดด้านข้อมูลและ ID
+6. PERSONALIZATION RULES
 ==================================================
 
-สำคัญมาก:
-- ห้ามสร้างสถานที่จากความรู้ภายนอก
-- ห้ามสร้างชื่อสถานที่ใหม่
-- ห้ามเดา place_id
-- place_id ต้องมีอยู่ใน TDMC TOP 30 หรือ PERSONALIZED EXPLORATION POOL เท่านั้น
-- ร้านอาหารต้องเลือกจาก nearbyRestaurants ของ attraction ที่เลือกเท่านั้น
-- restaurant_id ต้องตรงกับ id ที่ส่งมา
-- restaurant_name ต้องตรงกับ restaurant_name_th ที่ส่งมา
-- หากไม่มีร้านที่เหมาะสม ให้ restaurant_id และ restaurant_name เป็น null
-- ห้ามใช้ restaurant เป็น attraction
-- ห้ามสร้างร้านอาหารใหม่
-- ห้ามสร้าง ID ใหม่
-
-เหตุผลที่อนุญาตให้ออกนอก Top 30:
-Top 30 เป็นผลจาก Recommendation Algorithm
-แต่ Exploration Pool เปิดโอกาสให้ AI ใช้ข้อมูลผู้ใช้เชิงลึก
-เช่น อายุ generation travel goal personality tags pace
-food style social style wellness และ comfort
-เพื่อเลือกสถานที่ที่อาจมี rank ต่ำกว่าแต่เหมาะกับบุคคลนั้นมากกว่า
+- ไม่จำเป็นต้องเลือกตาม rank
+- เลือกสถานที่จากความเข้ากันกับผู้ใช้ทั้งคน
+- หากเป็นสายชิล / Slow Travel อย่าอัดสถานที่
+- หากเป็นสายเที่ยวแน่น สามารถมีหลายจุดได้
+- หากไม่อยากเดินเยอะ ให้หลีกเลี่ยงกิจกรรมเดินหนักต่อเนื่อง
+- หากไม่ชอบอยู่บนรถนาน ให้จัดสถานที่ใกล้กัน
+- หากยอมเดินทางไกลเพื่อของกิน/วิว/กิจกรรม สามารถออกนอกเส้นทางได้เมื่อคุ้ม
+- ถ้าชอบ hidden gem ไม่ควรเต็มไปด้วยแลนด์มาร์กยอดนิยม
+- ถ้าชอบ social/content ให้พิจารณาสถานที่ที่มี visual/activity/storytelling value
+- ถ้าชอบ wellness ให้พิจารณาจังหวะพัก ธรรมชาติ สุขภาพ และความไม่เร่งรีบ
+- ถ้าชอบ nightlife ให้จัดกิจกรรมเย็นและกลางคืนอย่างเหมาะสม
+- ถ้าชอบ culture/local ให้เน้นประสบการณ์ท้องถิ่นมากกว่าการเช็กอินอย่างเดียว
+- ใช้อายุประกอบระดับความหนักของกิจกรรม แต่ห้ามใช้อายุแทน preference จริง
+- งบรวมต้องสอดคล้องกับ budget
+- 1 สถานที่ใช้ได้เพียงครั้งเดียว
+- ห้ามใช้สถานที่ซ้ำตลอดทริป
 
 ==================================================
-7. USER PREFERENCE SUMMARY
+7. RESTAURANT RULES
 ==================================================
 
-รูปแบบการเที่ยว:
-${tripData.travelType.join(", ")}
+สำหรับสถานที่จากฐานข้อมูล:
+- restaurant_id ต้องมาจาก nearbyRestaurants ของสถานที่นั้น
+- restaurant_name ต้องตรงกับ restaurant_name_th
 
-กิจกรรม:
-${tripData.activities.join(", ")}
+สำหรับ NEW AI PLACE:
+- ให้ restaurant_id = null
+- ให้ restaurant_name = null
+- ระบบจะจัดการข้อมูลร้านอาหารเพิ่มเติมในขั้นตอนถัดไป
 
-บรรยากาศ:
-${tripData.atmosphere.join(", ")}
-
-เป้าหมายการเดินทาง:
-${tripData.travelGoal ?? "ไม่ได้ระบุ"}
-
-ช่วงเวลาที่ชอบเดินทาง:
-${tripData.travelTime ?? "ไม่ได้ระบุ"}
-
-บุคลิกและพฤติกรรม:
-${tripData.personalityTags.length
-    ? tripData.personalityTags.join(", ")
-    : "ไม่มีข้อมูลเพิ่มเติม"}
-
-อายุ:
-${profile?.age ?? "ไม่ได้ระบุ"}
-
-Generation โดยประมาณ:
-${generation ?? "ไม่ทราบ"}
+ห้ามสร้าง restaurant_id เอง
+ห้ามสร้างร้านอาหารปลอม
 
 ==================================================
 8. RESPONSE FORMAT
 ==================================================
 
-ตอบกลับเป็น JSON เท่านั้น
+ตอบ JSON รูปแบบนี้เท่านั้น
 
 {
+  "proposedNewPlaces": [
+    {
+      "key": "new-place-1",
+      "name_th": "ชื่อสถานที่จริง",
+      "name_en": "English name if known",
+      "detail_th": "คำอธิบายสั้นและเป็นข้อเท็จจริงเท่าที่มั่นใจ",
+      "category": ["หมวดหมู่"],
+      "type": "ประเภทสถานที่",
+      "highlight": "จุดเด่น",
+      "activity": "กิจกรรมหลัก",
+      "suitable_duration": "เวลาที่เหมาะสมโดยประมาณ",
+      "travel_type": ["ธรรมชาติ"],
+      "activities": ["ถ่ายรูป"],
+      "atmosphere": ["เงียบสงบ"],
+      "budget": ["ปานกลาง"],
+      "travel_companion": ["เพื่อน"],
+      "personalization_reason": "เหตุผลสั้น ๆ ว่าทำไมเข้ากับผู้ใช้"
+    }
+  ],
   "selectedPlaces": [
     {
       "day": 1,
       "title": "ชื่อธีมของวัน",
       "period": "Morning",
-      "place_id": "...",
-      "place_name": "...",
+      "source": "database",
+      "place_id": "id จาก candidate",
+      "place_name": "ชื่อสถานที่",
+      "proposed_place_key": null,
+      "fallback_place_id": null,
       "restaurant_id": "...",
       "restaurant_name": "..."
+    },
+    {
+      "day": 1,
+      "title": "ชื่อธีมของวัน",
+      "period": "Afternoon",
+      "source": "ai_external",
+      "place_id": null,
+      "place_name": "ชื่อสถานที่ใหม่",
+      "proposed_place_key": "new-place-1",
+      "fallback_place_id": "id ของ candidate ในฐานข้อมูลที่ใช้แทนได้หากตรวจสอบสถานที่ใหม่ไม่สำเร็จ",
+      "restaurant_id": null,
+      "restaurant_name": null
     }
   ],
   "markdown": "แผนเที่ยวทั้งหมดในรูปแบบ Markdown"
 }
 
-ข้อกำหนด selectedPlaces:
-- period ใช้ Morning / Lunch / Afternoon / Evening / Dinner ตามความเหมาะสม
-- place_id ต้องตรงกับ attraction.id ที่ระบบส่งมา
-- place_name ต้องตรงกับ attraction.name_th
-- restaurant_id และ restaurant_name ต้องตรงกับ nearbyRestaurants
-- หากไม่มีร้านอาหารให้ใช้ null
-- ห้ามสถานที่ซ้ำ
-- ห้ามร้านอาหารซ้ำ
+==================================================
+9. SELECTED PLACES RULES
+==================================================
 
-ข้อกำหนด Markdown:
+source = "database":
+- place_id ต้องมาจาก TDMC TOP 30 หรือ DATABASE EXPLORATION POOL
+- place_name ต้องตรงกับชื่อที่ระบบส่งมา
+- proposed_place_key = null
+
+source = "ai_external":
+- place_id = null
+- proposed_place_key ต้องตรงกับ key ใน proposedNewPlaces
+- fallback_place_id ต้องเป็น attraction.id จริงจาก TDMC TOP 30 หรือ EXPLORATION POOL
+- restaurant_id = null
+- restaurant_name = null
+
+fallback_place_id สำคัญมาก:
+ระบบจะใช้เมื่อไม่สามารถยืนยันสถานที่ใหม่ได้
+ดังนั้นต้องเลือกสถานที่สำรองที่มีลักษณะใกล้เคียงกับจุดประสงค์ของสถานที่ใหม่
+
+==================================================
+10. MARKDOWN
+==================================================
+
 - อ่านง่าย
-- แบ่งเป็นรายวัน
+- แบ่งรายวัน
 - มีช่วงเวลา
-- แสดงสถานที่และร้านอาหารที่เกี่ยวข้อง
+- มีชื่อสถานที่และกิจกรรม
 - ระบุเวลาเดินทางโดยประมาณเมื่อเหมาะสม
-- สะท้อน personality ของผู้ใช้ให้เห็นจากรูปแบบแผน
-- ไม่ต้องอธิบาย algorithm
-- ไม่ต้องบอกว่าเลือกจาก Top 30 หรือ Exploration Pool
+- สะท้อน personality ของผู้ใช้
+- ไม่ต้องอธิบาย TDMC
+- ไม่ต้องบอกว่าอะไรเป็นสถานที่ใหม่
+- ไม่ต้องอธิบายขั้นตอน verification
 
 ห้ามมีข้อความใด ๆ นอก JSON
 `
@@ -1228,8 +1408,182 @@ try {
 
 const aiMessage = result.markdown ?? "";
 
-const selectedPlaces = result.selectedPlaces ?? [];
-console.log(selectedPlaces);
+const proposedNewPlaces =
+    Array.isArray(
+        result.proposedNewPlaces
+    )
+        ? result.proposedNewPlaces
+        : [];
+
+const resolvedAIPlaces =
+    await resolveAIProposedPlaces(
+        proposedNewPlaces,
+        tripData.province
+    );
+
+const candidateNameById =
+    new Map<string, string>();
+
+for (const item of plannerRanked) {
+    candidateNameById.set(
+        String(
+            item.attraction.id
+        ),
+        String(
+            item.attraction.name_th ??
+            ""
+        )
+    );
+}
+
+for (const item of explorationPool) {
+    candidateNameById.set(
+        String(
+            item.attraction.id
+        ),
+        String(
+            item.attraction.name_th ??
+            ""
+        )
+    );
+}
+
+const selectedPlaces =
+    (
+        Array.isArray(
+            result.selectedPlaces
+        )
+            ? result.selectedPlaces
+            : []
+    )
+        .map(
+            (item: any) => {
+                if (
+                    item?.source !==
+                    "ai_external"
+                ) {
+                    return item;
+                }
+
+                const key =
+                    String(
+                        item
+                            ?.proposed_place_key ??
+                        ""
+                    );
+
+                const resolved =
+                    resolvedAIPlaces.get(
+                        key
+                    );
+
+                if (
+                    resolved?.att_id
+                ) {
+                    return {
+                        ...item,
+
+                        source:
+                            "ai_verified",
+
+                        place_id:
+                            String(
+                                resolved.att_id
+                            ),
+
+                        place_name:
+                            resolved.name_th ??
+                            item.place_name,
+
+                        proposed_place_key:
+                            key,
+
+                        restaurant_id:
+                            null,
+
+                        restaurant_name:
+                            null
+                    };
+                }
+
+                const fallbackId =
+                    String(
+                        item
+                            ?.fallback_place_id ??
+                        ""
+                    );
+
+                const fallbackName =
+                    candidateNameById.get(
+                        fallbackId
+                    );
+
+                if (
+                    fallbackId &&
+                    fallbackName
+                ) {
+                    console.warn(
+                        "↩️ USE DATABASE FALLBACK:",
+                        {
+                            external:
+                                item.place_name,
+                            fallbackId,
+                            fallbackName
+                        }
+                    );
+
+                    return {
+                        ...item,
+
+                        source:
+                            "database_fallback",
+
+                        place_id:
+                            fallbackId,
+
+                        place_name:
+                            fallbackName,
+
+                        proposed_place_key:
+                            null,
+
+                        restaurant_id:
+                            null,
+
+                        restaurant_name:
+                            null
+                    };
+                }
+
+                console.warn(
+                    "🗑️ DROP UNRESOLVED AI PLACE:",
+                    item
+                );
+
+                return null;
+            }
+        )
+        .filter(Boolean);
+
+console.log(
+    "✅ FINAL SELECTED PLACES:",
+    selectedPlaces
+);
+
+console.log(
+    "🆕 VERIFIED NEW PLACES:",
+    [...resolvedAIPlaces.values()].map(
+        (place: any) => ({
+            att_id:
+                place.att_id,
+            name:
+                place.name_th,
+            images:
+                place.images?.length ??
+                0
+        })
+    )
+);
 
 
 console.log("💾 กำลังบันทึก planner ลง database...");
@@ -1240,7 +1594,7 @@ const { data, error } = await supabase
     user_id: userId,
     role: "ai",
     content: aiMessage,
-    planner_json: result.selectedPlaces
+    planner_json: selectedPlaces
 })
 .select();
 
