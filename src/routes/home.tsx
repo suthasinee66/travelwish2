@@ -5498,6 +5498,10 @@ const updateChatSessionTrip = async (
   sessionId: string,
   trip: TripInput
 ) => {
+  if (isGuestUser(user)) {
+    return;
+  }
+
   const title =
     buildChatTitle(trip);
 
