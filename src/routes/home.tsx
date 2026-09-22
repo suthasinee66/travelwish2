@@ -56,6 +56,12 @@ import { getPlaceImage } from "@/lib/google/places";
 import { loadPlaceImages } from "@/lib/recommend/loadPlaceImages";
 import Sidebar from "@/components/Sidebar";
 import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
+import GuestPreferenceModal from "@/components/GuestPreferenceModal";
+import {
+  getGuestPreferences,
+  isGuestUser,
+  type GuestPreferences,
+} from "@/lib/guest/guestPreferences";
 import { THAI_REGIONS, normalizeThaiRegion } from "@/lib/travel/thaiRegions";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { useTravelStore } from "@/store/travelStore";
@@ -4771,6 +4777,8 @@ function Home() {
   const [recommendLoading, setRecommendLoading] = useState(true);
   const [recommendError, setRecommendError] = useState<string | null>(null);
   const [recommendAttempt, setRecommendAttempt] = useState(0);
+  const [isGuestMode, setIsGuestMode] = useState(false);
+  const [showGuestPreferences, setShowGuestPreferences] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("");
   const [selectedTravelType, setSelectedTravelType] = useState<string[]>([]);
@@ -4844,6 +4852,33 @@ const [tripInput, setTripInput] = useState<TripInput>({
     const loadUserTripPreference = async () => {
 
   if (!user?.id) return;
+
+  if (isGuestUser(user)) {
+    const guestPreferences =
+      getGuestPreferences();
+
+    if (!guestPreferences) {
+      return;
+    }
+
+    setTripInput(prev => ({
+      ...prev,
+      travelType:
+        guestPreferences.travel_type || [],
+      activities:
+        guestPreferences.activities || [],
+      atmosphere:
+        guestPreferences.atmosphere
+          ? [guestPreferences.atmosphere]
+          : [],
+      companion:
+        prev.companion ||
+        guestPreferences.travel_companion ||
+        ""
+    }));
+
+    return;
+  }
 
 
   const {
@@ -5507,6 +5542,17 @@ const ensureChatSession = async (): Promise<string | null> => {
   if (!user?.id) {
     console.error("❌ ไม่มี user.id");
     return null;
+  }
+
+  if (isGuestUser(user)) {
+    const guestChatId =
+      `guest-${crypto.randomUUID()}`;
+
+    setCurrentChatId(
+      guestChatId
+    );
+
+    return guestChatId;
   }
 
   const title =
@@ -6362,6 +6408,36 @@ const handleSend = async () => {
 
       }
 
+      const guestMode =
+        Boolean(data.isGuest) ||
+        isGuestUser(data.user);
+
+      setIsGuestMode(
+        guestMode
+      );
+
+      setUser(
+        data.user
+      );
+
+      if (
+        guestMode &&
+        !data.preferences
+      ) {
+        setPreferences(
+          null
+        );
+
+        setShowGuestPreferences(
+          true
+        );
+
+        setRecommendLoading(
+          false
+        );
+
+        return;
+      }
 
       if (!data.preferences) {
 
@@ -6375,11 +6451,6 @@ const handleSend = async () => {
       // =====================================================
       // 3. Set user
       // =====================================================
-
-      setUser(
-        data.user
-      );
-
 
       setPreferences(
         data.preferences
@@ -6403,66 +6474,111 @@ const handleSend = async () => {
       );
 
 
-      const {
-        data: recommendData,
-        fromCache,
-      } =
-        await loadRecommendationCache(
+      let recommendData: any[] = [];
+      let fromCache = false;
 
-          data.user.id,
+      if (guestMode) {
+        const guestRecommendations =
+          await getRecommendations(
+            data.preferences
+          );
 
-          data.preferences,
+        recommendData =
+          guestRecommendations;
 
-          // ไม่ส่ง allPlaces
-          // ให้ cache เช็กก่อน
-          undefined,
+        if (!cancelled) {
+          setRecommend(
+            guestRecommendations.slice(0, 6)
+          );
 
-          // =================================================
-          // onReady
-          //
-          // Recommendation พร้อมเมื่อไหร่
-          // แสดงทันที
-          // ไม่ต้องรอรูปทั้งหมด
-          // =================================================
-          (places) => {
+          setExplorePlaces(
+            guestRecommendations
+          );
 
-            if (cancelled) {
-              return;
+          setAllRecommend(
+            guestRecommendations
+          );
+
+          setRecommendLoading(
+            false
+          );
+        }
+
+        // โหลดรูปเฉพาะ 6 ใบแรกโดยไม่เขียน recommendation_cache
+        const guestTopWithImages =
+          await Promise.all(
+            guestRecommendations
+              .slice(0, 6)
+              .map(async place => {
+                try {
+                  return await loadPlaceImages(
+                    place
+                  );
+                } catch {
+                  return place;
+                }
+              })
+          );
+
+        recommendData = [
+          ...guestTopWithImages,
+          ...guestRecommendations.slice(6)
+        ];
+      } else {
+        const cacheResult =
+          await loadRecommendationCache(
+
+            data.user.id,
+
+            data.preferences,
+
+            undefined,
+
+            (places) => {
+
+              if (cancelled) {
+                return;
+              }
+
+
+              console.log(
+                "⚡ RECOMMEND READY:",
+                places.length
+              );
+
+
+              setRecommend(
+                places.slice(
+                  0,
+                  6
+                )
+              );
+
+
+              setExplorePlaces(
+                places
+              );
+
+
+              setAllRecommend(
+                places
+              );
+
+
+              setRecommendLoading(
+                false
+              );
+
             }
 
+          );
 
-            console.log(
-              "⚡ RECOMMEND READY:",
-              places.length
-            );
+        recommendData =
+          cacheResult.data;
 
-
-            setRecommend(
-              places.slice(
-                0,
-                6
-              )
-            );
-
-
-            setExplorePlaces(
-              places
-            );
-
-
-            setAllRecommend(
-              places
-            );
-
-
-            // ปิด skeleton ทันที
-            setRecommendLoading(
-              false
-            );
-
-          }
-
-        );
+        fromCache =
+          cacheResult.fromCache;
+      }
 
 
       console.timeEnd(
@@ -6525,6 +6641,7 @@ const handleSend = async () => {
 
       // Location ไม่เกี่ยวกับ Recommend
       // ให้ทำ background
+      if (!guestMode) {
       getUserLocation()
 
         .then(
@@ -6597,6 +6714,7 @@ const handleSend = async () => {
 
           }
         );
+      }
 
 
     } catch (error) {
@@ -6638,8 +6756,53 @@ const handleSend = async () => {
 }, [recommendAttempt]);
 
 
+  const handleGuestPreferencesComplete = (
+    guestPreferences: GuestPreferences
+  ) => {
+    setPreferences(
+      guestPreferences
+    );
+
+    setTripInput(prev => ({
+      ...prev,
+      travelType:
+        guestPreferences.travel_type,
+      activities:
+        guestPreferences.activities,
+      atmosphere:
+        guestPreferences.atmosphere
+          ? [guestPreferences.atmosphere]
+          : [],
+      companion:
+        prev.companion ||
+        guestPreferences.travel_companion
+    }));
+
+    setShowGuestPreferences(
+      false
+    );
+
+    setRecommend([]);
+    setExplorePlaces([]);
+    setAllRecommend([]);
+
+    setRecommendAttempt(
+      current => current + 1
+    );
+  };
+
   return (
     <div className="travel-home flex h-screen bg-background text-foreground">
+      <GuestPreferenceModal
+        open={
+          isGuestMode &&
+          showGuestPreferences
+        }
+        onComplete={
+          handleGuestPreferencesComplete
+        }
+      />
+
       {/* Sidebar */}
       <Sidebar
         user={user}
