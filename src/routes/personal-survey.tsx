@@ -13,6 +13,8 @@ import {
   Wallet,
   CalendarDays,
   Check,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { THAI_REGIONS } from "@/lib/travel/thaiRegions";
@@ -21,12 +23,286 @@ export const Route = createFileRoute("/personal-survey")({
   component: PersonalSurvey,
 });
 
+
+type PersonalityGroup = {
+  title: string;
+  description: string;
+  tags: string[];
+};
+
+const PERSONALITY_PREVIEW = [
+  "🌿 สายธรรมชาติ",
+  "📸 สายถ่ายรูป",
+  "☕ สายคาเฟ่",
+  "🍜 สายกิน",
+  "💪 สายสุขภาพ",
+  "📱 สายโซเชียล",
+  "✨ สายคอนเทนต์",
+  "🎉 สายปาร์ตี้",
+  "🧘 สายชิล",
+  "🧗 สายลุย",
+  "🛍️ สายช้อป",
+  "🏛️ สายวัฒนธรรม",
+];
+
+const PERSONALITY_GROUPS: PersonalityGroup[] = [
+  {
+    title: "📸 รูปภาพ Social และ Content",
+    description: "สไตล์การถ่ายรูป การแชร์ และคอนเทนต์ที่คุณชอบเวลาเดินทาง",
+    tags: [
+      "📸 สายถ่ายรูป",
+      "🤳 ชอบถ่ายรูปตัวเอง",
+      "👫 ชอบถ่ายรูปกับเพื่อน",
+      "🌄 ชอบถ่ายวิว",
+      "🍰 ชอบถ่ายอาหาร",
+      "🏛️ ชอบถ่ายสถาปัตยกรรม",
+      "🌙 ชอบถ่ายกลางคืน",
+      "🎨 ชอบสถานที่สีสวย",
+      "🤍 ชอบโทนมินิมอล",
+      "🌈 ชอบสถานที่สีสันสดใส",
+      "✨ ชอบมุม Instagrammable",
+      "📱 สายโซเชียล",
+      "🎬 สายคอนเทนต์",
+      "🎥 ชอบทำ Vlog",
+      "📹 ชอบถ่าย Reels",
+      "🎵 ชอบทำ TikTok",
+      "🔥 ชอบสถานที่กำลังไวรัล",
+      "📍 ชอบเช็กอิน",
+      "👀 ชอบตามร้านที่เห็นในโซเชียล",
+      "🙅 ไม่สนใจว่าที่ไหนกำลังดัง",
+    ],
+  },
+  {
+    title: "☕ Café Personality",
+    description: "บอกเราได้เลยว่าคาเฟ่แบบไหนถึงจะเป็นคาเฟ่ที่คุณอยากแวะจริง ๆ",
+    tags: [
+      "☕ สายคาเฟ่",
+      "🍰 สายของหวาน",
+      "🥐 ชอบ Bakery",
+      "🫘 จริงจังเรื่องกาแฟ",
+      "🍵 ชอบชา/มัทฉะ",
+      "🌿 ชอบคาเฟ่ธรรมชาติ",
+      "🏞️ ชอบคาเฟ่วิวดี",
+      "🤍 ชอบคาเฟ่มินิมอล",
+      "🪵 ชอบคาเฟ่ Rustic",
+      "🕰️ ชอบคาเฟ่ Vintage",
+      "🎨 ชอบคาเฟ่ดีไซน์แปลก",
+      "🐶 ชอบ Pet-friendly café",
+      "📸 เลือกคาเฟ่จากมุมถ่ายรูป",
+      "🍽️ เลือกคาเฟ่จากรสชาติ",
+      "🛋️ ชอบนั่งคาเฟ่นาน ๆ",
+      "⚡ แวะคาเฟ่เร็ว ๆ แล้วไปต่อ",
+    ],
+  },
+  {
+    title: "🍜 Food Personality",
+    description: "รสนิยมด้านอาหารและความสำคัญของมื้ออาหารในทริป",
+    tags: [
+      "🍜 สายกิน",
+      "🥘 ชอบอาหารท้องถิ่น",
+      "🍢 ชอบ Street Food",
+      "🏪 ชอบร้านบ้าน ๆ",
+      "🔥 ชอบร้านดัง",
+      "💎 ชอบร้านลับ",
+      "⭐ ชอบร้านรีวิวสูง",
+      "📱 ชอบร้านไวรัล",
+      "👵 ชอบร้านเก่าแก่",
+      "🍽️ ชอบ Fine Dining",
+      "🥩 สายเนื้อ",
+      "🦐 สายซีฟู้ด",
+      "🍣 สายญี่ปุ่น",
+      "🍝 สายตะวันตก",
+      "🌶️ ชอบอาหารเผ็ด",
+      "🍹 ชอบร้านนั่งชิล",
+      "🍺 ชอบร้านกลางคืน",
+      "🥗 สาย Healthy Food",
+      "🌱 Vegetarian friendly",
+      "🥬 Vegan friendly",
+      "☪️ Halal friendly",
+      "🍳 ชอบ Breakfast/Brunch",
+      "🍨 ชอบตระเวนของหวาน",
+      "🍴 ยอมเดินทางไกลเพื่อร้านอร่อย",
+      "🍜 อาหารคือจุดหมายหลักของทริป",
+      "🥪 กินอะไรก็ได้ ขอเที่ยวก่อน",
+    ],
+  },
+  {
+    title: "💪 สุขภาพ Wellness และร่างกาย",
+    description: "ระดับกิจกรรม การพักผ่อน และไลฟ์สไตล์สุขภาพของคุณ",
+    tags: [
+      "💪 สายสุขภาพ",
+      "🧘 ชอบ Yoga",
+      "💆 ชอบ Spa",
+      "🛀 ชอบ Onsen/Hot spring",
+      "🥗 เน้นอาหารสุขภาพ",
+      "🚴 ชอบปั่นจักรยาน",
+      "🏃 ชอบวิ่ง",
+      "🚶 ชอบเดิน",
+      "🥾 เดินเยอะได้",
+      "🛋️ ไม่อยากเดินเยอะ",
+      "🏋️ ชอบกิจกรรมใช้แรง",
+      "🌱 ชอบ Wellness Retreat",
+      "🌿 ชอบธรรมชาติบำบัด",
+      "😴 ให้ความสำคัญกับการพักผ่อน",
+      "🌅 ชอบเริ่มวันเช้า",
+      "🕙 ไม่ชอบตื่นเช้า",
+    ],
+  },
+  {
+    title: "🧗 Adventure & Activity",
+    description: "ระดับความลุยและกิจกรรมที่อยากมีอยู่ในทริป",
+    tags: [
+      "🧗 สายลุย",
+      "🥾 ชอบ Hiking",
+      "🧗‍♀️ ชอบปีนเขา",
+      "🚣 ชอบล่องแก่ง",
+      "🏄 ชอบ Surf",
+      "🤿 ชอบดำน้ำ",
+      "🚵 ชอบปั่นเสือภูเขา",
+      "🏍️ ชอบ ATV",
+      "🪂 ชอบกิจกรรมหวาดเสียว",
+      "🎢 ชอบ Adventure Park",
+      "🏕️ ชอบ Camping",
+      "🔥 ชอบลองอะไรใหม่ ๆ",
+      "😎 พร้อมออกนอก Comfort Zone",
+      "🛡️ เน้นปลอดภัย",
+      "😌 ไม่ชอบกิจกรรมเสี่ยง",
+    ],
+  },
+  {
+    title: "😌 Pace & Energy",
+    description: "จังหวะการเที่ยวที่ทำให้คุณรู้สึกว่าแผนกำลังพอดี",
+    tags: [
+      "🧘 สายชิล",
+      "⚡ สายเที่ยวแน่น",
+      "🐢 Slow Travel",
+      "🏃 ไปให้ครบหลายที่",
+      "☕ ชอบนั่งแต่ละที่นาน ๆ",
+      "📍 ชอบแวะหลายจุด",
+      "🚗 ไม่ชอบอยู่บนรถนาน",
+      "🛣️ ขับไกลได้ถ้าที่นั้นคุ้ม",
+      "🕘 เริ่มเที่ยวสาย",
+      "🌅 เริ่มเที่ยวแต่เช้า",
+      "🌙 สายกลางคืน",
+      "😴 ต้องมีเวลาพักระหว่างวัน",
+      "🗓️ ชอบแผนชัดเจน",
+      "🎲 ชอบเที่ยวแบบตามใจหน้างาน",
+      "⏰ ชอบตรงเวลา",
+      "🌊 ไม่อยากรีบ",
+    ],
+  },
+  {
+    title: "🎉 Social & Nightlife",
+    description: "พลังทางสังคม บรรยากาศ และชีวิตยามค่ำคืนที่เหมาะกับคุณ",
+    tags: [
+      "🎉 สายปาร์ตี้",
+      "🍸 ชอบ Bar",
+      "🍺 ชอบร้านนั่งชิล",
+      "🎶 ชอบ Live Music",
+      "🎧 ชอบ Club",
+      "🌃 ชอบ Nightlife",
+      "🌙 ชอบเที่ยวกลางคืน",
+      "👥 ชอบสถานที่คนเยอะ",
+      "🥳 ชอบบรรยากาศคึกคัก",
+      "🤝 ชอบเจอคนใหม่",
+      "👭 ชอบเที่ยวกับเพื่อน",
+      "🫶 ชอบกิจกรรมกลุ่ม",
+      "😌 ชอบพื้นที่ส่วนตัว",
+      "🤫 ไม่ชอบที่เสียงดัง",
+      "🌿 ชอบสถานที่คนน้อย",
+      "🔥 ยิ่งคึกคักยิ่งชอบ",
+      "🙈 ยิ่งคนเยอะยิ่งเลี่ยง",
+    ],
+  },
+  {
+    title: "🛍️ Shopping & Urban",
+    description: "รูปแบบการช้อป ตลาด และประสบการณ์ในเมืองที่คุณสนใจ",
+    tags: [
+      "🛍️ สายช้อป",
+      "👗 ชอบแฟชั่น",
+      "👜 ชอบสินค้า Local Brand",
+      "🎁 ชอบซื้อของฝาก",
+      "🧺 ชอบตลาดท้องถิ่น",
+      "🌙 ชอบ Night Market",
+      "🏬 ชอบห้าง",
+      "🧸 ชอบของน่ารัก",
+      "🎨 ชอบงานคราฟต์",
+      "🪴 ชอบของ Handmade",
+      "👟 ชอบ Streetwear",
+      "💎 ชอบ Luxury Shopping",
+      "💸 ชอบหาของราคาถูก",
+      "🔍 ชอบเดินหาร้านลับ",
+    ],
+  },
+  {
+    title: "🏛️ Culture & Local Experience",
+    description: "ระดับความสนใจวัฒนธรรม ประวัติศาสตร์ และประสบการณ์ท้องถิ่น",
+    tags: [
+      "🏛️ สายวัฒนธรรม",
+      "🙏 สายวัด",
+      "🔮 สายมู",
+      "🏺 ชอบประวัติศาสตร์",
+      "🖼️ ชอบพิพิธภัณฑ์",
+      "🎨 ชอบศิลปะ",
+      "🏘️ ชอบชุมชนเก่า",
+      "👵 ชอบเรียนรู้วิถีชีวิตท้องถิ่น",
+      "🎭 ชอบการแสดงพื้นเมือง",
+      "🧵 ชอบงานหัตถกรรม",
+      "🍲 ชอบอาหารพื้นเมือง",
+      "📚 ชอบรู้เรื่องราวของสถานที่",
+      "🗺️ ชอบสถานที่ Unseen",
+      "💎 ชอบ Hidden Gem",
+      "🚫 ไม่เน้นแลนด์มาร์กดัง",
+    ],
+  },
+  {
+    title: "💰 Spending Behavior",
+    description: "ไม่ใช่แค่งบรวม แต่คือสิ่งที่คุณเต็มใจใช้เงินมากเป็นพิเศษ",
+    tags: [
+      "💸 สายประหยัด",
+      "💰 จ่ายได้ถ้าคุ้ม",
+      "✨ สายหรู",
+      "🏨 ยอมจ่ายกับที่พัก",
+      "🍽️ ยอมจ่ายกับอาหาร",
+      "🎢 ยอมจ่ายกับกิจกรรม",
+      "🛍️ เก็บงบไว้ช้อป",
+      "🚕 ยอมจ่ายเพื่อเดินทางสะดวก",
+      "🎟️ ไม่ติดค่าเข้า",
+      "🆓 ชอบสถานที่ฟรี",
+      "💎 เลือกคุณภาพมากกว่าราคา",
+      "📉 ชอบดีลและโปรโมชั่น",
+    ],
+  },
+  {
+    title: "🏨 Comfort & Accommodation Lifestyle",
+    description: "สไตล์ที่พักและระดับความสะดวกสบายที่คุณให้ความสำคัญ",
+    tags: [
+      "🛏️ เน้นความสบาย",
+      "🎒 Backpacker",
+      "🏨 ชอบโรงแรม",
+      "🏡 ชอบ Homestay",
+      "🏕️ ชอบ Camping",
+      "🌿 ชอบที่พักธรรมชาติ",
+      "🏙️ ชอบพักใจกลางเมือง",
+      "🌊 ชอบที่พักติดทะเล",
+      "⛰️ ชอบที่พักวิวภูเขา",
+      "📸 ชอบที่พักถ่ายรูปสวย",
+      "🛁 ต้องมีอ่างอาบน้ำ",
+      "🏊 ชอบที่พักมีสระ",
+      "☕ ต้องมีอาหารเช้า",
+      "🚗 ต้องมีที่จอดรถ",
+    ],
+  },
+];
+
 function PersonalSurvey() {
   const navigate = useNavigate();
 
   const [travelTypes, setTravelTypes] = useState<string[]>([]);
   const [activities, setActivities] = useState<string[]>([]);
   const [preferredRegion, setPreferredRegion] = useState<string[]>([]);
+  const [personalityTags, setPersonalityTags] = useState<string[]>([]);
+  const [showPersonalityDetails, setShowPersonalityDetails] = useState(false);
 
   const [atmosphere, setAtmosphere] = useState("");
   const [travelCompanion, setTravelCompanion] = useState("");
@@ -87,6 +363,7 @@ function PersonalSurvey() {
           travel_time: travelTime,
           preferred_region: preferredRegion,
           travel_goal: travelGoal,
+          personality_tags: personalityTags,
         },
         {
           onConflict: "profile_id",
@@ -594,6 +871,143 @@ function PersonalSurvey() {
               })}
 
             </div>
+
+          </section>
+
+
+          {/* ==================================================
+              Deep Personalization
+              ================================================== */}
+          <section className="survey-card">
+
+            <div className="survey-section-header">
+
+              <div className="survey-section-icon survey-section-icon-pink">
+                <Sparkles className="h-5 w-5" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="survey-section-title">
+                  อยากให้แผนตรงกับคุณมากยิ่งขึ้นไหม?
+                </h3>
+
+                <p className="survey-section-description">
+                  เลือกพฤติกรรมและสไตล์ที่ตรงกับคุณได้หลายข้อ ส่วนนี้ไม่บังคับ
+                  และจะช่วยให้ AI จัดจังหวะทริป ร้านอาหาร และบรรยากาศให้เป็นคุณมากขึ้น
+                </p>
+              </div>
+
+            </div>
+
+            {!showPersonalityDetails && (
+              <>
+                <div className="flex flex-wrap gap-3">
+                  {PERSONALITY_PREVIEW.map((tag) => {
+                    const selected = personalityTags.includes(tag);
+
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() =>
+                          toggleItem(
+                            tag,
+                            personalityTags,
+                            setPersonalityTags
+                          )
+                        }
+                        className={`survey-chip ${
+                          selected ? "survey-chip-selected" : ""
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {personalityTags.length > 0 && (
+                  <p className="mt-4 text-xs font-medium text-[#8b7894]">
+                    เลือกแล้ว {personalityTags.length} รายการ
+                  </p>
+                )}
+              </>
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowPersonalityDetails((current) => !current)
+              }
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-[#decfdf] bg-white/65 px-4 py-3 text-sm font-bold text-[#6f456f] transition hover:bg-white"
+            >
+              {showPersonalityDetails ? (
+                <>
+                  ซ่อนตัวเลือกเพิ่มเติม
+                  <ChevronUp className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  ดูเพิ่มเติมและเลือกให้ละเอียดขึ้น
+                  <ChevronDown className="h-4 w-4" />
+                </>
+              )}
+            </button>
+
+            {showPersonalityDetails && (
+              <div className="mt-6 space-y-7">
+                <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/55 px-4 py-3">
+                  <p className="text-xs leading-5 text-[#71697d]">
+                    เลือกได้มากเท่าที่ตรงกับคุณ ไม่จำเป็นต้องเลือกทุกหมวด
+                  </p>
+
+                  <span className="shrink-0 rounded-full bg-[#6f456f]/10 px-3 py-1 text-xs font-bold text-[#6f456f]">
+                    {personalityTags.length} เลือกแล้ว
+                  </span>
+                </div>
+
+                {PERSONALITY_GROUPS.map((group) => (
+                  <div
+                    key={group.title}
+                    className="rounded-[22px] border border-white/70 bg-white/35 p-4 sm:p-5"
+                  >
+                    <div className="mb-4">
+                      <h4 className="text-sm font-extrabold text-[#40364b] sm:text-base">
+                        {group.title}
+                      </h4>
+                      <p className="mt-1 text-xs leading-5 text-[#81778b]">
+                        {group.description}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2.5">
+                      {group.tags.map((tag) => {
+                        const selected = personalityTags.includes(tag);
+
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() =>
+                              toggleItem(
+                                tag,
+                                personalityTags,
+                                setPersonalityTags
+                              )
+                            }
+                            className={`survey-chip ${
+                              selected ? "survey-chip-selected" : ""
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
           </section>
 
