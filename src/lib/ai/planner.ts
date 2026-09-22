@@ -227,7 +227,12 @@ atmosphere:
 
     budget:
         trip.budget ||
-        preferences?.budget
+        preferences?.budget,
+
+    personalityTags:
+        Array.isArray(preferences?.personality_tags)
+            ? preferences.personality_tags
+            : []
 
 };
 
@@ -420,6 +425,16 @@ ${tripData.activities.join(",")}
 
 - บรรยากาศ:
 ${tripData.atmosphere.join(",")}
+
+- บุคลิกและพฤติกรรมการท่องเที่ยวเพิ่มเติม:
+${tripData.personalityTags.length
+    ? tripData.personalityTags.join(", ")
+    : "ไม่มีข้อมูลเพิ่มเติม"}
+
+ให้นำบุคลิกและพฤติกรรมเพิ่มเติมเหล่านี้ไปใช้ในการจัดจังหวะทริป
+การเลือกร้านอาหาร ลำดับกิจกรรม ช่วงเวลา และบรรยากาศของแผน
+โดยยังต้องปฏิบัติตามข้อจำกัดว่าใช้เฉพาะ attraction และ nearbyRestaurants
+ที่อยู่ในข้อมูล ranked เท่านั้น
 ====================
 รูปแบบการตอบ
 ====================
