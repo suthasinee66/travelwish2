@@ -1,4 +1,8 @@
 import { supabase } from "@/lib/supabase";
+import {
+  getGuestPreferences,
+  isGuestUser
+} from "@/lib/guest/guestPreferences";
 
 export async function loadTravelData() {
 
@@ -29,6 +33,15 @@ export async function loadTravelData() {
 
   const user =
     userData.user;
+
+  if (isGuestUser(user)) {
+    return {
+      user,
+      preferences:
+        getGuestPreferences(),
+      isGuest: true
+    };
+  }
 
 
   // ==========================================
@@ -67,7 +80,9 @@ export async function loadTravelData() {
     user,
 
     preferences:
-      pref
+      pref,
+
+    isGuest: false
 
   };
 
