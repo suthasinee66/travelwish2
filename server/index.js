@@ -217,7 +217,11 @@ app.get("/api/place-image", async (req, res) => {
 
 app.post("/api/ai", async (req, res) => {
   try {
-    const { model, prompt } = req.body;
+    const {
+      model,
+      prompt,
+      structuredPlanner = false,
+    } = req.body;
 
     console.log("====================================");
     console.log("🤖 OPENROUTER AI REQUEST");
@@ -283,26 +287,244 @@ app.post("/api/ai", async (req, res) => {
     // เรียก OpenRouter
     // ========================================
 
+    const requestPayload = {
+      model: modelId,
+
+      messages: [
+        {
+          role: "system",
+          content:
+            structuredPlanner
+              ? "You are a travel planning assistant. Follow the provided JSON schema exactly."
+              : "You are a helpful travel planning assistant. Return valid JSON only.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+
+      temperature: 0.2,
+
+      max_tokens: 12000,
+    };
+
+    if (structuredPlanner) {
+      requestPayload.response_format = {
+        type: "json_schema",
+        json_schema: {
+          name: "travelwish_planner",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              proposedNewPlaces: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    key: { type: "string" },
+                    name_th: { type: "string" },
+                    name_en: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    detail_th: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    category: {
+                      type: "array",
+                      items: { type: "string" }
+                    },
+                    type: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    highlight: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    activity: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    suitable_duration: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    travel_type: {
+                      type: "array",
+                      items: { type: "string" }
+                    },
+                    activities: {
+                      type: "array",
+                      items: { type: "string" }
+                    },
+                    atmosphere: {
+                      type: "array",
+                      items: { type: "string" }
+                    },
+                    budget: {
+                      type: "array",
+                      items: { type: "string" }
+                    },
+                    travel_companion: {
+                      type: "array",
+                      items: { type: "string" }
+                    },
+                    personalization_reason: {
+                      type: "string"
+                    }
+                  },
+                  required: [
+                    "key",
+                    "name_th",
+                    "name_en",
+                    "detail_th",
+                    "category",
+                    "type",
+                    "highlight",
+                    "activity",
+                    "suitable_duration",
+                    "travel_type",
+                    "activities",
+                    "atmosphere",
+                    "budget",
+                    "travel_companion",
+                    "personalization_reason"
+                  ]
+                }
+              },
+              proposedNewRestaurants: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    key: { type: "string" },
+                    name_th: { type: "string" },
+                    name_en: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    personalization_reason: {
+                      type: "string"
+                    }
+                  },
+                  required: [
+                    "key",
+                    "name_th",
+                    "name_en",
+                    "personalization_reason"
+                  ]
+                }
+              },
+              selectedPlaces: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    day: { type: "integer" },
+                    title: { type: "string" },
+                    period: { type: "string" },
+                    source: { type: "string" },
+                    place_id: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    place_name: { type: "string" },
+                    proposed_place_key: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    fallback_place_id: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    restaurant_source: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    restaurant_id: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    restaurant_name: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+                    proposed_restaurant_key: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    }
+                  },
+                  required: [
+                    "day",
+                    "title",
+                    "period",
+                    "source",
+                    "place_id",
+                    "place_name",
+                    "proposed_place_key",
+                    "fallback_place_id",
+                    "restaurant_source",
+                    "restaurant_id",
+                    "restaurant_name",
+                    "proposed_restaurant_key"
+                  ]
+                }
+              },
+              markdown: {
+                type: "string"
+              }
+            },
+            required: [
+              "proposedNewPlaces",
+              "proposedNewRestaurants",
+              "selectedPlaces",
+              "markdown"
+            ]
+          }
+        }
+      };
+    }
+
     const response =
-      await openRouterAI.chat.completions.create({
-        model: modelId,
-
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are a helpful travel planning assistant. Return valid JSON only.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-
-        temperature: 0.2,
-
-        max_tokens: 12000,
-      });
+      await openRouterAI.chat.completions.create(
+        requestPayload
+      );
 
     const end =
       performance.now();
@@ -378,6 +600,11 @@ app.post("/api/ai", async (req, res) => {
 
       model:
         response.model,
+
+      finish_reason:
+        response.choices?.[0]
+          ?.finish_reason ??
+        null,
 
       usage:
         response.usage,
