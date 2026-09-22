@@ -22,7 +22,8 @@ const API_URL =
 
 async function resolveAIAttraction(
     proposedPlace: any,
-    province: string
+    province: string,
+    selectedModel: AIModel
 ) {
     if (!API_URL) {
         throw new Error(
@@ -48,8 +49,11 @@ async function resolveAIAttraction(
 
                     province,
 
-                    aiData:
-                        proposedPlace
+                    aiData: {
+                        ...proposedPlace,
+                        ai_model:
+                            selectedModel
+                    }
                 })
             }
         );
@@ -68,7 +72,8 @@ async function resolveAIAttraction(
 
 async function resolveAIProposedPlaces(
     proposedPlaces: any[],
-    province: string
+    province: string,
+    selectedModel: AIModel
 ) {
     const resolvedByKey =
         new Map<string, any>();
@@ -106,7 +111,8 @@ async function resolveAIProposedPlaces(
             const response =
                 await resolveAIAttraction(
                     proposedPlace,
-                    province
+                    province,
+                    selectedModel
                 );
 
             if (
@@ -954,7 +960,8 @@ const proposedNewPlaces =
 const resolvedAIPlaces =
     await resolveAIProposedPlaces(
         proposedNewPlaces,
-        tripData.province
+        tripData.province,
+        selectedModel
     );
 
 const candidateNameById =
