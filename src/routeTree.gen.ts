@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TripsRouteImport } from './routes/trips'
 import { Route as SavedRouteImport } from './routes/saved'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as PersonalSurveyRouteImport } from './routes/personal-survey'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as Explore_recommend_allRouteImport } from './routes/explore_recommend_all'
 import { Route as Explore_nearby_allRouteImport } from './routes/explore_nearby_all'
 import { Route as ExploreRouteImport } from './routes/explore'
@@ -38,6 +40,11 @@ const TripsRoute = TripsRouteImport.update({
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
   path: '/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -63,6 +70,11 @@ const LoginRoute = LoginRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const Explore_recommend_allRoute = Explore_recommend_allRouteImport.update({
@@ -139,11 +151,13 @@ export interface FileRoutesByFullPath {
   '/explore': typeof ExploreRoute
   '/explore_nearby_all': typeof Explore_nearby_allRoute
   '/explore_recommend_all': typeof Explore_recommend_allRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/personal-survey': typeof PersonalSurveyRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/saved': typeof SavedRoute
   '/trips': typeof TripsRoute
   '/admin/Test_Algorithm': typeof AdminTest_AlgorithmRoute
@@ -161,11 +175,13 @@ export interface FileRoutesByTo {
   '/explore': typeof ExploreRoute
   '/explore_nearby_all': typeof Explore_nearby_allRoute
   '/explore_recommend_all': typeof Explore_recommend_allRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/personal-survey': typeof PersonalSurveyRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/saved': typeof SavedRoute
   '/trips': typeof TripsRoute
   '/admin/Test_Algorithm': typeof AdminTest_AlgorithmRoute
@@ -184,11 +200,13 @@ export interface FileRoutesById {
   '/explore': typeof ExploreRoute
   '/explore_nearby_all': typeof Explore_nearby_allRoute
   '/explore_recommend_all': typeof Explore_recommend_allRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/personal-survey': typeof PersonalSurveyRoute
   '/profile-setup': typeof ProfileSetupRoute
   '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/saved': typeof SavedRoute
   '/trips': typeof TripsRoute
   '/admin/Test_Algorithm': typeof AdminTest_AlgorithmRoute
@@ -208,11 +226,13 @@ export interface FileRouteTypes {
     | '/explore'
     | '/explore_nearby_all'
     | '/explore_recommend_all'
+    | '/forgot-password'
     | '/home'
     | '/login'
     | '/personal-survey'
     | '/profile-setup'
     | '/register'
+    | '/reset-password'
     | '/saved'
     | '/trips'
     | '/admin/Test_Algorithm'
@@ -230,11 +250,13 @@ export interface FileRouteTypes {
     | '/explore'
     | '/explore_nearby_all'
     | '/explore_recommend_all'
+    | '/forgot-password'
     | '/home'
     | '/login'
     | '/personal-survey'
     | '/profile-setup'
     | '/register'
+    | '/reset-password'
     | '/saved'
     | '/trips'
     | '/admin/Test_Algorithm'
@@ -252,11 +274,13 @@ export interface FileRouteTypes {
     | '/explore'
     | '/explore_nearby_all'
     | '/explore_recommend_all'
+    | '/forgot-password'
     | '/home'
     | '/login'
     | '/personal-survey'
     | '/profile-setup'
     | '/register'
+    | '/reset-password'
     | '/saved'
     | '/trips'
     | '/admin/Test_Algorithm'
@@ -275,11 +299,13 @@ export interface RootRouteChildren {
   ExploreRoute: typeof ExploreRoute
   Explore_nearby_allRoute: typeof Explore_nearby_allRoute
   Explore_recommend_allRoute: typeof Explore_recommend_allRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   PersonalSurveyRoute: typeof PersonalSurveyRoute
   ProfileSetupRoute: typeof ProfileSetupRoute
   RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SavedRoute: typeof SavedRoute
   TripsRoute: typeof TripsRoute
   AdminTest_AlgorithmRoute: typeof AdminTest_AlgorithmRoute
@@ -304,6 +330,13 @@ declare module '@tanstack/react-router' {
       path: '/saved'
       fullPath: '/saved'
       preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -339,6 +372,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/explore_recommend_all': {
@@ -443,11 +483,13 @@ const rootRouteChildren: RootRouteChildren = {
   ExploreRoute: ExploreRoute,
   Explore_nearby_allRoute: Explore_nearby_allRoute,
   Explore_recommend_allRoute: Explore_recommend_allRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   PersonalSurveyRoute: PersonalSurveyRoute,
   ProfileSetupRoute: ProfileSetupRoute,
   RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SavedRoute: SavedRoute,
   TripsRoute: TripsRoute,
   AdminTest_AlgorithmRoute: AdminTest_AlgorithmRoute,
