@@ -809,6 +809,9 @@ router.post(
         });
       }
 
+      const isNewAIAttraction =
+        !existing;
+
       const images =
         await loadImages(
           verifiedPlace,
@@ -987,6 +990,44 @@ router.post(
                 )
                   ? existing.images
                   : []
+              ),
+
+        data_source:
+          isNewAIAttraction
+            ? "ai_discovered"
+            : (
+                existing?.data_source ??
+                "dataset"
+              ),
+
+        discovered_by_ai:
+          isNewAIAttraction
+            ? true
+            : (
+                existing?.discovered_by_ai ??
+                false
+              ),
+
+        ai_model:
+          isNewAIAttraction
+            ? (
+                cleanText(
+                  aiData.ai_model
+                ) ??
+                null
+              )
+            : (
+                existing?.ai_model ??
+                null
+              ),
+
+        ai_discovered_at:
+          isNewAIAttraction
+            ? new Date()
+                .toISOString()
+            : (
+                existing?.ai_discovered_at ??
+                null
               ),
 
         updated_at:
