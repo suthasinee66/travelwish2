@@ -86,6 +86,8 @@ const PERSONALITY_GROUPS: PersonalityGroup[] = [
       "🍽️ ชอบ Fine Dining",
       "🥗 สาย Healthy Food",
       "🍴 ยอมเดินทางไกลเพื่อร้านอร่อย",
+      "🍜 อาหารคือจุดหมายหลักของทริป",
+      "🥪 กินอะไรก็ได้ ขอเที่ยวก่อน",
     ],
   },
   {
