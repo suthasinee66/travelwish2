@@ -22,6 +22,7 @@ function ProfileSetup() {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
+  const [customGender, setCustomGender] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -40,6 +41,16 @@ function ProfileSetup() {
       return;
     }
 
+    if (gender === "other" && !customGender.trim()) {
+      alert("กรุณาระบุอัตลักษณ์ทางเพศของคุณ");
+      return;
+    }
+
+    const genderValue =
+      gender === "other"
+        ? customGender.trim()
+        : gender;
+
     setSaving(true);
 
     const { error } = await supabase.from("profile").upsert(
@@ -47,7 +58,7 @@ function ProfileSetup() {
         profile_id: user.id,
         name: name.trim(),
         age: Number(age),
-        gender,
+        gender: genderValue,
       },
       {
         onConflict: "profile_id",
@@ -242,18 +253,45 @@ function ProfileSetup() {
                       onChange={(e) => setGender(e.target.value)}
                       className="profile-input profile-select"
                     >
-                      <option value="">เลือกเพศ</option>
+                      <option value="">เลือกอัตลักษณ์ทางเพศ</option>
                       <option value="male">ชาย</option>
                       <option value="female">หญิง</option>
-                      <option value="non-binary">
-                        ไม่ระบุเพศ
-                      </option>
-                      <option value="prefer-not-to-say">
-                        ไม่ต้องการระบุ
-                      </option>
+                      <option value="trans-man">ชายข้ามเพศ (Trans man)</option>
+                      <option value="trans-woman">หญิงข้ามเพศ (Trans woman)</option>
+                      <option value="non-binary">นอนไบนารี (Non-binary)</option>
+                      <option value="genderfluid">เจนเดอร์ฟลูอิด (Genderfluid)</option>
+                      <option value="agender">ไม่ระบุอัตลักษณ์ทางเพศ (Agender)</option>
+                      <option value="genderqueer">Genderqueer</option>
+                      <option value="questioning">กำลังค้นหาอัตลักษณ์ของตนเอง</option>
+                      <option value="other">อื่น ๆ (ระบุเอง)</option>
+                      <option value="prefer-not-to-say">ไม่ต้องการระบุ</option>
                     </select>
 
                   </div>
+
+                  {gender === "other" && (
+                    <div className="mt-3">
+                      <label
+                        htmlFor="custom_gender"
+                        className="profile-label"
+                      >
+                        ระบุอัตลักษณ์ทางเพศ
+                      </label>
+
+                      <div className="profile-input-wrapper">
+                        <VenusAndMars className="profile-input-icon" />
+
+                        <input
+                          id="custom_gender"
+                          type="text"
+                          value={customGender}
+                          onChange={(e) => setCustomGender(e.target.value)}
+                          placeholder="ระบุได้ตามที่คุณสะดวก"
+                          className="profile-input"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                 </div>
 
