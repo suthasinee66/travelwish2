@@ -778,6 +778,18 @@ const plannerRanked =
             id: item.attraction.id,
             name_th: item.attraction.name_th,
             category: item.attraction.category ?? [],
+            type:
+                item.attraction.type ?? null,
+            highlight:
+                item.attraction.highlight ?? null,
+            activity:
+                item.attraction.activity ?? null,
+            suitable_duration:
+                item.attraction.suitable_duration ?? null,
+            detail_th:
+                typeof item.attraction.detail_th === "string"
+                    ? item.attraction.detail_th.slice(0, 700)
+                    : null,
 
             distanceKm:
                 Number.isFinite(
@@ -1579,10 +1591,113 @@ console.log(
     )
 );
 
+const selectedAttractionIds =
+    [
+        ...new Set(
+            selectedPlaces
+                .map((item: any) =>
+                    item?.place_id
+                        ? String(item.place_id)
+                        : null
+                )
+                .filter(Boolean)
+        )
+    ];
+
+const selectedRestaurantIds =
+    [
+        ...new Set(
+            selectedPlaces
+                .map((item: any) =>
+                    item?.restaurant_id
+                        ? String(item.restaurant_id)
+                        : null
+                )
+                .filter(Boolean)
+        )
+    ];
+
+const [
+    selectedAttractionResult,
+    selectedRestaurantResult
+] = await Promise.all([
+    selectedAttractionIds.length > 0
+        ? supabase
+            .from("attraction")
+            .select(`
+                att_id,
+                name_th,
+                name_en,
+                detail_th,
+                category,
+                type,
+                highlight,
+                activity,
+                suitable_duration,
+                district,
+                subdistrict,
+                latitude,
+                longitude
+            `)
+            .in(
+                "att_id",
+                selectedAttractionIds
+            )
+        : Promise.resolve({
+            data: [],
+            error: null
+        }),
+
+    selectedRestaurantIds.length > 0
+        ? supabase
+            .from("restaurant")
+            .select(`
+                place_id,
+                google_place_id,
+                place_name_th,
+                place_name_en,
+                place_address,
+                place_type,
+                rating,
+                user_ratings_total
+            `)
+            .in(
+                "place_id",
+                selectedRestaurantIds
+            )
+        : Promise.resolve({
+            data: [],
+            error: null
+        })
+]);
+
+if (selectedAttractionResult.error) {
+    console.warn(
+        "⚠️ Load selected attraction details failed:",
+        selectedAttractionResult.error
+    );
+}
+
+if (selectedRestaurantResult.error) {
+    console.warn(
+        "⚠️ Load selected restaurant details failed:",
+        selectedRestaurantResult.error
+    );
+}
+
+const selectedAttractionDetails =
+    selectedAttractionResult.data ?? [];
+
+const selectedRestaurantDetails =
+    selectedRestaurantResult.data ?? [];
+
 const markdownPrompt = `
 คุณคือ TravelWish AI Travel Planner
 
 สร้างข้อความแผนการเดินทางสำหรับผู้ใช้จากข้อมูลที่ผ่านการตรวจสอบแล้วด้านล่าง
+
+วันนี้คือ ${new Date().toISOString().slice(0, 10)}
+จังหวัดของทริปคือ ${tripData.province}
 
 USER CONTEXT
 ${JSON.stringify(userContext, null, 2)}
@@ -1592,6 +1707,12 @@ ${JSON.stringify(tripData, null, 2)}
 
 VERIFIED ITINERARY ITEMS
 ${JSON.stringify(selectedPlaces, null, 2)}
+
+VERIFIED ATTRACTION DETAILS
+${JSON.stringify(selectedAttractionDetails, null, 2)}
+
+VERIFIED RESTAURANT DETAILS
+${JSON.stringify(selectedRestaurantDetails, null, 2)}
 
 ====================
 ข้อกำหนด Markdown
@@ -1630,6 +1751,49 @@ markdown คือเนื้อหาแผนเที่ยวที่ผ�
 
 อย่างไรก็ตาม ต้องมีข้อมูลที่จำเป็นสำหรับการวางแผนเที่ยว
 เช่น วัน เวลา สถานที่ ร้านอาหาร กิจกรรม และรายละเอียดที่เกี่ยวข้อง
+
+====================
+กิจกรรมและระยะเวลา
+====================
+
+สำหรับแต่ละสถานที่ ให้เจาะลึกว่าควรทำอะไรระหว่างอยู่ที่นั่น
+ไม่ใช่แค่บอกว่า "เที่ยวชม" หรือ "ถ่ายรูป"
+
+ควรอธิบายเมื่อข้อมูลรองรับ เช่น:
+- กิจกรรมหลักที่ควรทำ
+- จุดหรือประสบการณ์ที่ไม่ควรพลาด
+- ลำดับกิจกรรมภายในสถานที่
+- เวลาที่แนะนำสำหรับแต่ละกิจกรรม
+- เวลารวมที่ควรใช้ในสถานที่นั้น
+- ช่วงเวลาที่เหมาะสมของวัน
+- จังหวะพัก / กิน / เดินทางต่อ
+- คำแนะนำตาม personality และ food lifestyle ของผู้ใช้
+
+ให้ใช้ suitable_duration, activity, highlight และ detail_th
+เป็นข้อมูลตั้งต้นในการประเมินเวลา
+หากไม่มีข้อมูลเวลาที่แน่นอน ให้ระบุว่าเป็น "เวลาแนะนำโดยประมาณ"
+และใช้ช่วงเวลาแบบสมเหตุสมผล เช่น 30–45 นาที, 1–2 ชั่วโมง
+ห้ามแต่งเวลาเปิด-ปิด ราคาบัตร หรือข้อเท็จจริงเฉพาะที่ไม่มีข้อมูลรองรับ
+
+====================
+CURRENT TREND & WHAT'S POPULAR NOW
+====================
+
+ให้ใช้ Web Search เมื่อจำเป็นเพื่อค้นข้อมูลปัจจุบันเกี่ยวกับจังหวัดและ
+VERIFIED ITINERARY ITEMS ว่าในช่วงนี้มีอะไรที่กำลังได้รับความนิยม เช่น:
+- กิจกรรมหรือประสบการณ์ที่กำลังเป็นเทรนด์
+- มุมถ่ายรูป / content style / คาเฟ่หรือ food experience ที่คนกำลังสนใจ
+- กิจกรรมตามฤดูกาล
+- เทรนด์ local experience, wellness, nightlife, craft, workshop หรือ community
+- สิ่งที่เข้ากับ personality_tags ของผู้ใช้
+
+กฎของ Trend:
+- Trend เป็นข้อมูลเสริมของ itinerary ไม่ใช่เหตุผลให้ทิ้ง TDMC
+- แนะนำเฉพาะเทรนด์ที่เกี่ยวข้องกับสถานที่ใน VERIFIED ITINERARY ITEMS หรือทำได้ภายในบริเวณนั้น
+- ห้ามเพิ่ม attraction หรือ restaurant ใหม่ที่ไม่มีใน VERIFIED ITINERARY ITEMS
+- ถ้าหาหลักฐานปัจจุบันไม่ได้ อย่าอ้างว่าสิ่งนั้น "กำลังฮิต"
+- แยกให้ชัดระหว่างข้อมูลจากฐานข้อมูลกับคำแนะนำกิจกรรมเชิงสร้างสรรค์
+- ไม่จำเป็นต้องยัดเทรนด์ทุกจุด ให้ใช้เฉพาะจุดที่ช่วยให้ทริปน่าสนใจขึ้นจริง
 
 ห้ามสร้างข้อมูลสถานที่หรือร้านอาหารที่ไม่มีอยู่ใน VERIFIED ITINERARY ITEMS
 
