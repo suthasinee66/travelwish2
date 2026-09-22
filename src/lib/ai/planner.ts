@@ -3,6 +3,10 @@ import {
     rankPlacesWithNearbyRestaurants
 } from "./algorithm";
 import type { TripPlanInput } from "./types";
+import {
+    getGuestPreferences,
+    isGuestUser
+} from "@/lib/guest/guestPreferences";
 
 import {
     generateWithSelectedModel,
@@ -391,6 +395,16 @@ export async function loadAllAttractions(
 export async function loadUserPreferences(
     userId: string
 ) {
+    const {
+        data: authData
+    } = await supabase.auth.getUser();
+
+    if (
+        authData.user?.id === userId &&
+        isGuestUser(authData.user)
+    ) {
+        return getGuestPreferences();
+    }
 
     const {
         data,
@@ -424,6 +438,23 @@ export async function loadUserPreferences(
 export async function loadUserProfile(
     userId: string
 ) {
+    const {
+        data: authData
+    } = await supabase.auth.getUser();
+
+    if (
+        authData.user?.id === userId &&
+        isGuestUser(authData.user)
+    ) {
+        return {
+            profile_id: userId,
+            name: "Guest",
+            age: null,
+            gender: null,
+            is_guest: true
+        };
+    }
+
     const {
         data,
         error
@@ -550,6 +581,16 @@ export async function createPlanner(
 
     console.log("📋 ข้อมูลทริป");
     console.log(trip);
+
+    const {
+        data: plannerAuthData
+    } = await supabase.auth.getUser();
+
+    const isGuest =
+        plannerAuthData.user?.id === userId &&
+        isGuestUser(
+            plannerAuthData.user
+        );
 
     const [
         preferences,
@@ -709,34 +750,36 @@ console.log(
 // บันทึก Trip Preferences + AI Model
 // ============================================
 
-const {
-    error: sessionError
-} = await supabase
-    .from("chat_sessions")
-    .update({
-        trip_preferences: tripData,
-        ai_model: selectedModel
-    })
-    .eq("id", chatId);
+if (!isGuest) {
+    const {
+        error: sessionError
+    } = await supabase
+        .from("chat_sessions")
+        .update({
+            trip_preferences: tripData,
+            ai_model: selectedModel
+        })
+        .eq("id", chatId);
 
-if (sessionError) {
+    if (sessionError) {
+        console.error(
+            "❌ บันทึก chat session ไม่สำเร็จ",
+            sessionError
+        );
+    } else {
+        console.log(
+            "✅ บันทึก chat session สำเร็จ"
+        );
 
-    console.error(
-        "❌ บันทึก chat session ไม่สำเร็จ",
-        sessionError
-    );
-
+        console.log(
+            "🤖 AI Model:",
+            selectedModel
+        );
+    }
 } else {
-
     console.log(
-        "✅ บันทึก chat session สำเร็จ"
+        "👤 Guest planner: skip chat_sessions persistence"
     );
-
-    console.log(
-        "🤖 AI Model:",
-        selectedModel
-    );
-
 }
 
 const ranked =
@@ -1825,34 +1868,38 @@ console.log(
 );
 
 
-console.log("💾 กำลังบันทึก planner ลง database...");
-const { data, error } = await supabase
-.from("chat_messages")
-.insert({
-    session_id: chatId,
-    user_id: userId,
-    role: "ai",
-    content: aiMessage,
-    planner_json: selectedPlaces
-})
-.select();
+if (!isGuest) {
+    console.log("💾 กำลังบันทึก planner ลง database...");
 
-
-if(error){
-
-    console.error(
-        "❌ บันทึก planner ไม่สำเร็จ",
+    const {
+        data,
         error
-    );
+    } = await supabase
+        .from("chat_messages")
+        .insert({
+            session_id: chatId,
+            user_id: userId,
+            role: "ai",
+            content: aiMessage,
+            planner_json: selectedPlaces
+        })
+        .select();
 
-}
-else{
-
+    if (error) {
+        console.error(
+            "❌ บันทึก planner ไม่สำเร็จ",
+            error
+        );
+    } else {
+        console.log(
+            "✅ บันทึก planner ลง database แล้ว",
+            data
+        );
+    }
+} else {
     console.log(
-        "✅ บันทึก planner ลง database แล้ว",
-        data
+        "👤 Guest planner: skip chat_messages persistence"
     );
-
 }
 
 
