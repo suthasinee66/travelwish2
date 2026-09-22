@@ -1151,7 +1151,10 @@ const start = performance.now();
 
 const raw = await generateWithSelectedModel(
     selectedModel,
-    prompt
+    prompt,
+    {
+        structuredPlanner: true
+    }
 );
 
     const end = performance.now();
@@ -1182,10 +1185,15 @@ try {
 
 } catch (e) {
 
-    console.error("Gemini JSON Parse Error");
+    console.error(
+        `${selectedModel.toUpperCase()} JSON Parse Error`
+    );
+
     console.log(raw);
 
-    throw new Error("Gemini returned invalid JSON");
+    throw new Error(
+        `${selectedModel.toUpperCase()} returned invalid JSON`
+    );
 }
 
 const aiMessage = result.markdown ?? "";
