@@ -220,7 +220,19 @@ async function searchRestaurant(
             ? place.types
             : [];
 
-        let score = 0;
+        const isRestaurant =
+          restaurantTypes.has(
+            place.primaryType
+          ) ||
+          types.some(type =>
+            restaurantTypes.has(type)
+          );
+
+        if (!isRestaurant) {
+          return null;
+        }
+
+        let score = 5;
 
         if (
           title === targetName
@@ -242,22 +254,12 @@ async function searchRestaurant(
           score += 5;
         }
 
-        if (
-          restaurantTypes.has(
-            place.primaryType
-          ) ||
-          types.some(type =>
-            restaurantTypes.has(type)
-          )
-        ) {
-          score += 5;
-        }
-
         return {
           place,
           score,
         };
       })
+      .filter(Boolean)
       .sort(
         (a, b) =>
           b.score - a.score
