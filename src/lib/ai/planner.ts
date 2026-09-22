@@ -1465,19 +1465,46 @@ ${JSON.stringify(tripData, null, 2)}
 VERIFIED ITINERARY ITEMS
 ${JSON.stringify(selectedPlaces, null, 2)}
 
-กติกา:
-- ใช้เฉพาะสถานที่และร้านอาหารที่มีอยู่ใน VERIFIED ITINERARY ITEMS เท่านั้น
-- ห้ามเพิ่มสถานที่หรือร้านใหม่
-- เนื้อหาต้องสอดคล้องกับ day, period, place_name และ restaurant_name
-- สะท้อน personality, food lifestyle, pace, budget, companion และ travel goal ของผู้ใช้
-- หาก restaurant_name เป็น null ไม่ต้องแต่งร้านอาหารขึ้นมา
-- ไม่ต้องอธิบาย TDMC, ranking, database, verification หรือ source
-- เขียนเป็น Markdown เท่านั้น
-- คุณมีอิสระในการออกแบบสไตล์การนำเสนอเองเต็มที่
-- สามารถใช้ heading, bullet, timeline, table, emoji, blockquote หรือรูปแบบอื่นตามสไตล์ของโมเดล
-- ไม่ต้องใช้ template ตายตัว
-- ตอบเฉพาะ Markdown ที่ผู้ใช้จะเห็น ไม่ต้องครอบด้วย JSON และไม่ต้องครอบด้วย code fence
-`;
+====================
+ข้อกำหนด Markdown
+====================
+
+markdown คือเนื้อหาแผนเที่ยวที่ผู้ใช้จะเห็น
+
+ต้องเขียนเป็น Markdown เท่านั้น
+
+คุณมีอิสระในการออกแบบรูปแบบการนำเสนอแผนเที่ยว
+ไม่จำเป็นต้องทำตาม Template ที่กำหนดไว้
+
+สามารถเลือกใช้รูปแบบที่เหมาะสมได้ เช่น
+
+- Heading
+- Subheading
+- Bullet list
+- Numbered list
+- ตาราง
+- Timeline
+- Emoji
+- Highlight
+- Blockquote
+- Bold / Italic
+- หรือการผสมผสานรูปแบบ Markdown
+
+คุณสามารถเลือกวิธีการจัดลำดับและนำเสนอข้อมูลเอง
+โดยคำนึงถึงความอ่านง่าย ความชัดเจน และประสบการณ์ของผู้ใช้
+
+อย่างไรก็ตาม ต้องมีข้อมูลที่จำเป็นสำหรับการวางแผนเที่ยว
+เช่น วัน เวลา สถานที่ ร้านอาหาร กิจกรรม และรายละเอียดที่เกี่ยวข้อง
+
+ห้ามสร้างข้อมูลสถานที่หรือร้านอาหารที่ไม่มีอยู่ใน VERIFIED ITINERARY ITEMS
+
+เนื้อหาต้องสอดคล้องกับ day, period, place_name และ restaurant_name
+ถ้า restaurant_name เป็น null ห้ามแต่งร้านอาหารขึ้นมา
+ให้สะท้อน personality, food lifestyle, pace, budget, companion และ travel goal ของผู้ใช้
+ไม่ต้องอธิบาย TDMC, ranking, database, verification หรือ source
+
+ห้ามมีข้อความใด ๆ นอก Markdown
+`
 
 console.log(
     `📝 ${selectedModel.toUpperCase()} กำลังสร้าง Markdown...`
