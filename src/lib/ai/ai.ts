@@ -14,7 +14,9 @@ export async function generateWithSelectedModel(
     selectedModel: AIModel,
     prompt: string,
     options?: {
-        structuredPlanner?: boolean;
+        responseMode?:
+            | "planner_json"
+            | "markdown";
     }
 ): Promise<string> {
 
@@ -30,8 +32,8 @@ export async function generateWithSelectedModel(
             body: JSON.stringify({
                 model: selectedModel,
                 prompt,
-                structuredPlanner:
-                    options?.structuredPlanner === true
+                responseMode:
+                    options?.responseMode ?? null
             })
         }
     );
@@ -61,7 +63,7 @@ export async function generateWithSelectedModel(
     }
 
     if (
-        options?.structuredPlanner &&
+        options?.responseMode === "planner_json" &&
         data.finish_reason &&
         !["stop", "tool_calls"].includes(
             String(data.finish_reason)
