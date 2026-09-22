@@ -10,6 +10,9 @@ const router = express.Router();
 const SERP_API_KEY =
   process.env.SERP_API_KEY;
 
+const GOOGLE_PLACES_API_KEY =
+  process.env.GOOGLE_PLACES_API_KEY;
+
 const SUPABASE_URL =
   process.env.SUPABASE_URL;
 
@@ -106,10 +109,219 @@ async function checkImage(url) {
   }
 }
 
-async function searchPlace(
+async function searchPlaceWithGoogle(
   name,
   province
 ) {
+  if (!GOOGLE_PLACES_API_KEY) {
+    return null;
+  }
+
+  const response =
+    await fetch(
+      "https://places.googleapis.com/v1/places:searchText",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+
+          "X-Goog-Api-Key":
+            GOOGLE_PLACES_API_KEY,
+
+          "X-Goog-FieldMask": [
+            "places.id",
+            "places.displayName",
+            "places.formattedAddress",
+            "places.location",
+            "places.types",
+            "places.primaryType",
+            "places.nationalPhoneNumber",
+            "places.websiteUri",
+            "places.rating",
+            "places.userRatingCount",
+            "places.photos",
+          ].join(","),
+        },
+
+        body: JSON.stringify({
+          textQuery:
+            `${name} ${province} Thailand`,
+
+          languageCode:
+            "th",
+
+          regionCode:
+            "TH",
+
+          maxResultCount:
+            5,
+        }),
+      }
+    );
+
+  if (!response.ok) {
+    const errorText =
+      await response.text();
+
+    throw new Error(
+      `Google Places Text Search failed: ${errorText}`
+    );
+  }
+
+  const data =
+    await response.json();
+
+  const places =
+    Array.isArray(
+      data.places
+    )
+      ? data.places
+      : [];
+
+  if (
+    places.length === 0
+  ) {
+    return null;
+  }
+
+  const targetName =
+    normalize(name);
+
+  const targetProvince =
+    normalize(province);
+
+  const scored =
+    places
+      .map(place => {
+        const title =
+          normalize(
+            place.displayName?.text
+          );
+
+        const address =
+          normalize(
+            place.formattedAddress
+          );
+
+        let score = 0;
+
+        if (
+          title ===
+          targetName
+        ) {
+          score += 10;
+        } else if (
+          title.includes(
+            targetName
+          ) ||
+          targetName.includes(
+            title
+          )
+        ) {
+          score += 6;
+        }
+
+        if (
+          targetProvince &&
+          address.includes(
+            targetProvince
+          )
+        ) {
+          score += 5;
+        }
+
+        if (
+          address.includes(
+            "thailand"
+          ) ||
+          address.includes(
+            "ประเทศไทย"
+          )
+        ) {
+          score += 1;
+        }
+
+        return {
+          place,
+          score,
+        };
+      })
+      .sort(
+        (a, b) =>
+          b.score - a.score
+      );
+
+  const best =
+    scored[0]?.place;
+
+  if (!best) {
+    return null;
+  }
+
+  return {
+    source:
+      "google_places",
+
+    title:
+      best.displayName?.text ??
+      name,
+
+    address:
+      best.formattedAddress ??
+      null,
+
+    gps_coordinates: {
+      latitude:
+        best.location?.latitude,
+
+      longitude:
+        best.location?.longitude,
+    },
+
+    place_id:
+      best.id ??
+      null,
+
+    type:
+      best.primaryType ??
+      best.types?.[0] ??
+      null,
+
+    phone:
+      best.nationalPhoneNumber ??
+      null,
+
+    website:
+      best.websiteUri ??
+      null,
+
+    rating:
+      best.rating ??
+      null,
+
+    reviews:
+      best.userRatingCount ??
+      null,
+
+    photos:
+      Array.isArray(
+        best.photos
+      )
+        ? best.photos
+        : [],
+  };
+}
+
+async function searchPlaceWithSerp(
+  name,
+  province
+) {
+  if (!SERP_API_KEY) {
+    return null;
+  }
+
   const response =
     await axios.get(
       "https://serpapi.com/search.json",
@@ -202,17 +414,6 @@ async function searchPlace(
           score += 5;
         }
 
-        if (
-          address.includes(
-            "thailand"
-          ) ||
-          address.includes(
-            "ประเทศไทย"
-          )
-        ) {
-          score += 1;
-        }
-
         return {
           place,
           score,
@@ -225,94 +426,215 @@ async function searchPlace(
     );
 
   return (
-    scored[0]?.place ??
-    null
+    scored[0]?.place
+      ? {
+          ...scored[0].place,
+          source:
+            "serpapi",
+        }
+      : null
   );
 }
 
-async function loadImages(
+async function searchPlace(
   name,
   province
 ) {
-  const response =
-    await axios.get(
-      "https://serpapi.com/search.json",
-      {
-        params: {
-          engine:
-            "google_images",
+  try {
+    const googlePlace =
+      await searchPlaceWithGoogle(
+        name,
+        province
+      );
 
-          q:
-            `${name} ${province} Thailand travel attraction`,
+    if (googlePlace) {
+      console.log(
+        "✅ AI place verified with Google Places:",
+        googlePlace.title
+      );
 
-          num:
-            20,
-
-          api_key:
-            SERP_API_KEY,
-        },
-      }
+      return googlePlace;
+    }
+  } catch (error) {
+    console.warn(
+      "⚠️ Google Places verify failed:",
+      error.message
     );
-
-  const blocked = [
-    "facebook",
-    "fbcdn",
-    "fbsbx",
-    "tiktok",
-    "musical.ly",
-    "pinterest",
-    "pinimg",
-    "twitter",
-    "x.com",
-    "instagram",
-    "youtube",
-    "i.ytimg",
-  ];
-
-  const candidates =
-    (
-      response.data
-        ?.images_results ??
-      []
-    )
-      .map(
-        item =>
-          item.original
-      )
-      .filter(Boolean)
-      .filter(url => {
-        const lower =
-          String(url)
-            .toLowerCase();
-
-        return !blocked.some(
-          domain =>
-            lower.includes(
-              domain
-            )
-        );
-      });
-
-  const validImages = [];
-
-  for (
-    const url
-    of candidates
-  ) {
-    if (
-      validImages.length >= 5
-    ) {
-      break;
-    }
-
-    if (
-      await checkImage(url)
-    ) {
-      validImages.push(url);
-    }
   }
 
-  return validImages;
+  try {
+    const serpPlace =
+      await searchPlaceWithSerp(
+        name,
+        province
+      );
+
+    if (serpPlace) {
+      console.log(
+        "✅ AI place verified with SerpAPI:",
+        serpPlace.title ??
+        serpPlace.name
+      );
+
+      return serpPlace;
+    }
+  } catch (error) {
+    console.warn(
+      "⚠️ SerpAPI verify failed:",
+      error.response?.data ??
+      error.message
+    );
+  }
+
+  return null;
+}
+
+function googlePhotoUrls(
+  verifiedPlace
+) {
+  if (
+    !GOOGLE_PLACES_API_KEY ||
+    !Array.isArray(
+      verifiedPlace?.photos
+    )
+  ) {
+    return [];
+  }
+
+  return verifiedPlace.photos
+    .slice(0, 5)
+    .map(photo => {
+      if (!photo?.name) {
+        return null;
+      }
+
+      return (
+        `https://places.googleapis.com/v1/${photo.name}/media` +
+        `?maxWidthPx=800&key=${GOOGLE_PLACES_API_KEY}`
+      );
+    })
+    .filter(Boolean);
+}
+
+async function loadImagesFromSerp(
+  name,
+  province
+) {
+  if (!SERP_API_KEY) {
+    return [];
+  }
+
+  try {
+    const response =
+      await axios.get(
+        "https://serpapi.com/search.json",
+        {
+          params: {
+            engine:
+              "google_images",
+
+            q:
+              `${name} ${province} Thailand travel attraction`,
+
+            num:
+              20,
+
+            api_key:
+              SERP_API_KEY,
+          },
+        }
+      );
+
+    const blocked = [
+      "facebook",
+      "fbcdn",
+      "fbsbx",
+      "tiktok",
+      "musical.ly",
+      "pinterest",
+      "pinimg",
+      "twitter",
+      "x.com",
+      "instagram",
+      "youtube",
+      "i.ytimg",
+    ];
+
+    const candidates =
+      (
+        response.data
+          ?.images_results ??
+        []
+      )
+        .map(
+          item =>
+            item.original
+        )
+        .filter(Boolean)
+        .filter(url => {
+          const lower =
+            String(url)
+              .toLowerCase();
+
+          return !blocked.some(
+            domain =>
+              lower.includes(
+                domain
+              )
+          );
+        });
+
+    const validImages = [];
+
+    for (
+      const url
+      of candidates
+    ) {
+      if (
+        validImages.length >= 5
+      ) {
+        break;
+      }
+
+      if (
+        await checkImage(url)
+      ) {
+        validImages.push(url);
+      }
+    }
+
+    return validImages;
+  } catch (error) {
+    console.warn(
+      "⚠️ SerpAPI image search failed:",
+      error.response?.data ??
+      error.message
+    );
+
+    return [];
+  }
+}
+
+async function loadImages(
+  verifiedPlace,
+  name,
+  province
+) {
+  const googleImages =
+    googlePhotoUrls(
+      verifiedPlace
+    );
+
+  if (
+    googleImages.length > 0
+  ) {
+    return googleImages;
+  }
+
+  return loadImagesFromSerp(
+    name,
+    province
+  );
 }
 
 async function findExistingAttraction(
@@ -380,13 +702,14 @@ router.post(
       }
 
       if (
+        !GOOGLE_PLACES_API_KEY &&
         !SERP_API_KEY
       ) {
         return res
           .status(500)
           .json({
             error:
-              "SERP_API_KEY is not configured",
+              "No place verification provider is configured",
           });
       }
 
@@ -488,6 +811,7 @@ router.post(
 
       const images =
         await loadImages(
+          verifiedPlace,
           title,
           province
         );
@@ -611,6 +935,15 @@ router.post(
           ) ??
           existing?.website ??
           null,
+
+        google_place_id:
+          verifiedPlace.source ===
+          "google_places"
+            ? externalId
+            : (
+                existing?.google_place_id ??
+                null
+              ),
 
         facebook:
           existing?.facebook ??
