@@ -1,30 +1,19 @@
+import { useState } from "react";
 import {
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
-import {
-  ArrowLeft,
   ArrowRight,
+  CalendarDays,
   Camera,
   Check,
-  ChevronRight,
-  Coffee,
   Compass,
   Heart,
-  Landmark,
-  Leaf,
-  MapPin,
+  Map,
   Mountain,
-  PartyPopper,
   Sparkles,
-  Trees,
-  Users,
-  Wallet,
-  Waves,
+  User,
   X,
 } from "lucide-react";
 
+import { THAI_REGIONS } from "@/lib/travel/thaiRegions";
 import {
   saveGuestPreferences,
   type GuestPreferences,
@@ -38,106 +27,11 @@ type Props = {
   onClose?: () => void;
 };
 
-type Option = {
-  value: string;
-  icon?: React.ComponentType<{
-    className?: string;
-  }>;
-  hint?: string;
-};
-
-const TRAVEL_TYPES: Option[] = [
-  {
-    value: "ภูเขา",
-    icon: Mountain,
-    hint: "วิวสูง อากาศดี",
-  },
-  {
-    value: "ทะเล",
-    icon: Waves,
-    hint: "ชายหาด เกาะ น้ำใส",
-  },
-  {
-    value: "วัฒนธรรม",
-    icon: Landmark,
-    hint: "วัด เมืองเก่า Local",
-  },
-  {
-    value: "คาเฟ่",
-    icon: Coffee,
-    hint: "กาแฟ ของหวาน ถ่ายรูป",
-  },
-  {
-    value: "ธรรมชาติ",
-    icon: Trees,
-    hint: "ป่า น้ำตก พื้นที่สีเขียว",
-  },
-  {
-    value: "เมือง",
-    icon: MapPin,
-    hint: "ย่านดัง ช้อปปิ้ง Nightlife",
-  },
-];
-
-const ACTIVITIES: Option[] = [
-  {
-    value: "ถ่ายรูป",
-    icon: Camera,
-  },
-  {
-    value: "เดินป่า",
-    icon: Leaf,
-  },
-  {
-    value: "อาหาร",
-    icon: Coffee,
-  },
-  {
-    value: "ช้อปปิ้ง",
-    icon: Sparkles,
-  },
-  {
-    value: "พักผ่อน",
-    icon: Heart,
-  },
-];
-
-const ATMOSPHERES = [
-  "คึกคัก",
-  "เงียบสงบ",
-  "ผจญภัย",
-  "หรูหรา",
-];
-
-const COMPANIONS = [
-  "คนเดียว",
-  "คู่รัก",
-  "เพื่อน",
-  "ครอบครัว",
-];
-
-const BUDGETS = [
-  "ประหยัด",
-  "ปานกลาง",
-  "หรูหรา",
-];
-
-const GOALS = [
-  "พักผ่อน",
-  "กินและคาเฟ่",
-  "ถ่ายรูปและคอนเทนต์",
-  "ผจญภัย",
-  "วัฒนธรรมและ Local",
-  "Wellness",
-];
-
-const PERSONALITY_TAGS = [
+const PERSONALITY_PREVIEW = [
   "🌿 สายธรรมชาติ",
   "📸 สายถ่ายรูป",
   "☕ สายคาเฟ่",
   "🍜 สายกิน",
-  "🥘 ชอบอาหารท้องถิ่น",
-  "💎 ชอบร้านลับ",
   "🔥 ชอบสถานที่กำลังไวรัล",
   "✨ สายคอนเทนต์",
   "🧘 สายชิล",
@@ -145,303 +39,96 @@ const PERSONALITY_TAGS = [
   "🛍️ สายช้อป",
   "🏛️ สายวัฒนธรรม",
   "🌙 สายกลางคืน",
+  "💎 ชอบร้านลับ",
+  "🥘 ชอบอาหารท้องถิ่น",
   "🚗 ไม่ชอบอยู่บนรถนาน",
   "🍴 ยอมเดินทางไกลเพื่อร้านอร่อย",
 ];
-
-const STEPS = [
-  {
-    eyebrow: "YOUR TRAVEL STYLE",
-    title: "คุณชอบเที่ยวแบบไหน?",
-    description:
-      "เลือกสไตล์และกิจกรรมที่ตรงกับคุณได้มากกว่า 1 ข้อ",
-  },
-  {
-    eyebrow: "TRIP VIBE",
-    title: "ทริปแบบไหนที่รู้สึกว่าใช่?",
-    description:
-      "บอกบรรยากาศ คนที่ไปด้วย และสไตล์การใช้เงิน",
-  },
-  {
-    eyebrow: "PERSONAL TOUCH",
-    title: "เติมความเป็นคุณอีกนิด",
-    description:
-      "เลือกเป้าหมายและไลฟ์สไตล์ เพื่อให้ AI เข้าใจคุณมากขึ้น",
-  },
-] as const;
-
-function toggleValue(
-  value: string,
-  current: string[],
-  setter: (
-    value: string[]
-  ) => void
-) {
-  setter(
-    current.includes(value)
-      ? current.filter(
-          item => item !== value
-        )
-      : [...current, value]
-  );
-}
-
-function SelectCard({
-  selected,
-  icon: Icon,
-  title,
-  hint,
-  onClick,
-}: {
-  selected: boolean;
-  icon?: Option["icon"];
-  title: string;
-  hint?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "group relative min-h-[92px] rounded-[22px] border p-4 text-left transition-all duration-200",
-        selected
-          ? "border-[#9f80ad] bg-[#f5edf8] shadow-[0_10px_30px_rgba(111,69,111,0.10)] ring-2 ring-[#bfa8c8]/20"
-          : "border-[#e9e0ea] bg-white/72 hover:-translate-y-0.5 hover:border-[#cdbbd2] hover:bg-white hover:shadow-[0_10px_26px_rgba(90,72,102,0.08)]",
-      ].join(" ")}
-    >
-      <div className="flex items-start gap-3">
-        {Icon && (
-          <div
-            className={[
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition",
-              selected
-                ? "bg-[#6f456f] text-white"
-                : "bg-[#f3edf4] text-[#7c6685] group-hover:bg-[#eee4f0]",
-            ].join(" ")}
-          >
-            <Icon className="h-5 w-5" />
-          </div>
-        )}
-
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-extrabold text-[#40384a]">
-              {title}
-            </span>
-
-            {selected && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#6f456f] text-white">
-                <Check className="h-3 w-3" />
-              </span>
-            )}
-          </div>
-
-          {hint && (
-            <p className="mt-1 text-xs leading-5 text-[#8b8192]">
-              {hint}
-            </p>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function ChoicePill({
-  selected,
-  children,
-  onClick,
-}: {
-  selected: boolean;
-  children: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "rounded-full border px-4 py-2.5 text-sm font-bold transition-all duration-200",
-        selected
-          ? "border-[#6f456f] bg-[#6f456f] text-white shadow-[0_7px_18px_rgba(111,69,111,0.16)]"
-          : "border-[#e2d8e4] bg-white/80 text-[#655b6d] hover:border-[#bfa8c5] hover:bg-white",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
-
-function SectionTitle({
-  icon: Icon,
-  title,
-  optional,
-}: {
-  icon: React.ComponentType<{
-    className?: string;
-  }>;
-  title: string;
-  optional?: boolean;
-}) {
-  return (
-    <div className="mb-3 flex items-center gap-2.5">
-      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#f0e8f2] text-[#72567e]">
-        <Icon className="h-4 w-4" />
-      </span>
-
-      <h3 className="text-sm font-extrabold text-[#40384a] sm:text-[15px]">
-        {title}
-      </h3>
-
-      {optional && (
-        <span className="rounded-full bg-[#f4f0f5] px-2 py-1 text-[10px] font-bold text-[#968a9d]">
-          ไม่บังคับ
-        </span>
-      )}
-    </div>
-  );
-}
 
 export default function GuestPreferenceModal({
   open,
   onComplete,
   onClose,
 }: Props) {
-  const [step, setStep] =
-    useState(0);
+  const [travelTypes, setTravelTypes] =
+    useState<string[]>([]);
+
+  const [activities, setActivities] =
+    useState<string[]>([]);
 
   const [
-    travelTypes,
-    setTravelTypes
+    preferredRegion,
+    setPreferredRegion
   ] = useState<string[]>([]);
-
-  const [
-    activities,
-    setActivities
-  ] = useState<string[]>([]);
-
-  const [
-    atmosphere,
-    setAtmosphere
-  ] = useState("");
-
-  const [
-    companion,
-    setCompanion
-  ] = useState("");
-
-  const [
-    budget,
-    setBudget
-  ] = useState("");
-
-  const [
-    goal,
-    setGoal
-  ] = useState("");
 
   const [
     personalityTags,
     setPersonalityTags
   ] = useState<string[]>([]);
 
-  const [error, setError] =
+  const [atmosphere, setAtmosphere] =
     useState("");
 
-  const completedCount =
-    useMemo(
-      () =>
-        [
-          travelTypes.length > 0,
-          activities.length > 0,
-          Boolean(atmosphere),
-          Boolean(companion),
-          Boolean(budget),
-          Boolean(goal),
-          personalityTags.length > 0,
-        ].filter(Boolean).length,
-      [
-        travelTypes,
-        activities,
-        atmosphere,
-        companion,
-        budget,
-        goal,
-        personalityTags,
-      ]
-    );
+  const [
+    travelCompanion,
+    setTravelCompanion
+  ] = useState("");
+
+  const [budget, setBudget] =
+    useState("");
+
+  const [
+    travelTime,
+    setTravelTime
+  ] = useState("");
+
+  const [
+    travelGoal,
+    setTravelGoal
+  ] = useState("");
+
+  const [error, setError] =
+    useState("");
 
   if (!open) {
     return null;
   }
 
-  const validateCurrentStep = () => {
-    if (
-      step === 0 &&
-      (
-        travelTypes.length === 0 ||
-        activities.length === 0
-      )
-    ) {
-      setError(
-        "เลือกอย่างน้อย 1 สไตล์การเที่ยว และ 1 กิจกรรมก่อนนะ"
+  const toggleItem = (
+    value: string,
+    list: string[],
+    setList:
+      React.Dispatch<
+        React.SetStateAction<string[]>
+      >
+  ) => {
+    if (list.includes(value)) {
+      setList(
+        list.filter(
+          item => item !== value
+        )
       );
-      return false;
+    } else {
+      setList([
+        ...list,
+        value
+      ]);
     }
-
-    if (
-      step === 1 &&
-      (
-        !atmosphere ||
-        !companion ||
-        !budget
-      )
-    ) {
-      setError(
-        "เลือกบรรยากาศ ผู้ร่วมทริป และงบประมาณให้ครบก่อน"
-      );
-      return false;
-    }
-
-    setError("");
-    return true;
   };
 
-  const goNext = () => {
-    if (!validateCurrentStep()) {
-      return;
-    }
-
-    setStep(current =>
-      Math.min(
-        current + 1,
-        STEPS.length - 1
-      )
-    );
-  };
-
-  const goBack = () => {
-    setError("");
-
-    setStep(current =>
-      Math.max(
-        current - 1,
-        0
-      )
-    );
-  };
-
-  const handleContinue = () => {
+  const handleSubmit = () => {
     if (
       travelTypes.length === 0 ||
       activities.length === 0 ||
+      preferredRegion.length === 0 ||
       !atmosphere ||
-      !companion ||
-      !budget
+      !travelCompanion ||
+      !budget ||
+      !travelTime ||
+      !travelGoal
     ) {
       setError(
-        "ยังมีข้อมูลสำคัญไม่ครบ ลองย้อนกลับไปเช็กอีกครั้ง"
+        "กรุณากรอกข้อมูลให้ครบทุกหัวข้อ"
       );
       return;
     }
@@ -450,17 +137,25 @@ export default function GuestPreferenceModal({
       GuestPreferences = {
         travel_type:
           travelTypes,
+
         activities,
+
         atmosphere,
+
         travel_companion:
-          companion,
+          travelCompanion,
+
         budget,
+
         travel_time:
-          "ยืดหยุ่น",
-        preferred_region: [],
+          travelTime,
+
+        preferred_region:
+          preferredRegion,
+
         travel_goal:
-          goal ||
-          "เที่ยวให้ตรงกับไลฟ์สไตล์",
+          travelGoal,
+
         personality_tags:
           personalityTags,
       };
@@ -469,390 +164,633 @@ export default function GuestPreferenceModal({
       preferences
     );
 
-    onComplete(preferences);
+    onComplete(
+      preferences
+    );
   };
 
-  const current =
-    STEPS[step];
+  const travelTypeOptions = [
+    {
+      value: "ภูเขา",
+      icon: Mountain,
+    },
+    {
+      value: "ทะเล",
+      icon: Sparkles,
+    },
+    {
+      value: "วัฒนธรรม",
+      icon: Map,
+    },
+    {
+      value: "คาเฟ่",
+      icon: Heart,
+    },
+    {
+      value: "ธรรมชาติ",
+      icon: Sparkles,
+    },
+    {
+      value: "เมือง",
+      icon: Map,
+    },
+  ];
+
+  const activityOptions = [
+    "ถ่ายรูป",
+    "เดินป่า",
+    "อาหาร",
+    "ช้อปปิ้ง",
+    "พักผ่อน",
+  ];
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden bg-[#332c3e]/45 p-3 backdrop-blur-md sm:p-6">
-      <div className="relative flex max-h-[94dvh] w-full max-w-[860px] flex-col overflow-hidden rounded-[32px] border border-white/80 bg-[#fffdfb] shadow-[0_36px_120px_rgba(45,37,55,0.30)] sm:rounded-[38px]">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[#cdb4dc]/35 blur-3xl" />
-        <div className="pointer-events-none absolute right-[-70px] top-6 h-52 w-52 rounded-full bg-[#efbfd6]/30 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-[-90px] right-[18%] h-52 w-52 rounded-full bg-[#b8e2e6]/28 blur-3xl" />
+    <div
+      className="
+        fixed
+        inset-0
+        z-[200]
+        flex
+        items-center
+        justify-center
+        bg-[#302b43]/45
+        p-2
+        backdrop-blur-sm
+        sm:p-5
+      "
+    >
+      <div
+        className="
+          survey-page
+          relative
+          max-h-[96dvh]
+          w-full
+          max-w-[940px]
+          overflow-y-auto
+          overflow-x-hidden
+          rounded-[28px]
+          border
+          border-white/80
+          text-[#302b43]
+          shadow-[0_30px_100px_rgba(48,43,67,0.28)]
+          sm:rounded-[34px]
+        "
+      >
+        {/* Aurora background */}
+        <div className="survey-aurora survey-aurora-1" />
+        <div className="survey-aurora survey-aurora-2" />
+        <div className="survey-aurora survey-aurora-3" />
+        <div className="survey-aurora survey-aurora-4" />
 
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-white/75 text-[#726777] shadow-sm backdrop-blur-xl transition hover:bg-white sm:right-5 sm:top-5"
-            aria-label="ปิด"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
-
-        <div className="relative z-10 border-b border-[#eee5ef] bg-white/42 px-5 pb-5 pt-6 backdrop-blur-xl sm:px-8 sm:pb-6 sm:pt-7">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-[16px] bg-gradient-to-br from-[#a98bc0] via-[#d59abb] to-[#8fcbd6] shadow-[0_10px_26px_rgba(111,69,111,0.18)]">
-              <Compass className="h-5 w-5 text-white" />
-            </div>
-
-            <div>
-              <div className="text-[16px] font-black tracking-tight text-[#302b43]">
-                TravelWish
+        {/* Header */}
+        <header className="survey-header sticky top-0 z-50">
+          <div className="survey-header-inner">
+            <div className="flex items-center gap-3">
+              <div className="survey-logo">
+                <Compass className="h-5 w-5" />
               </div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#968b9c]">
-                Guest personalization
-              </div>
-            </div>
-          </div>
 
-          <div className="mt-6 grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/60 px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#7a6384] shadow-sm">
-                <Sparkles className="h-3.5 w-3.5" />
-                {current.eyebrow}
-              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-tight">
+                  TravelWish
+                </h1>
 
-              <h2 className="mt-3 text-[26px] font-black leading-tight tracking-tight text-[#302b43] sm:text-[32px]">
-                {current.title}
-              </h2>
-
-              <p className="mt-2 max-w-xl text-sm leading-6 text-[#7b7281]">
-                {current.description}
-              </p>
-            </div>
-
-            <div className="hidden rounded-[18px] border border-white/80 bg-white/60 px-4 py-3 text-right shadow-sm sm:block">
-              <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9a8fa1]">
-                Personal match
-              </div>
-              <div className="mt-1 text-lg font-black text-[#6f456f]">
-                {completedCount}/7
+                <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#8b7894]">
+                  Guest journey
+                </p>
               </div>
             </div>
-          </div>
 
-          <div className="mt-5 flex items-center gap-2">
-            {STEPS.map((item, index) => (
-              <div
-                key={item.eyebrow}
-                className="flex flex-1 items-center gap-2"
-              >
-                <div
-                  className={[
-                    "h-1.5 flex-1 rounded-full transition-all duration-300",
-                    index <= step
-                      ? "bg-[#8f6d99]"
-                      : "bg-[#e8dfe9]",
-                  ].join(" ")}
-                />
-
-                {index < STEPS.length - 1 && (
-                  <ChevronRight
-                    className={[
-                      "h-3.5 w-3.5 shrink-0",
-                      index < step
-                        ? "text-[#8f6d99]"
-                        : "text-[#d2c7d5]",
-                    ].join(" ")}
-                  />
-                )}
+            <div className="flex items-center gap-2">
+              <div className="hidden rounded-full bg-[#6f456f]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#6f456f] sm:block">
+                Guest mode
               </div>
-            ))}
-          </div>
 
-          <div className="mt-2 flex justify-between text-[10px] font-bold text-[#9d929f]">
-            <span>Step {step + 1}</span>
-            <span>{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
-          </div>
-        </div>
-
-        <div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 sm:py-7">
-          {step === 0 && (
-            <div className="space-y-7">
-              <section>
-                <SectionTitle
-                  icon={MapPin}
-                  title="สไตล์การเที่ยว"
-                />
-
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {TRAVEL_TYPES.map(item => (
-                    <SelectCard
-                      key={item.value}
-                      selected={
-                        travelTypes.includes(
-                          item.value
-                        )
-                      }
-                      icon={item.icon}
-                      title={item.value}
-                      hint={item.hint}
-                      onClick={() =>
-                        toggleValue(
-                          item.value,
-                          travelTypes,
-                          setTravelTypes
-                        )
-                      }
-                    />
-                  ))}
+              {onClose ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="survey-user"
+                  aria-label="ปิด"
+                >
+                  <X className="h-[18px] w-[18px]" />
+                </button>
+              ) : (
+                <div className="survey-user">
+                  <User className="h-[18px] w-[18px]" />
                 </div>
-              </section>
+              )}
+            </div>
+          </div>
+        </header>
 
-              <section>
-                <SectionTitle
-                  icon={Sparkles}
-                  title="กิจกรรมที่ชอบ"
-                />
+        <main className="relative z-10 mx-auto w-full max-w-[900px] px-4 py-8 sm:px-8 sm:py-10">
+          {/* Progress */}
+          <div className="mb-7 flex items-center justify-center">
+            <div className="survey-progress survey-progress-done">
+              <Check className="h-3.5 w-3.5" />
+            </div>
 
-                <div className="flex flex-wrap gap-2.5">
-                  {ACTIVITIES.map(item => {
+            <div className="survey-progress-line survey-progress-line-active" />
+
+            <div className="survey-progress survey-progress-active">
+              2
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="mb-9 text-center">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#a56b99]">
+              Your travel personality
+            </p>
+
+            <h2 className="text-3xl font-extrabold tracking-tight text-[#302b43] sm:text-4xl">
+              บอกสไตล์การท่องเที่ยวของคุณ
+            </h2>
+
+            <p className="mx-auto mt-3 max-w-[560px] text-sm leading-7 text-[#71697d]">
+              เลือกสิ่งที่ตรงกับคุณมากที่สุด
+              <br className="hidden sm:block" />
+              เพื่อให้ TravelWish สร้างคำแนะนำที่เหมาะกับคุณ
+            </p>
+
+            <p className="mx-auto mt-2 max-w-[560px] text-xs leading-5 text-[#988d9d]">
+              ข้อมูล Guest จะเก็บไว้เฉพาะใน browser เครื่องนี้
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {/* Travel Type */}
+            <section className="survey-card">
+              <div className="survey-section-header">
+                <div className="survey-section-icon">
+                  <Mountain className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <h3 className="survey-section-title">
+                    ประเภทการท่องเที่ยว
+                  </h3>
+
+                  <p className="survey-section-description">
+                    เลือกได้มากกว่าหนึ่งประเภท
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {travelTypeOptions.map(
+                  item => {
                     const Icon =
                       item.icon;
+
+                    const selected =
+                      travelTypes.includes(
+                        item.value
+                      );
 
                     return (
                       <button
                         key={item.value}
                         type="button"
                         onClick={() =>
-                          toggleValue(
+                          toggleItem(
                             item.value,
+                            travelTypes,
+                            setTravelTypes
+                          )
+                        }
+                        className={`survey-choice ${
+                          selected
+                            ? "survey-choice-selected"
+                            : ""
+                        }`}
+                      >
+                        <span className="survey-choice-icon">
+                          <Icon className="h-5 w-5" />
+                        </span>
+
+                        <span>
+                          {item.value}
+                        </span>
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            </section>
+
+            {/* Activities */}
+            <section className="survey-card">
+              <div className="survey-section-header">
+                <div className="survey-section-icon survey-section-icon-pink">
+                  <Camera className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <h3 className="survey-section-title">
+                    กิจกรรมที่ชอบ
+                  </h3>
+
+                  <p className="survey-section-description">
+                    เลือกกิจกรรมที่คุณสนใจ
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {activityOptions.map(
+                  activity => {
+                    const selected =
+                      activities.includes(
+                        activity
+                      );
+
+                    return (
+                      <button
+                        key={activity}
+                        type="button"
+                        onClick={() =>
+                          toggleItem(
+                            activity,
                             activities,
                             setActivities
                           )
                         }
-                        className={[
-                          "flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-bold transition",
-                          activities.includes(
-                            item.value
-                          )
-                            ? "border-[#9877a3] bg-[#f1e7f4] text-[#67486f] shadow-sm"
-                            : "border-[#e6dde7] bg-white/75 text-[#625867] hover:border-[#c9b4ce] hover:bg-white",
-                        ].join(" ")}
+                        className={`survey-chip ${
+                          selected
+                            ? "survey-chip-selected"
+                            : ""
+                        }`}
                       >
-                        {Icon && (
-                          <Icon className="h-4 w-4" />
-                        )}
-                        {item.value}
-                        {activities.includes(
-                          item.value
-                        ) && (
-                          <Check className="h-3.5 w-3.5" />
-                        )}
+                        {activity}
                       </button>
                     );
-                  })}
+                  }
+                )}
+              </div>
+            </section>
+
+            {/* Region */}
+            <section className="survey-card">
+              <div className="survey-section-header">
+                <div className="survey-section-icon survey-section-icon-blue">
+                  <Map className="h-5 w-5" />
                 </div>
-              </section>
-            </div>
-          )}
 
-          {step === 1 && (
-            <div className="space-y-7">
-              <section className="rounded-[26px] border border-[#ebe2ec] bg-white/55 p-5 sm:p-6">
-                <SectionTitle
-                  icon={PartyPopper}
-                  title="บรรยากาศที่ชอบ"
-                />
+                <div>
+                  <h3 className="survey-section-title">
+                    ภูมิภาคที่อยากไป
+                  </h3>
 
-                <div className="flex flex-wrap gap-2.5">
-                  {ATMOSPHERES.map(item => (
-                    <ChoicePill
-                      key={item}
-                      selected={
-                        atmosphere === item
-                      }
-                      onClick={() =>
-                        setAtmosphere(item)
-                      }
-                    >
-                      {item}
-                    </ChoicePill>
-                  ))}
+                  <p className="survey-section-description">
+                    เลือกได้มากกว่าหนึ่งภูมิภาค
+                  </p>
                 </div>
-              </section>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <section className="rounded-[26px] border border-[#ebe2ec] bg-white/55 p-5 sm:p-6">
-                  <SectionTitle
-                    icon={Users}
-                    title="ปกติเที่ยวกับใคร?"
-                  />
-
-                  <div className="flex flex-wrap gap-2.5">
-                    {COMPANIONS.map(item => (
-                      <ChoicePill
-                        key={item}
-                        selected={
-                          companion === item
-                        }
-                        onClick={() =>
-                          setCompanion(item)
-                        }
-                      >
-                        {item}
-                      </ChoicePill>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="rounded-[26px] border border-[#ebe2ec] bg-white/55 p-5 sm:p-6">
-                  <SectionTitle
-                    icon={Wallet}
-                    title="สไตล์งบประมาณ"
-                  />
-
-                  <div className="flex flex-wrap gap-2.5">
-                    {BUDGETS.map(item => (
-                      <ChoicePill
-                        key={item}
-                        selected={
-                          budget === item
-                        }
-                        onClick={() =>
-                          setBudget(item)
-                        }
-                      >
-                        {item}
-                      </ChoicePill>
-                    ))}
-                  </div>
-                </section>
               </div>
 
-              <div className="rounded-[22px] border border-[#dcecef] bg-[#f3fbfc] px-4 py-3.5 text-xs leading-5 text-[#677c81]">
-                ✨ เราจะใช้ข้อมูลส่วนนี้ปรับความแน่นของทริป ร้านอาหาร และระดับค่าใช้จ่ายให้เหมาะกับคุณ
-              </div>
-            </div>
-          )}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {THAI_REGIONS.map(
+                  region => {
+                    const selected =
+                      preferredRegion.includes(
+                        region
+                      );
 
-          {step === 2 && (
-            <div className="space-y-7">
-              <section>
-                <SectionTitle
-                  icon={Compass}
-                  title="เป้าหมายของทริป"
-                  optional
-                />
-
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                  {GOALS.map(item => (
-                    <button
-                      key={item}
-                      type="button"
-                      onClick={() =>
-                        setGoal(item)
-                      }
-                      className={[
-                        "min-h-[58px] rounded-[18px] border px-3 py-3 text-sm font-bold transition",
-                        goal === item
-                          ? "border-[#8f6e9a] bg-[#6f456f] text-white shadow-[0_8px_24px_rgba(111,69,111,0.17)]"
-                          : "border-[#e6dde7] bg-white/75 text-[#645a6b] hover:border-[#c5b0cb] hover:bg-white",
-                      ].join(" ")}
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section className="rounded-[26px] border border-[#e9e0ea] bg-white/55 p-4 sm:p-5">
-                <SectionTitle
-                  icon={Sparkles}
-                  title="ไลฟ์สไตล์ที่เป็นคุณ"
-                  optional
-                />
-
-                <p className="-mt-1 mb-4 text-xs leading-5 text-[#918697]">
-                  เลือกได้หลายข้อ ยิ่งเลือกตรงตัว AI จะยิ่งปรับแผนได้ละเอียดขึ้น
-                </p>
-
-                <div className="flex flex-wrap gap-2">
-                  {PERSONALITY_TAGS.map(
-                    item => (
-                      <ChoicePill
-                        key={item}
-                        selected={
-                          personalityTags.includes(
-                            item
-                          )
-                        }
+                    return (
+                      <button
+                        key={region}
+                        type="button"
                         onClick={() =>
-                          toggleValue(
-                            item,
-                            personalityTags,
-                            setPersonalityTags
+                          toggleItem(
+                            region,
+                            preferredRegion,
+                            setPreferredRegion
                           )
                         }
+                        className={`survey-region ${
+                          selected
+                            ? "survey-region-selected"
+                            : ""
+                        }`}
                       >
-                        {item}
-                      </ChoicePill>
-                    )
-                  )}
-                </div>
-              </section>
+                        <span>
+                          {region}
+                        </span>
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            </section>
 
-              <div className="grid gap-3 rounded-[24px] border border-white/80 bg-gradient-to-r from-[#f4ecf6] via-[#fff5f9] to-[#eef9fa] p-4 sm:grid-cols-[auto_1fr] sm:items-center">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#6f456f] shadow-sm">
+            {/* More preferences */}
+            <section className="survey-card">
+              <div className="survey-section-header">
+                <div className="survey-section-icon survey-section-icon-mint">
                   <Sparkles className="h-5 w-5" />
                 </div>
 
                 <div>
-                  <div className="text-sm font-extrabold text-[#453b4c]">
-                    พร้อมสร้าง Travel Style ของคุณแล้ว
-                  </div>
-                  <p className="mt-1 text-xs leading-5 text-[#84798a]">
-                    Guest preferences จะเก็บเฉพาะใน browser เครื่องนี้ และนำไปใช้กับ Recommendation + AI Planner
+                  <h3 className="survey-section-title">
+                    ความชอบเพิ่มเติม
+                  </h3>
+
+                  <p className="survey-section-description">
+                    ช่วยให้ AI เข้าใจสไตล์ของคุณมากขึ้น
                   </p>
                 </div>
               </div>
-            </div>
-          )}
 
-          {error && (
-            <div className="mt-5 rounded-2xl border border-[#f0ccd5] bg-[#fff3f6] px-4 py-3 text-sm font-semibold text-[#9b5c6b]">
-              {error}
-            </div>
-          )}
-        </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="survey-label">
+                    บรรยากาศที่ชอบ
+                  </label>
 
-        <div className="relative z-10 border-t border-[#eee5ef] bg-white/78 px-5 py-4 backdrop-blur-xl sm:px-8">
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={goBack}
-              disabled={step === 0}
-              className="flex h-12 items-center gap-2 rounded-2xl px-4 text-sm font-bold text-[#74697b] transition hover:bg-[#f4eff5] disabled:pointer-events-none disabled:opacity-0"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              ย้อนกลับ
-            </button>
+                  <div className="survey-select-wrapper">
+                    <Sparkles className="survey-select-icon" />
 
-            {step < STEPS.length - 1 ? (
-              <button
-                type="button"
-                onClick={goNext}
-                className="group flex h-12 min-w-[145px] items-center justify-center gap-2 rounded-2xl bg-[#6f456f] px-5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(111,69,111,0.20)] transition hover:-translate-y-0.5 hover:bg-[#634064]"
-              >
-                ต่อไป
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleContinue}
-                className="group flex h-12 min-w-[185px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#9c79ad] via-[#d28fad] to-[#7dbcc7] px-5 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(111,69,111,0.20)] transition hover:-translate-y-0.5"
-              >
-                เริ่มใช้งาน TravelWish
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
+                    <select
+                      value={
+                        atmosphere
+                      }
+                      onChange={e =>
+                        setAtmosphere(
+                          e.target.value
+                        )
+                      }
+                      className="survey-select"
+                    >
+                      <option value="">
+                        เลือกบรรยากาศ
+                      </option>
+                      <option value="คึกคัก">
+                        คึกคัก
+                      </option>
+                      <option value="เงียบสงบ">
+                        เงียบสงบ
+                      </option>
+                      <option value="ผจญภัย">
+                        ผจญภัย
+                      </option>
+                      <option value="หรูหรา">
+                        หรูหรา
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="survey-label">
+                    เดินทางกับใคร
+                  </label>
+
+                  <div className="survey-select-wrapper">
+                    <User className="survey-select-icon" />
+
+                    <select
+                      value={
+                        travelCompanion
+                      }
+                      onChange={e =>
+                        setTravelCompanion(
+                          e.target.value
+                        )
+                      }
+                      className="survey-select"
+                    >
+                      <option value="">
+                        เลือกผู้ร่วมเดินทาง
+                      </option>
+                      <option value="คนเดียว">
+                        คนเดียว
+                      </option>
+                      <option value="คู่รัก">
+                        คู่รัก
+                      </option>
+                      <option value="ครอบครัว">
+                        ครอบครัว
+                      </option>
+                      <option value="เพื่อน">
+                        เพื่อน
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="survey-label">
+                    เป้าหมายการเดินทาง
+                  </label>
+
+                  <div className="survey-select-wrapper">
+                    <Heart className="survey-select-icon" />
+
+                    <select
+                      value={
+                        travelGoal
+                      }
+                      onChange={e =>
+                        setTravelGoal(
+                          e.target.value
+                        )
+                      }
+                      className="survey-select"
+                    >
+                      <option value="">
+                        เลือกเป้าหมาย
+                      </option>
+                      <option value="พักผ่อน">
+                        พักผ่อน
+                      </option>
+                      <option value="ผจญภัย">
+                        ผจญภัย
+                      </option>
+                      <option value="วัฒนธรรม">
+                        วัฒนธรรม
+                      </option>
+                      <option value="ความบันเทิง">
+                        ความบันเทิง
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="survey-label">
+                    งบประมาณ
+                  </label>
+
+                  <div className="survey-budget">
+                    {[
+                      "ประหยัด",
+                      "ปานกลาง",
+                      "หรูหรา",
+                    ].map(item => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() =>
+                          setBudget(
+                            item
+                          )
+                        }
+                        className={
+                          budget === item
+                            ? "survey-budget-active"
+                            : ""
+                        }
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Travel Time */}
+            <section className="survey-card">
+              <div className="survey-section-header">
+                <div className="survey-section-icon survey-section-icon-yellow">
+                  <CalendarDays className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <h3 className="survey-section-title">
+                    ช่วงเวลาเดินทาง
+                  </h3>
+
+                  <p className="survey-section-description">
+                    เลือกฤดูกาลที่คุณชอบ
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  "ฤดูร้อน",
+                  "ฤดูฝน",
+                  "ฤดูหนาว",
+                ].map(time => {
+                  const selected =
+                    travelTime ===
+                    time;
+
+                  return (
+                    <button
+                      key={time}
+                      type="button"
+                      onClick={() =>
+                        setTravelTime(
+                          time
+                        )
+                      }
+                      className={`survey-season ${
+                        selected
+                          ? "survey-season-selected"
+                          : ""
+                      }`}
+                    >
+                      {time}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Deep personalization */}
+            <section className="survey-card">
+              <div className="survey-section-header">
+                <div className="survey-section-icon survey-section-icon-pink">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <h3 className="survey-section-title">
+                    อยากให้แผนตรงกับคุณมากยิ่งขึ้นไหม?
+                  </h3>
+
+                  <p className="survey-section-description">
+                    เลือกพฤติกรรมและไลฟ์สไตล์ที่ตรงกับคุณได้หลายข้อ ส่วนนี้ไม่บังคับ
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                {PERSONALITY_PREVIEW.map(
+                  tag => {
+                    const selected =
+                      personalityTags.includes(
+                        tag
+                      );
+
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() =>
+                          toggleItem(
+                            tag,
+                            personalityTags,
+                            setPersonalityTags
+                          )
+                        }
+                        className={`survey-chip ${
+                          selected
+                            ? "survey-chip-selected"
+                            : ""
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+
+              {personalityTags.length >
+                0 && (
+                <p className="mt-4 text-xs font-medium text-[#8b7894]">
+                  เลือกแล้ว{" "}
+                  {
+                    personalityTags.length
+                  }{" "}
+                  รายการ
+                </p>
+              )}
+            </section>
+
+            {error && (
+              <div className="rounded-2xl border border-[#efcad3] bg-[#fff2f5] px-4 py-3 text-center text-sm font-semibold text-[#9a5e6c]">
+                {error}
+              </div>
             )}
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={
+                  handleSubmit
+                }
+                className="survey-submit"
+              >
+                <span>
+                  บันทึกและเริ่มต้นการเดินทาง
+                </span>
+
+                <span className="survey-submit-icon">
+                  <ArrowRight className="h-4 w-4" />
+                </span>
+              </button>
+
+              <p className="mt-4 text-center text-xs text-[#8e8695]">
+                Guest preferences จะถูกเก็บไว้ใน browser เครื่องนี้
+              </p>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
