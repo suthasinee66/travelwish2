@@ -175,6 +175,54 @@ function LoginPage() {
     }
   };
 
+  const handleGuestLogin = async () => {
+    if (loading) return;
+
+    try {
+      setLoading(true);
+
+      const {
+        data,
+        error
+      } =
+        await supabase.auth
+          .signInAnonymously();
+
+      if (error) {
+        console.error(
+          "Guest login error:",
+          error
+        );
+
+        alert(
+          "เข้าใช้งานแบบ Guest ไม่สำเร็จ กรุณาตรวจสอบว่าเปิด Anonymous Sign-ins ใน Supabase Auth แล้ว"
+        );
+        return;
+      }
+
+      if (!data.user) {
+        throw new Error(
+          "Anonymous user was not created"
+        );
+      }
+
+      navigate({
+        to: "/home"
+      });
+    } catch (error) {
+      console.error(
+        "Guest login error:",
+        error
+      );
+
+      alert(
+        "ไม่สามารถเข้าใช้งานแบบ Guest ได้"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="aurora-canvas relative min-h-screen overflow-hidden text-[#302b43]">
       {/* =========================================================
@@ -459,6 +507,21 @@ function LoginPage() {
                     ? "กำลังเข้าสู่ระบบ..."
                     : "เข้าสู่ระบบด้วย Google"}
                 </button>
+
+                {/* GUEST */}
+                <button
+                  type="button"
+                  onClick={handleGuestLogin}
+                  disabled={loading}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-[#cdbbd2] bg-[#f8f2f8]/85 px-5 py-3.5 text-sm font-bold text-[#6f456f] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  เข้าใช้งานแบบ Guest
+                </button>
+
+                <p className="-mt-2 text-center text-[11px] leading-5 text-[#92889a]">
+                  ทดลองใช้งานได้โดยไม่ต้องสมัครสมาชิก
+                </p>
 
                 {/* REGISTER */}
                 <p className="pt-2 text-center text-sm text-[#7b7383] sm:hidden">
