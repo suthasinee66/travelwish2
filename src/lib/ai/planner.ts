@@ -157,6 +157,172 @@ async function resolveAIProposedPlaces(
 }
 
 
+async function resolveAIRestaurant(
+    proposedRestaurant: any,
+    province: string,
+    attId: string | null
+) {
+    if (!API_URL) {
+        throw new Error(
+            "VITE_API_URL is required to resolve AI restaurants"
+        );
+    }
+
+    const response =
+        await fetch(
+            `${API_URL}/api/resolve-ai-restaurant`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    name:
+                        proposedRestaurant?.name_th ??
+                        proposedRestaurant?.name,
+
+                    province,
+
+                    att_id:
+                        attId
+                })
+            }
+        );
+
+    if (!response.ok) {
+        const errorText =
+            await response.text();
+
+        throw new Error(
+            `Resolve AI restaurant failed: ${errorText}`
+        );
+    }
+
+    return response.json();
+}
+
+async function resolveAIProposedRestaurants(
+    proposedRestaurants: any[],
+    selectedPlaces: any[],
+    province: string
+) {
+    const resolvedByKey =
+        new Map<string, any>();
+
+    const placeByRestaurantKey =
+        new Map<string, string>();
+
+    for (
+        const item
+        of selectedPlaces
+    ) {
+        const restaurantKey =
+            String(
+                item?.proposed_restaurant_key ??
+                ""
+            ).trim();
+
+        const placeId =
+            String(
+                item?.place_id ??
+                ""
+            ).trim();
+
+        if (
+            restaurantKey &&
+            placeId
+        ) {
+            placeByRestaurantKey.set(
+                restaurantKey,
+                placeId
+            );
+        }
+    }
+
+    for (
+        const proposedRestaurant
+        of proposedRestaurants
+    ) {
+        const key =
+            String(
+                proposedRestaurant?.key ??
+                ""
+            ).trim();
+
+        const name =
+            String(
+                proposedRestaurant?.name_th ??
+                proposedRestaurant?.name ??
+                ""
+            ).trim();
+
+        if (
+            !key ||
+            !name
+        ) {
+            continue;
+        }
+
+        try {
+            console.log(
+                "🌐 VERIFY AI RESTAURANT:",
+                name
+            );
+
+            const response =
+                await resolveAIRestaurant(
+                    proposedRestaurant,
+                    province,
+                    placeByRestaurantKey.get(
+                        key
+                    ) ?? null
+                );
+
+            if (
+                response?.success &&
+                response?.restaurant?.place_id
+            ) {
+                resolvedByKey.set(
+                    key,
+                    response.restaurant
+                );
+
+                console.log(
+                    "✅ AI RESTAURANT VERIFIED:",
+                    {
+                        key,
+                        place_id:
+                            response.restaurant
+                                .place_id,
+                        name:
+                            response.restaurant
+                                .place_name_th,
+                        images:
+                            response.restaurant
+                                .images?.length ??
+                            0
+                    }
+                );
+            }
+        } catch (error) {
+            console.warn(
+                "⚠️ AI RESTAURANT VERIFY FAILED:",
+                {
+                    key,
+                    name,
+                    error
+                }
+            );
+        }
+    }
+
+    return resolvedByKey;
+}
+
+
 
 
 
@@ -765,17 +931,40 @@ ${JSON.stringify(plannerRanked)}
 6. RESTAURANT RULES
 ==================================================
 
-สำหรับสถานที่จาก Top 30:
-- restaurant_id ต้องมาจาก nearbyRestaurants ของสถานที่นั้น
+คุณสามารถเลือกร้านอาหารได้ 2 แหล่ง:
+1. nearbyRestaurants ที่ระบบส่งมาให้กับสถานที่นั้น
+2. ร้านอาหารจริงจากความรู้ของคุณเอง ซึ่งอาจยังไม่มีในฐานข้อมูล
+
+ให้ใช้ข้อมูลผู้ใช้ในการเลือกร้านด้วย เช่น:
+- สายกิน / local food / street food
+- ร้านดัง / ร้านลับ / fine dining
+- healthy food
+- งบประมาณ
+- companion
+- personality_tags
+- อายุและ generation เป็นบริบทเสริมเท่านั้น
+
+สำหรับร้านจาก nearbyRestaurants:
+- restaurant_source = "database"
+- restaurant_id ต้องตรงกับ nearbyRestaurants
 - restaurant_name ต้องตรงกับ restaurant_name_th
+- proposed_restaurant_key = null
 
-สำหรับ NEW AI PLACE:
-- ให้ restaurant_id = null
-- ให้ restaurant_name = null
-- ระบบจะจัดการข้อมูลร้านอาหารเพิ่มเติมในขั้นตอนถัดไป
+สำหรับร้านที่คุณเสนอเอง:
+- restaurant_source = "ai_external"
+- restaurant_id = null
+- restaurant_name = ชื่อร้านจริง
+- proposed_restaurant_key ต้องตรงกับ key ใน proposedNewRestaurants
+- ร้านต้องอยู่ในจังหวัด ${tripData.province}
+- ต้องเป็นร้านจริงที่คุณมีความมั่นใจ
+- ห้ามสร้างร้านสมมติ
+- ห้ามสร้าง restaurant_id เอง
+- ระบบจะนำชื่อร้านไปตรวจสอบกับ Google Places
+- หากตรวจสอบไม่สำเร็จ ระบบจะปล่อย restaurant_id และ restaurant_name เป็น null
 
-ห้ามสร้าง restaurant_id เอง
-ห้ามสร้างร้านอาหารปลอม
+ร้านที่ AI เสนอเองสามารถใช้ได้ทั้ง:
+- สถานที่จาก Top 30
+- สถานที่ใหม่ที่ AI เสนอและผ่านการ verify แล้ว
 
 ==================================================
 7. RESPONSE FORMAT
@@ -803,6 +992,14 @@ ${JSON.stringify(plannerRanked)}
       "personalization_reason": "เหตุผลสั้น ๆ ว่าทำไมเข้ากับผู้ใช้"
     }
   ],
+  "proposedNewRestaurants": [
+    {
+      "key": "new-restaurant-1",
+      "name_th": "ชื่อร้านอาหารจริง",
+      "name_en": "English name if known",
+      "personalization_reason": "เหตุผลสั้น ๆ ว่าทำไมร้านนี้เข้ากับผู้ใช้"
+    }
+  ],
   "selectedPlaces": [
     {
       "day": 1,
@@ -813,8 +1010,10 @@ ${JSON.stringify(plannerRanked)}
       "place_name": "ชื่อสถานที่",
       "proposed_place_key": null,
       "fallback_place_id": null,
+      "restaurant_source": "database",
       "restaurant_id": "...",
-      "restaurant_name": "..."
+      "restaurant_name": "...",
+      "proposed_restaurant_key": null
     },
     {
       "day": 1,
@@ -825,8 +1024,10 @@ ${JSON.stringify(plannerRanked)}
       "place_name": "ชื่อสถานที่ใหม่",
       "proposed_place_key": "new-place-1",
       "fallback_place_id": "id ของสถานที่ใน Top 30 ที่ใช้แทนได้หากตรวจสอบสถานที่ใหม่ไม่สำเร็จ",
+      "restaurant_source": "ai_external",
       "restaurant_id": null,
-      "restaurant_name": null
+      "restaurant_name": "ชื่อร้านอาหารใหม่",
+      "proposed_restaurant_key": "new-restaurant-1"
     }
   ],
   "markdown": "แผนเที่ยวทั้งหมดในรูปแบบ Markdown"
@@ -845,8 +1046,15 @@ source = "ai_external":
 - place_id = null
 - proposed_place_key ต้องตรงกับ key ใน proposedNewPlaces
 - fallback_place_id ต้องเป็น attraction.id จริงจาก TDMC TOP 30
+
+restaurant_source = "database":
+- restaurant_id ต้องมาจาก nearbyRestaurants ของสถานที่นั้น
+- proposed_restaurant_key = null
+
+restaurant_source = "ai_external":
 - restaurant_id = null
-- restaurant_name = null
+- proposed_restaurant_key ต้องตรงกับ key ใน proposedNewRestaurants
+- restaurant_name ต้องเป็นชื่อร้านจริงที่ต้องการให้ระบบตรวจสอบ
 
 fallback_place_id สำคัญมาก:
 ระบบจะใช้เมื่อไม่สามารถยืนยันสถานที่ใหม่ได้
@@ -957,6 +1165,13 @@ const proposedNewPlaces =
         ? result.proposedNewPlaces
         : [];
 
+const proposedNewRestaurants =
+    Array.isArray(
+        result.proposedNewRestaurants
+    )
+        ? result.proposedNewRestaurants
+        : [];
+
 const resolvedAIPlaces =
     await resolveAIProposedPlaces(
         proposedNewPlaces,
@@ -979,7 +1194,7 @@ for (const item of plannerRanked) {
     );
 }
 
-const selectedPlaces =
+const resolvedSelectedPlaces =
     (
         Array.isArray(
             result.selectedPlaces
@@ -1096,6 +1311,78 @@ const selectedPlaces =
         )
         .filter(Boolean);
 
+const resolvedAIRestaurants =
+    await resolveAIProposedRestaurants(
+        proposedNewRestaurants,
+        resolvedSelectedPlaces,
+        tripData.province
+    );
+
+const selectedPlaces =
+    resolvedSelectedPlaces.map(
+        (item: any) => {
+            if (
+                item?.restaurant_source !==
+                "ai_external"
+            ) {
+                return item;
+            }
+
+            const key =
+                String(
+                    item
+                        ?.proposed_restaurant_key ??
+                    ""
+                );
+
+            const resolvedRestaurant =
+                resolvedAIRestaurants.get(
+                    key
+                );
+
+            if (
+                resolvedRestaurant?.place_id
+            ) {
+                return {
+                    ...item,
+
+                    restaurant_source:
+                        "ai_verified",
+
+                    restaurant_id:
+                        String(
+                            resolvedRestaurant
+                                .place_id
+                        ),
+
+                    restaurant_name:
+                        resolvedRestaurant
+                            .place_name_th ??
+                        item.restaurant_name,
+
+                    proposed_restaurant_key:
+                        key
+                };
+            }
+
+            return {
+                ...item,
+
+                restaurant_source:
+                    "ai_unresolved",
+
+                restaurant_id:
+                    null,
+
+                restaurant_name:
+                    null,
+
+                proposed_restaurant_key:
+                    key
+            };
+        }
+    );
+
 console.log(
     "✅ FINAL SELECTED PLACES:",
     selectedPlaces
@@ -1111,6 +1398,21 @@ console.log(
                 place.name_th,
             images:
                 place.images?.length ??
+                0
+        })
+    )
+);
+
+console.log(
+    "🍜 VERIFIED AI RESTAURANTS:",
+    [...resolvedAIRestaurants.values()].map(
+        (restaurant: any) => ({
+            place_id:
+                restaurant.place_id,
+            name:
+                restaurant.place_name_th,
+            images:
+                restaurant.images?.length ??
                 0
         })
     )
