@@ -323,6 +323,28 @@ app.post("/api/ai", async (req, res) => {
       };
     }
 
+    if (responseMode === "markdown") {
+      requestPayload.tools = [
+        {
+          type:
+            "openrouter:web_search",
+          parameters: {
+            engine:
+              "auto",
+            max_results:
+              5,
+            max_total_results:
+              10,
+            search_context_size:
+              "medium"
+          }
+        }
+      ];
+
+      requestPayload.max_tool_calls =
+        3;
+    }
+
     if (responseMode === "planner_json") {
       requestPayload.response_format = {
         type: "json_schema",
