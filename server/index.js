@@ -220,7 +220,7 @@ app.post("/api/ai", async (req, res) => {
     const {
       model,
       prompt,
-      structuredPlanner = false,
+      responseMode = null,
     } = req.body;
 
     console.log("====================================");
@@ -294,9 +294,11 @@ app.post("/api/ai", async (req, res) => {
         {
           role: "system",
           content:
-            structuredPlanner
-              ? "You are a travel planning assistant. Follow the provided JSON schema exactly."
-              : "You are a helpful travel planning assistant. Return valid JSON only.",
+            responseMode === "planner_json"
+              ? "You are a travel planning assistant. Follow the provided JSON schema exactly. Return no prose outside the schema."
+              : responseMode === "markdown"
+                ? "You are a travel planning assistant. Return only the final Markdown itinerary text requested by the user."
+                : "You are a helpful travel planning assistant. Return valid JSON only.",
         },
         {
           role: "user",
@@ -304,12 +306,24 @@ app.post("/api/ai", async (req, res) => {
         },
       ],
 
-      temperature: 0.2,
+      temperature:
+        responseMode === "planner_json"
+          ? 0.1
+          : 0.3,
 
-      max_tokens: 12000,
+      max_tokens:
+        responseMode === "planner_json"
+          ? 8000
+          : 12000,
     };
 
-    if (structuredPlanner) {
+    if (responseMode === "planner_json") {
+      requestPayload.reasoning = {
+        effort: "low"
+      };
+    }
+
+    if (responseMode === "planner_json") {
       requestPayload.response_format = {
         type: "json_schema",
         json_schema: {
@@ -506,15 +520,11 @@ app.post("/api/ai", async (req, res) => {
                   ]
                 }
               },
-              markdown: {
-                type: "string"
-              }
             },
             required: [
               "proposedNewPlaces",
               "proposedNewRestaurants",
-              "selectedPlaces",
-              "markdown"
+              "selectedPlaces"
             ]
           }
         }
