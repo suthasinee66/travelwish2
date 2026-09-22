@@ -12,6 +12,8 @@ import restaurantImagesRouter
   from "./api/restaurantImages.js";
 import resolveAIAttractionRouter
   from "./api/resolveAIAttraction.js";
+import resolveAIRestaurantRouter
+  from "./api/resolveAIRestaurant.js";
 
 
 const app = express();
@@ -38,6 +40,11 @@ app.use(
 app.use(
   "/api",
   resolveAIAttractionRouter
+);
+
+app.use(
+  "/api",
+  resolveAIRestaurantRouter
 );
 
 // ============================================
