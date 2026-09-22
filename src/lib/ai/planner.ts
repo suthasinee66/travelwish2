@@ -1060,8 +1060,7 @@ ${JSON.stringify(plannerRanked)}
       "restaurant_name": "ชื่อร้านอาหารใหม่",
       "proposed_restaurant_key": "new-restaurant-1"
     }
-  ],
-  "markdown": "แผนเที่ยวทั้งหมดในรูปแบบ Markdown"
+  ]
 }
 
 ==================================================
@@ -1090,43 +1089,6 @@ restaurant_source = "ai_external":
 fallback_place_id สำคัญมาก:
 ระบบจะใช้เมื่อไม่สามารถยืนยันสถานที่ใหม่ได้
 ดังนั้นต้องเลือกสถานที่สำรองจาก Top 30 ที่มีลักษณะใกล้เคียงกับจุดประสงค์ของสถานที่ใหม่
-
-==================================================
-9. MARKDOWN
-==================================================
-
-====================
-ข้อกำหนด Markdown
-====================
-
-markdown คือเนื้อหาแผนเที่ยวที่ผู้ใช้จะเห็น
-
-ต้องเขียนเป็น Markdown เท่านั้น
-
-คุณมีอิสระในการออกแบบรูปแบบการนำเสนอแผนเที่ยว
-ไม่จำเป็นต้องทำตาม Template ที่กำหนดไว้
-
-สามารถเลือกใช้รูปแบบที่เหมาะสมได้ เช่น
-
-- Heading
-- Subheading
-- Bullet list
-- Numbered list
-- ตาราง
-- Timeline
-- Emoji
-- Highlight
-- Blockquote
-- Bold / Italic
-- หรือการผสมผสานรูปแบบ Markdown
-
-คุณสามารถเลือกวิธีการจัดลำดับและนำเสนอข้อมูลเอง
-โดยคำนึงถึงความอ่านง่าย ความชัดเจน และประสบการณ์ของผู้ใช้
-
-อย่างไรก็ตาม ต้องมีข้อมูลที่จำเป็นสำหรับการวางแผนเที่ยว
-เช่น วัน เวลา สถานที่ ร้านอาหาร กิจกรรม และรายละเอียดที่เกี่ยวข้อง
-
-ห้ามสร้างข้อมูลสถานที่หรือร้านอาหารที่ไม่มีอยู่ใน ranked
 
 ห้ามมีข้อความใด ๆ นอก JSON
 `
@@ -1175,7 +1137,7 @@ const raw = await generateWithSelectedModel(
     selectedModel,
     prompt,
     {
-        structuredPlanner: true
+        responseMode: "planner_json"
     }
 );
 
@@ -1205,6 +1167,17 @@ try {
 
     result = JSON.parse(cleaned);
 
+    if (
+        !result ||
+        !Array.isArray(result.selectedPlaces) ||
+        !Array.isArray(result.proposedNewPlaces) ||
+        !Array.isArray(result.proposedNewRestaurants)
+    ) {
+        throw new Error(
+            "Planner JSON does not match expected structure"
+        );
+    }
+
 } catch (e) {
 
     console.error(
@@ -1217,8 +1190,6 @@ try {
         `${selectedModel.toUpperCase()} returned invalid JSON`
     );
 }
-
-const aiMessage = result.markdown ?? "";
 
 const proposedNewPlaces =
     Array.isArray(
@@ -1478,6 +1449,53 @@ console.log(
                 0
         })
     )
+);
+
+const markdownPrompt = `
+คุณคือ TravelWish AI Travel Planner
+
+สร้างข้อความแผนการเดินทางสำหรับผู้ใช้จากข้อมูลที่ผ่านการตรวจสอบแล้วด้านล่าง
+
+USER CONTEXT
+${JSON.stringify(userContext, null, 2)}
+
+CURRENT TRIP
+${JSON.stringify(tripData, null, 2)}
+
+VERIFIED ITINERARY ITEMS
+${JSON.stringify(selectedPlaces, null, 2)}
+
+กติกา:
+- ใช้เฉพาะสถานที่และร้านอาหารที่มีอยู่ใน VERIFIED ITINERARY ITEMS เท่านั้น
+- ห้ามเพิ่มสถานที่หรือร้านใหม่
+- เนื้อหาต้องสอดคล้องกับ day, period, place_name และ restaurant_name
+- สะท้อน personality, food lifestyle, pace, budget, companion และ travel goal ของผู้ใช้
+- หาก restaurant_name เป็น null ไม่ต้องแต่งร้านอาหารขึ้นมา
+- ไม่ต้องอธิบาย TDMC, ranking, database, verification หรือ source
+- เขียนเป็น Markdown เท่านั้น
+- คุณมีอิสระในการออกแบบสไตล์การนำเสนอเองเต็มที่
+- สามารถใช้ heading, bullet, timeline, table, emoji, blockquote หรือรูปแบบอื่นตามสไตล์ของโมเดล
+- ไม่ต้องใช้ template ตายตัว
+- ตอบเฉพาะ Markdown ที่ผู้ใช้จะเห็น ไม่ต้องครอบด้วย JSON และไม่ต้องครอบด้วย code fence
+`;
+
+console.log(
+    `📝 ${selectedModel.toUpperCase()} กำลังสร้าง Markdown...`
+);
+
+const aiMessage =
+    await generateWithSelectedModel(
+        selectedModel,
+        markdownPrompt,
+        {
+            responseMode: "markdown"
+        }
+    );
+
+console.log(
+    "✅ MARKDOWN READY:",
+    aiMessage.length,
+    "chars"
 );
 
 
