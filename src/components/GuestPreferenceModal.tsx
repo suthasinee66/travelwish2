@@ -1,4 +1,7 @@
-import { useState } from "react";
+import {
+  useState,
+  type ReactNode,
+} from "react";
 import {
   ArrowRight,
   Sparkles,
@@ -104,7 +107,7 @@ function Chip({
   onClick,
 }: {
   selected: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
   onClick: () => void;
 }) {
   return (
