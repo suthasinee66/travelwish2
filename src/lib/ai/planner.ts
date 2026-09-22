@@ -107,6 +107,503 @@ export async function loadUserPreferences(
 
 }
 
+
+export async function loadUserProfile(
+    userId: string
+) {
+    const {
+        data,
+        error
+    } = await supabase
+        .from("profile")
+        .select("profile_id, name, age, gender")
+        .eq("profile_id", userId)
+        .single();
+
+    if (error) {
+        console.error(
+            "Load profile error",
+            error
+        );
+
+        return null;
+    }
+
+    return data;
+}
+
+/*
+ Generation เป็นเพียง context เสริม
+ explicit preferences ของผู้ใช้ต้องมีน้ำหนักสูงกว่าเสมอ
+*/
+function inferGeneration(age: number | null | undefined) {
+    if (
+        age === null ||
+        age === undefined ||
+        !Number.isFinite(Number(age))
+    ) {
+        return null;
+    }
+
+    const currentYear =
+        new Date().getFullYear();
+
+    const approximateBirthYear =
+        currentYear - Number(age);
+
+    if (approximateBirthYear >= 2013) {
+        return "Gen Alpha";
+    }
+
+    if (approximateBirthYear >= 1997) {
+        return "Gen Z";
+    }
+
+    if (approximateBirthYear >= 1981) {
+        return "Gen Y / Millennial";
+    }
+
+    if (approximateBirthYear >= 1965) {
+        return "Gen X";
+    }
+
+    if (approximateBirthYear >= 1946) {
+        return "Baby Boomer";
+    }
+
+    return "Silent Generation";
+}
+
+function attractionId(place: any) {
+    return String(
+        place?.att_id ??
+        place?.id ??
+        ""
+    );
+}
+
+function restaurantId(restaurant: any) {
+    return String(
+        restaurant?.place_id ??
+        restaurant?.id ??
+        ""
+    );
+}
+
+function localDistanceKm(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+) {
+    const toRad =
+        (value: number) =>
+            value * Math.PI / 180;
+
+    const earthRadiusKm =
+        6371;
+
+    const dLat =
+        toRad(lat2 - lat1);
+
+    const dLon =
+        toRad(lon2 - lon1);
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) ** 2;
+
+    return earthRadiusKm *
+        2 *
+        Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+}
+
+function getLocalNearbyRestaurants(
+    attraction: any,
+    restaurants: any[],
+    limit = 3
+) {
+    const lat =
+        Number(
+            attraction?.latitude ??
+            attraction?.lat
+        );
+
+    const lon =
+        Number(
+            attraction?.longitude ??
+            attraction?.lng
+        );
+
+    if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lon)
+    ) {
+        return [];
+    }
+
+    return restaurants
+        .map((restaurant: any) => {
+            const restaurantLat =
+                Number(restaurant?.latitude);
+
+            const restaurantLon =
+                Number(restaurant?.longitude);
+
+            if (
+                !Number.isFinite(restaurantLat) ||
+                !Number.isFinite(restaurantLon)
+            ) {
+                return null;
+            }
+
+            const distance =
+                localDistanceKm(
+                    lat,
+                    lon,
+                    restaurantLat,
+                    restaurantLon
+                );
+
+            return {
+                id:
+                    restaurantId(restaurant),
+
+                restaurant_name_th:
+                    restaurant?.place_name_th ??
+                    restaurant?.restaurant_name_th ??
+                    restaurant?.name_th ??
+                    restaurant?.name ??
+                    "",
+
+                rating:
+                    restaurant?.rating ?? null,
+
+                distance:
+                    Number(
+                        distance.toFixed(2)
+                    )
+            };
+        })
+        .filter(
+            (
+                restaurant
+            ): restaurant is {
+                id: string;
+                restaurant_name_th: string;
+                rating: any;
+                distance: number;
+            } =>
+                Boolean(restaurant) &&
+                restaurant.distance <= 10
+        )
+        .sort(
+            (a, b) =>
+                a.distance - b.distance
+        )
+        .slice(0, limit);
+}
+
+function buildPreferenceKeywords(
+    userContext: any
+) {
+    const sourceValues = [
+        ...(userContext?.preferences?.travel_type ?? []),
+        ...(userContext?.preferences?.activities ?? []),
+        userContext?.preferences?.atmosphere,
+        userContext?.preferences?.travel_goal,
+        ...(userContext?.preferences?.personality_tags ?? []),
+    ]
+        .filter(Boolean)
+        .map((value: any) =>
+            String(value).toLowerCase()
+        );
+
+    const keywordBank = [
+        "ธรรมชาติ",
+        "ถ่ายรูป",
+        "คาเฟ่",
+        "กาแฟ",
+        "อาหาร",
+        "street food",
+        "สุขภาพ",
+        "spa",
+        "yoga",
+        "วัฒนธรรม",
+        "วัด",
+        "มู",
+        "ประวัติศาสตร์",
+        "พิพิธภัณฑ์",
+        "ชุมชน",
+        "ทะเล",
+        "ภูเขา",
+        "น้ำตก",
+        "เดินป่า",
+        "hiking",
+        "ดำน้ำ",
+        "atv",
+        "camping",
+        "ตลาด",
+        "night market",
+        "ช้อป",
+        "วิว",
+        "unseen",
+        "hidden gem",
+        "nightlife",
+        "bar",
+        "local",
+        "ผจญภัย",
+        "พักผ่อน"
+    ];
+
+    const keywords =
+        new Set<string>();
+
+    for (const source of sourceValues) {
+        keywords.add(source);
+
+        for (const keyword of keywordBank) {
+            if (source.includes(keyword)) {
+                keywords.add(keyword);
+            }
+        }
+    }
+
+    return [...keywords];
+}
+
+function buildExplorationPool(
+    attractions: any[],
+    restaurants: any[],
+    rankedIds: Set<string>,
+    userContext: any,
+    limit = 80
+) {
+    const keywords =
+        buildPreferenceKeywords(
+            userContext
+        );
+
+    const preferredTravelTypes =
+        new Set(
+            (
+                userContext?.preferences
+                    ?.travel_type ?? []
+            ).map(
+                (value: any) =>
+                    String(value)
+                        .toLowerCase()
+            )
+        );
+
+    const preferredActivities =
+        new Set(
+            (
+                userContext?.preferences
+                    ?.activities ?? []
+            ).map(
+                (value: any) =>
+                    String(value)
+                        .toLowerCase()
+            )
+        );
+
+    const scored =
+        attractions
+            .filter(
+                (place: any) =>
+                    !rankedIds.has(
+                        attractionId(place)
+                    )
+            )
+            .map((place: any) => {
+                const placeTravelTypes =
+                    Array.isArray(
+                        place?.travel_type
+                    )
+                        ? place.travel_type
+                        : [];
+
+                const placeActivities =
+                    Array.isArray(
+                        place?.activities
+                    )
+                        ? place.activities
+                        : [];
+
+                const text =
+                    [
+                        place?.name_th,
+                        place?.name_en,
+                        place?.detail_th,
+                        place?.category,
+                        place?.type,
+                        place?.highlight,
+                        place?.activity,
+                        placeTravelTypes,
+                        placeActivities,
+                        place?.atmosphere,
+                        place?.district,
+                        place?.subdistrict,
+                    ]
+                        .flat()
+                        .filter(Boolean)
+                        .join(" ")
+                        .toLowerCase();
+
+                let personalizationScore =
+                    0;
+
+                for (
+                    const travelType
+                    of placeTravelTypes
+                ) {
+                    if (
+                        preferredTravelTypes.has(
+                            String(travelType)
+                                .toLowerCase()
+                        )
+                    ) {
+                        personalizationScore +=
+                            5;
+                    }
+                }
+
+                for (
+                    const activity
+                    of placeActivities
+                ) {
+                    if (
+                        preferredActivities.has(
+                            String(activity)
+                                .toLowerCase()
+                        )
+                    ) {
+                        personalizationScore +=
+                            4;
+                    }
+                }
+
+                for (
+                    const keyword
+                    of keywords
+                ) {
+                    if (
+                        keyword.length >= 2 &&
+                        text.includes(keyword)
+                    ) {
+                        personalizationScore +=
+                            1.5;
+                    }
+                }
+
+                const rating =
+                    Number(
+                        place?.rating ??
+                        place?.averageRating ??
+                        0
+                    );
+
+                if (
+                    Number.isFinite(rating)
+                ) {
+                    personalizationScore +=
+                        Math.max(
+                            0,
+                            Math.min(
+                                rating,
+                                5
+                            )
+                        ) * 0.15;
+                }
+
+                return {
+                    place,
+                    personalizationScore
+                };
+            })
+            .sort(
+                (a, b) =>
+                    b.personalizationScore -
+                    a.personalizationScore
+            )
+            .slice(0, limit);
+
+    return scored.map(
+        (
+            {
+                place,
+                personalizationScore
+            },
+            index
+        ) => ({
+            explorationRank:
+                index + 1,
+
+            personalizationScore:
+                Number(
+                    personalizationScore
+                        .toFixed(2)
+                ),
+
+            attraction: {
+                id:
+                    attractionId(place),
+
+                name_th:
+                    place?.name_th,
+
+                name_en:
+                    place?.name_en,
+
+                category:
+                    place?.category ?? [],
+
+                type:
+                    place?.type ?? null,
+
+                district:
+                    place?.district ?? null,
+
+                highlight:
+                    place?.highlight ?? null,
+
+                suitable_duration:
+                    place?.suitable_duration ??
+                    null,
+
+                travel_type:
+                    place?.travel_type ?? [],
+
+                activities:
+                    place?.activities ?? [],
+
+                atmosphere:
+                    place?.atmosphere ?? [],
+
+                budget:
+                    place?.budget ?? [],
+
+                travel_companion:
+                    place?.travel_companion ??
+                    []
+            },
+
+            nearbyRestaurants:
+                getLocalNearbyRestaurants(
+                    place,
+                    restaurants,
+                    3
+                )
+        })
+    );
+}
+
 /*
  โหลดร้านอาหารทั้งหมด
 */
@@ -171,12 +668,32 @@ export async function createPlanner(
     console.log("📋 ข้อมูลทริป");
     console.log(trip);
 
-    const preferences = await loadUserPreferences(userId);
+    const [
+        preferences,
+        profile
+    ] = await Promise.all([
+        loadUserPreferences(userId),
+        loadUserProfile(userId)
+    ]);
 
+    const generation =
+        inferGeneration(
+            profile?.age
+        );
 
 console.log(
     "🎯 User Preferences",
     preferences
+);
+
+console.log(
+    "👤 User Profile",
+    profile
+);
+
+console.log(
+    "🧬 Generation Context",
+    generation
 );
 
     // 1. โหลดสถานที่
@@ -232,8 +749,71 @@ atmosphere:
     personalityTags:
         Array.isArray(preferences?.personality_tags)
             ? preferences.personality_tags
-            : []
+            : [],
 
+    travelTime:
+        preferences?.travel_time ?? null,
+
+    preferredRegion:
+        Array.isArray(
+            preferences?.preferred_region
+        )
+            ? preferences.preferred_region
+            : [],
+
+    travelGoal:
+        preferences?.travel_goal ?? null
+
+};
+
+const userContext = {
+    profile: {
+        name:
+            profile?.name ?? null,
+
+        age:
+            profile?.age ?? null,
+
+        gender:
+            profile?.gender ?? null,
+
+        generation,
+
+        generationNote:
+            "Generation is approximate from age and is only a supporting signal. Explicit user preferences must take priority."
+    },
+
+    preferences: {
+        travel_type:
+            preferences?.travel_type ?? [],
+
+        activities:
+            preferences?.activities ?? [],
+
+        atmosphere:
+            preferences?.atmosphere ?? null,
+
+        travel_companion:
+            preferences?.travel_companion ?? null,
+
+        budget:
+            preferences?.budget ?? null,
+
+        travel_time:
+            preferences?.travel_time ?? null,
+
+        preferred_region:
+            preferences?.preferred_region ?? [],
+
+        travel_goal:
+            preferences?.travel_goal ?? null,
+
+        personality_tags:
+            preferences?.personality_tags ?? []
+    },
+
+    currentTrip:
+        tripData
 };
 
 
@@ -282,7 +862,7 @@ const ranked =
         restaurants,
         tripData,
         {
-            limit: 10
+            limit: 30
         }
     );
 
@@ -351,6 +931,31 @@ const plannerRanked =
                 : []
     }));
 
+const rankedIds =
+    new Set(
+        ranked.map(
+            (item: any) =>
+                String(
+                    item?.attraction?.id ??
+                    ""
+                )
+        )
+    );
+
+const explorationPool =
+    buildExplorationPool(
+        attractions,
+        restaurants,
+        rankedIds,
+        userContext,
+        80
+    );
+
+console.log(
+    "🧭 Exploration Pool:",
+    explorationPool.length
+);
+
 
 console.log(
     "📦 Planner Ranked:",
@@ -365,89 +970,151 @@ console.log(
         }))
     );
 const prompt = `
-คุณคือ Tripster AI
+คุณคือ TravelWish AI Travel Planner
 
-หน้าที่ของคุณคือสร้างแผนเที่ยวที่อ่านง่าย
+หน้าที่ของคุณคือสร้างแผนการเดินทางที่เป็น Personalized Itinerary
+โดยใช้ข้อมูลผู้ใช้ทั้งหมดที่ระบบส่งให้ เพื่อเลือกสถานที่ ร้านอาหาร
+จังหวะการเที่ยว และบรรยากาศที่เหมาะกับบุคคลนั้นมากที่สุด
+
 ห้ามตอบเป็นบทความ
 ห้ามเขียนเกริ่นนำ
-ห้ามเขียนสรุปยาว
+ห้ามมีข้อความใด ๆ นอก JSON
 
-====================
-ข้อมูลผู้ใช้
-====================
+==================================================
+1. USER PROFILE + PERSONALIZATION CONTEXT
+==================================================
+
+${JSON.stringify(userContext, null, 2)}
+
+หลักในการใช้ข้อมูลผู้ใช้:
+- ใช้ preference ที่ผู้ใช้เลือกเองเป็นสัญญาณสำคัญที่สุด
+- ใช้ personality_tags เพื่อปรับสไตล์แผนอย่างละเอียด
+- ใช้อายุเพื่อพิจารณาความเหมาะสมของความเข้มข้น จังหวะ และกิจกรรม
+- generation เป็นเพียง contextual signal เสริมเท่านั้น
+- ห้ามเหมารวมว่าคนใน generation เดียวกันชอบเหมือนกัน
+- หาก generation ขัดกับ preference ที่ผู้ใช้เลือกเอง ให้ยึด preference ของผู้ใช้
+- ห้ามเดาความชอบจากเพศ
+- gender ใช้ได้เฉพาะเมื่อเกี่ยวข้องกับความสะดวก ความปลอดภัย
+  หรือ preference ที่ผู้ใช้ระบุไว้อย่างชัดเจน
+
+==================================================
+2. CURRENT TRIP
+==================================================
 
 ${JSON.stringify(tripData, null, 2)}
 
-====================
-สถานที่ที่เลือกได้
-====================
+==================================================
+3. TDMC TOP 30
+==================================================
+
+นี่คือสถานที่ Top 30 จาก Recommendation Algorithm
+ให้ถือเป็น strong candidates แต่ไม่จำเป็นต้องเลือกจาก Top 30 เท่านั้น
+
 ${JSON.stringify(plannerRanked)}
-====================
-กฎการสร้างแผน (สำคัญ)
-====================
 
-- ใช้เฉพาะข้อมูลใน ranked ที่ส่งให้เท่านั้น
-- ห้ามใช้ความรู้ของตัวเอง
-- ห้ามสร้างสถานที่ใหม่
+==================================================
+4. PERSONALIZED EXPLORATION POOL
+==================================================
+
+นี่คือสถานที่เพิ่มเติมนอก Top 30
+ระบบคัดมาจากฐานข้อมูลของจังหวัดเดียวกัน
+โดยอิงข้อมูลผู้ใช้และ metadata ของสถานที่
+
+AI สามารถเลือกสถานที่จากส่วนนี้แทน Top 30 ได้
+หากเห็นว่าเหมาะกับผู้ใช้มากกว่า
+
+${JSON.stringify(explorationPool)}
+
+==================================================
+5. หลักการเลือกสถานที่
+==================================================
+
+- สามารถเลือกได้ทั้งจาก TDMC TOP 30 และ PERSONALIZED EXPLORATION POOL
+- ไม่จำเป็นต้องเลือกตาม rank อย่างเคร่งครัด
+- ให้พิจารณาความเหมาะสมกับผู้ใช้ทั้งคนก่อนคะแนน ranking
+- อธิบายการเลือกผ่านคุณภาพของแผน ไม่ต้องเขียนเหตุผลยาว
+- ให้กระจายสถานที่ตามจำนวนวันอย่างสมเหตุสมผล
+- 1 สถานที่ใช้ได้เพียงครั้งเดียวตลอดทริป
+- ห้ามใช้สถานที่เดิมซ้ำ
+- พยายามลดการเดินทางย้อนเส้นทาง
+- พิจารณา suitable_duration หากมี
+- คาเฟ่เหมาะกับช่วงบ่ายเมื่อเข้ากับ preference
+- จุดชมวิวพระอาทิตย์ตกเหมาะกับช่วงเย็นเมื่อเข้ากับสถานที่
+- nightlife ให้ใช้เฉพาะเมื่อสอดคล้องกับผู้ใช้
+- หากผู้ใช้เป็นสายชิล / Slow Travel อย่าอัดสถานที่มากเกินไป
+- หากผู้ใช้เป็นสายเที่ยวแน่น / ชอบแวะหลายจุด สามารถเพิ่มจำนวนจุดได้
+- หากผู้ใช้ไม่อยากเดินเยอะ ให้หลีกเลี่ยงการจัดกิจกรรมเดินหนักติดกัน
+- หากผู้ใช้ไม่ชอบอยู่บนรถนาน ให้ให้น้ำหนักกับสถานที่ใกล้กัน
+- หากผู้ใช้ยอมเดินทางไกลเพื่อสิ่งที่ชอบ สามารถเลือก candidate ที่ไกลกว่าได้
+- ใช้ travel_goal เพื่อกำหนดภาพรวมของทริป
+- ใช้ travel_time/ฤดูกาลเป็นบริบทประกอบ
+- งบรวมควรสอดคล้องกับ budget ของทริป
+
+==================================================
+6. ข้อจำกัดด้านข้อมูลและ ID
+==================================================
+
+สำคัญมาก:
+- ห้ามสร้างสถานที่จากความรู้ภายนอก
+- ห้ามสร้างชื่อสถานที่ใหม่
+- ห้ามเดา place_id
+- place_id ต้องมีอยู่ใน TDMC TOP 30 หรือ PERSONALIZED EXPLORATION POOL เท่านั้น
+- ร้านอาหารต้องเลือกจาก nearbyRestaurants ของ attraction ที่เลือกเท่านั้น
+- restaurant_id ต้องตรงกับ id ที่ส่งมา
+- restaurant_name ต้องตรงกับ restaurant_name_th ที่ส่งมา
+- หากไม่มีร้านที่เหมาะสม ให้ restaurant_id และ restaurant_name เป็น null
+- ห้ามใช้ restaurant เป็น attraction
 - ห้ามสร้างร้านอาหารใหม่
-- ห้ามสร้างคาเฟ่ใหม่
-- ห้ามสร้างจุดชมวิวใหม่
-- ห้ามใช้ชื่อสถานที่ที่ไม่มีอยู่ใน ranked
-- ร้านอาหารต้องเลือกจาก nearbyRestaurants ของสถานที่นั้นเท่านั้น
-- restaurant_id ต้องตรงกับ place_id ของร้านอาหารใน nearbyRestaurants
-- restaurant_name ต้องตรงกับ place_name_th ของร้านอาหารใน nearbyRestaurants
-- ห้ามใช้ restaurant เป็น place โดยเด็ดขาด
-- ห้ามแก้ไข ห้ามสร้าง ห้ามเดา restaurant_id
-- ห้ามสร้าง restaurant_id ใหม่โดยเด็ดขาด
-- หากไม่มีร้านอาหารที่เหมาะสม ให้ restaurant_id และ restaurant_name เป็น null
+- ห้ามสร้าง ID ใหม่
 
-- เรียงเลือกสถานที่ตามลำดับคะแนนใน ranked
-- 1 สถานที่ใช้ได้เพียงครั้งเดียวตลอดทั้งทริป
-- ห้ามใช้สถานที่เดิมซ้ำใน Morning / Afternoon / Evening
-- ห้ามใช้ร้านอาหารเดิมซ้ำใน Morning / Afternoon / Evening
+เหตุผลที่อนุญาตให้ออกนอก Top 30:
+Top 30 เป็นผลจาก Recommendation Algorithm
+แต่ Exploration Pool เปิดโอกาสให้ AI ใช้ข้อมูลผู้ใช้เชิงลึก
+เช่น อายุ generation travel goal personality tags pace
+food style social style wellness และ comfort
+เพื่อเลือกสถานที่ที่อาจมี rank ต่ำกว่าแต่เหมาะกับบุคคลนั้นมากกว่า
 
-- ห้ามสร้างสถานที่เพิ่ม
-  ห้ามเดาสถานที่
-  ห้ามเขียนว่า "ไม่มีสถานที่"
+==================================================
+7. USER PREFERENCE SUMMARY
+==================================================
 
-- งบรวมไม่เกิน ${tripData.budget} บาท
-- ระบุเวลาเดินทางโดยประมาณ
-- ใช้สถานที่ใกล้กัน
-- คาเฟ่ไว้ช่วงบ่าย
-- จุดชมวิวไว้ช่วงเย็น
-ผู้ใช้ชอบ:
+รูปแบบการเที่ยว:
+${tripData.travelType.join(", ")}
 
-- รูปแบบการเที่ยว:
-${tripData.travelType.join(",")}
+กิจกรรม:
+${tripData.activities.join(", ")}
 
-- กิจกรรม:
-${tripData.activities.join(",")}
+บรรยากาศ:
+${tripData.atmosphere.join(", ")}
 
-- บรรยากาศ:
-${tripData.atmosphere.join(",")}
+เป้าหมายการเดินทาง:
+${tripData.travelGoal ?? "ไม่ได้ระบุ"}
 
-- บุคลิกและพฤติกรรมการท่องเที่ยวเพิ่มเติม:
+ช่วงเวลาที่ชอบเดินทาง:
+${tripData.travelTime ?? "ไม่ได้ระบุ"}
+
+บุคลิกและพฤติกรรม:
 ${tripData.personalityTags.length
     ? tripData.personalityTags.join(", ")
     : "ไม่มีข้อมูลเพิ่มเติม"}
 
-ให้นำบุคลิกและพฤติกรรมเพิ่มเติมเหล่านี้ไปใช้ในการจัดจังหวะทริป
-การเลือกร้านอาหาร ลำดับกิจกรรม ช่วงเวลา และบรรยากาศของแผน
-โดยยังต้องปฏิบัติตามข้อจำกัดว่าใช้เฉพาะ attraction และ nearbyRestaurants
-ที่อยู่ในข้อมูล ranked เท่านั้น
-====================
-รูปแบบการตอบ
-====================
+อายุ:
+${profile?.age ?? "ไม่ได้ระบุ"}
+
+Generation โดยประมาณ:
+${generation ?? "ไม่ทราบ"}
+
+==================================================
+8. RESPONSE FORMAT
+==================================================
 
 ตอบกลับเป็น JSON เท่านั้น
-
-รูปแบบคือ
 
 {
   "selectedPlaces": [
     {
       "day": 1,
-      "title": ชื่อธีมของวันที่ 1,
+      "title": "ชื่อธีมของวัน",
       "period": "Morning",
       "place_id": "...",
       "place_name": "...",
@@ -458,70 +1125,27 @@ ${tripData.personalityTags.length
   "markdown": "แผนเที่ยวทั้งหมดในรูปแบบ Markdown"
 }
 
-====================
-ข้อกำหนด selectedPlaces
-====================
+ข้อกำหนด selectedPlaces:
+- period ใช้ Morning / Lunch / Afternoon / Evening / Dinner ตามความเหมาะสม
+- place_id ต้องตรงกับ attraction.id ที่ระบบส่งมา
+- place_name ต้องตรงกับ attraction.name_th
+- restaurant_id และ restaurant_name ต้องตรงกับ nearbyRestaurants
+- หากไม่มีร้านอาหารให้ใช้ null
+- ห้ามสถานที่ซ้ำ
+- ห้ามร้านอาหารซ้ำ
 
-- selectedPlaces ต้องอ้างอิงข้อมูลจาก ranked เท่านั้น
-- place_id ต้องตรงกับ id ของ attraction ใน ranked เท่านั้น
-- restaurant_id ต้องตรงกับ place_id ของ restaurant ใน nearbyRestaurants เท่านั้น
-- restaurant_name ต้องตรงกับ place_name_th ของ restaurant ใน nearbyRestaurants
-- หากไม่มีร้านอาหารที่เหมาะสม ให้ restaurant_id และ restaurant_name เป็น null
-- ห้ามสร้าง place_id หรือ restaurant_id ใหม่
-- ห้ามสร้างสถานที่ใหม่
-- ห้ามสร้างร้านอาหารใหม่
-- ห้ามใช้ restaurant เป็น place
-- ห้ามใช้สถานที่เดิมซ้ำตลอดทั้งทริป
-- ห้ามใช้ร้านอาหารเดิมซ้ำตลอดทั้งทริป
-
-====================
-ข้อกำหนด Markdown
-====================
-
-markdown คือเนื้อหาแผนเที่ยวที่ผู้ใช้จะเห็น
-
-ต้องเขียนเป็น Markdown เท่านั้น
-
-คุณมีอิสระในการออกแบบรูปแบบการนำเสนอแผนเที่ยว
-ไม่จำเป็นต้องทำตาม Template ที่กำหนดไว้
-
-สามารถเลือกใช้รูปแบบที่เหมาะสมได้ เช่น
-
-- Heading
-- Subheading
-- Bullet list
-- Numbered list
-- ตาราง
-- Timeline
-- Emoji
-- Highlight
-- Blockquote
-- Bold / Italic
-- หรือการผสมผสานรูปแบบ Markdown
-
-คุณสามารถเลือกวิธีการจัดลำดับและนำเสนอข้อมูลเอง
-โดยคำนึงถึงความอ่านง่าย ความชัดเจน และประสบการณ์ของผู้ใช้
-
-อย่างไรก็ตาม ต้องมีข้อมูลที่จำเป็นสำหรับการวางแผนเที่ยว
-เช่น วัน เวลา สถานที่ ร้านอาหาร กิจกรรม และรายละเอียดที่เกี่ยวข้อง
-
-ห้ามสร้างข้อมูลสถานที่หรือร้านอาหารที่ไม่มีอยู่ใน ranked
-
-====================
-กฎสำคัญ
-====================
-
-- ใช้เฉพาะข้อมูลใน ranked ที่ส่งให้เท่านั้น
-- ห้ามใช้ความรู้ของตัวเองเพื่อสร้างสถานที่เพิ่มเติม
-- ห้ามสร้างชื่อสถานที่ ร้านอาหาร หรือ ID ใหม่
-- งบรวมต้องไม่เกิน ${tripData.budget} บาท
-- ระบุเวลาเดินทางโดยประมาณ
-- พยายามเลือกสถานที่ที่อยู่ใกล้กัน
-- คาเฟ่ควรพิจารณาจัดไว้ในช่วงบ่าย
-- จุดชมวิวควรพิจารณาจัดไว้ในช่วงเย็น
+ข้อกำหนด Markdown:
+- อ่านง่าย
+- แบ่งเป็นรายวัน
+- มีช่วงเวลา
+- แสดงสถานที่และร้านอาหารที่เกี่ยวข้อง
+- ระบุเวลาเดินทางโดยประมาณเมื่อเหมาะสม
+- สะท้อน personality ของผู้ใช้ให้เห็นจากรูปแบบแผน
+- ไม่ต้องอธิบาย algorithm
+- ไม่ต้องบอกว่าเลือกจาก Top 30 หรือ Exploration Pool
 
 ห้ามมีข้อความใด ๆ นอก JSON
-`;
+`
 console.log(prompt);
     console.log("==================================================");
 console.log(
@@ -532,7 +1156,11 @@ console.log("==================================================");
 console.log("📦 ข้อมูลผู้ใช้");
 console.log(trip);
 
-console.log("📍 จำนวนสถานที่ที่ส่ง =", ranked.length);
+console.log(
+    "📍 Candidates sent to AI =",
+    ranked.length + explorationPool.length,
+    "(Top 30 + Exploration Pool)"
+);
 
     console.log(
         "📋 รายชื่อสถานที่",
