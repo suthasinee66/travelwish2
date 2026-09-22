@@ -315,436 +315,6 @@ function inferGeneration(age: number | null | undefined) {
     return "Silent Generation";
 }
 
-function attractionId(place: any) {
-    return String(
-        place?.att_id ??
-        place?.id ??
-        ""
-    );
-}
-
-function restaurantId(restaurant: any) {
-    return String(
-        restaurant?.place_id ??
-        restaurant?.id ??
-        ""
-    );
-}
-
-function localDistanceKm(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-) {
-    const toRad =
-        (value: number) =>
-            value * Math.PI / 180;
-
-    const earthRadiusKm =
-        6371;
-
-    const dLat =
-        toRad(lat2 - lat1);
-
-    const dLon =
-        toRad(lon2 - lon1);
-
-    const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
-
-    return earthRadiusKm *
-        2 *
-        Math.atan2(
-            Math.sqrt(a),
-            Math.sqrt(1 - a)
-        );
-}
-
-function getLocalNearbyRestaurants(
-    attraction: any,
-    restaurants: any[],
-    limit = 3
-) {
-    const lat =
-        Number(
-            attraction?.latitude ??
-            attraction?.lat
-        );
-
-    const lon =
-        Number(
-            attraction?.longitude ??
-            attraction?.lng
-        );
-
-    if (
-        !Number.isFinite(lat) ||
-        !Number.isFinite(lon)
-    ) {
-        return [];
-    }
-
-    return restaurants
-        .map((restaurant: any) => {
-            const restaurantLat =
-                Number(restaurant?.latitude);
-
-            const restaurantLon =
-                Number(restaurant?.longitude);
-
-            if (
-                !Number.isFinite(restaurantLat) ||
-                !Number.isFinite(restaurantLon)
-            ) {
-                return null;
-            }
-
-            const distance =
-                localDistanceKm(
-                    lat,
-                    lon,
-                    restaurantLat,
-                    restaurantLon
-                );
-
-            return {
-                id:
-                    restaurantId(restaurant),
-
-                restaurant_name_th:
-                    restaurant?.place_name_th ??
-                    restaurant?.restaurant_name_th ??
-                    restaurant?.name_th ??
-                    restaurant?.name ??
-                    "",
-
-                rating:
-                    restaurant?.rating ?? null,
-
-                distance:
-                    Number(
-                        distance.toFixed(2)
-                    )
-            };
-        })
-        .filter(
-            (
-                restaurant
-            ): restaurant is {
-                id: string;
-                restaurant_name_th: string;
-                rating: any;
-                distance: number;
-            } =>
-                Boolean(restaurant) &&
-                restaurant.distance <= 10
-        )
-        .sort(
-            (a, b) =>
-                a.distance - b.distance
-        )
-        .slice(0, limit);
-}
-
-function buildPreferenceKeywords(
-    userContext: any
-) {
-    const sourceValues = [
-        ...(userContext?.preferences?.travel_type ?? []),
-        ...(userContext?.preferences?.activities ?? []),
-        userContext?.preferences?.atmosphere,
-        userContext?.preferences?.travel_goal,
-        ...(userContext?.preferences?.personality_tags ?? []),
-    ]
-        .filter(Boolean)
-        .map((value: any) =>
-            String(value).toLowerCase()
-        );
-
-    const keywordBank = [
-        "ธรรมชาติ",
-        "ถ่ายรูป",
-        "คาเฟ่",
-        "กาแฟ",
-        "อาหาร",
-        "street food",
-        "สุขภาพ",
-        "spa",
-        "yoga",
-        "วัฒนธรรม",
-        "วัด",
-        "มู",
-        "ประวัติศาสตร์",
-        "พิพิธภัณฑ์",
-        "ชุมชน",
-        "ทะเล",
-        "ภูเขา",
-        "น้ำตก",
-        "เดินป่า",
-        "hiking",
-        "ดำน้ำ",
-        "atv",
-        "camping",
-        "ตลาด",
-        "night market",
-        "ช้อป",
-        "วิว",
-        "unseen",
-        "hidden gem",
-        "nightlife",
-        "bar",
-        "local",
-        "ผจญภัย",
-        "พักผ่อน"
-    ];
-
-    const keywords =
-        new Set<string>();
-
-    for (const source of sourceValues) {
-        keywords.add(source);
-
-        for (const keyword of keywordBank) {
-            if (source.includes(keyword)) {
-                keywords.add(keyword);
-            }
-        }
-    }
-
-    return [...keywords];
-}
-
-function buildExplorationPool(
-    attractions: any[],
-    restaurants: any[],
-    rankedIds: Set<string>,
-    userContext: any,
-    limit = 80
-) {
-    const keywords =
-        buildPreferenceKeywords(
-            userContext
-        );
-
-    const preferredTravelTypes =
-        new Set(
-            (
-                userContext?.preferences
-                    ?.travel_type ?? []
-            ).map(
-                (value: any) =>
-                    String(value)
-                        .toLowerCase()
-            )
-        );
-
-    const preferredActivities =
-        new Set(
-            (
-                userContext?.preferences
-                    ?.activities ?? []
-            ).map(
-                (value: any) =>
-                    String(value)
-                        .toLowerCase()
-            )
-        );
-
-    const scored =
-        attractions
-            .filter(
-                (place: any) =>
-                    !rankedIds.has(
-                        attractionId(place)
-                    )
-            )
-            .map((place: any) => {
-                const placeTravelTypes =
-                    Array.isArray(
-                        place?.travel_type
-                    )
-                        ? place.travel_type
-                        : [];
-
-                const placeActivities =
-                    Array.isArray(
-                        place?.activities
-                    )
-                        ? place.activities
-                        : [];
-
-                const text =
-                    [
-                        place?.name_th,
-                        place?.name_en,
-                        place?.detail_th,
-                        place?.category,
-                        place?.type,
-                        place?.highlight,
-                        place?.activity,
-                        placeTravelTypes,
-                        placeActivities,
-                        place?.atmosphere,
-                        place?.district,
-                        place?.subdistrict,
-                    ]
-                        .flat()
-                        .filter(Boolean)
-                        .join(" ")
-                        .toLowerCase();
-
-                let personalizationScore =
-                    0;
-
-                for (
-                    const travelType
-                    of placeTravelTypes
-                ) {
-                    if (
-                        preferredTravelTypes.has(
-                            String(travelType)
-                                .toLowerCase()
-                        )
-                    ) {
-                        personalizationScore +=
-                            5;
-                    }
-                }
-
-                for (
-                    const activity
-                    of placeActivities
-                ) {
-                    if (
-                        preferredActivities.has(
-                            String(activity)
-                                .toLowerCase()
-                        )
-                    ) {
-                        personalizationScore +=
-                            4;
-                    }
-                }
-
-                for (
-                    const keyword
-                    of keywords
-                ) {
-                    if (
-                        keyword.length >= 2 &&
-                        text.includes(keyword)
-                    ) {
-                        personalizationScore +=
-                            1.5;
-                    }
-                }
-
-                const rating =
-                    Number(
-                        place?.rating ??
-                        place?.averageRating ??
-                        0
-                    );
-
-                if (
-                    Number.isFinite(rating)
-                ) {
-                    personalizationScore +=
-                        Math.max(
-                            0,
-                            Math.min(
-                                rating,
-                                5
-                            )
-                        ) * 0.15;
-                }
-
-                return {
-                    place,
-                    personalizationScore
-                };
-            })
-            .sort(
-                (a, b) =>
-                    b.personalizationScore -
-                    a.personalizationScore
-            )
-            .slice(0, limit);
-
-    return scored.map(
-        (
-            {
-                place,
-                personalizationScore
-            },
-            index
-        ) => ({
-            explorationRank:
-                index + 1,
-
-            personalizationScore:
-                Number(
-                    personalizationScore
-                        .toFixed(2)
-                ),
-
-            attraction: {
-                id:
-                    attractionId(place),
-
-                name_th:
-                    place?.name_th,
-
-                name_en:
-                    place?.name_en,
-
-                category:
-                    place?.category ?? [],
-
-                type:
-                    place?.type ?? null,
-
-                district:
-                    place?.district ?? null,
-
-                highlight:
-                    place?.highlight ?? null,
-
-                suitable_duration:
-                    place?.suitable_duration ??
-                    null,
-
-                travel_type:
-                    place?.travel_type ?? [],
-
-                activities:
-                    place?.activities ?? [],
-
-                atmosphere:
-                    place?.atmosphere ?? [],
-
-                budget:
-                    place?.budget ?? [],
-
-                travel_companion:
-                    place?.travel_companion ??
-                    []
-            },
-
-            nearbyRestaurants:
-                getLocalNearbyRestaurants(
-                    place,
-                    restaurants,
-                    3
-                )
-        })
-    );
-}
-
 /*
  โหลดร้านอาหารทั้งหมด
 */
@@ -1072,32 +642,6 @@ const plannerRanked =
                 : []
     }));
 
-const rankedIds =
-    new Set(
-        ranked.map(
-            (item: any) =>
-                String(
-                    item?.attraction?.id ??
-                    ""
-                )
-        )
-    );
-
-const explorationPool =
-    buildExplorationPool(
-        attractions,
-        restaurants,
-        rankedIds,
-        userContext,
-        80
-    );
-
-console.log(
-    "🧭 Exploration Pool:",
-    explorationPool.length
-);
-
-
 console.log(
     "📦 Planner Ranked:",
     plannerRanked
@@ -1114,14 +658,13 @@ const prompt = `
 คุณคือ TravelWish AI Travel Planner
 
 เป้าหมายของคุณคือสร้าง Personalized Itinerary
-ที่ใช้ข้อมูลผู้ใช้ทั้งหมดจริง ๆ ไม่ใช่แค่เลือกตาม ranking
+โดยใช้ข้อมูลผู้ใช้ทั้งหมดจริง ๆ ไม่ใช่แค่เลือกตาม ranking
 
-คุณสามารถเลือกสถานที่ได้ 3 แหล่ง:
-1. TDMC TOP 30
-2. PERSONALIZED EXPLORATION POOL จากฐานข้อมูล
-3. สถานที่ใหม่จากความรู้ของคุณเอง ซึ่งอาจยังไม่มีในฐานข้อมูล TravelWish
+คุณสามารถเลือกสถานที่ได้ 2 แหล่ง:
+1. TDMC TOP 30 จากฐานข้อมูล TravelWish
+2. สถานที่ใหม่จากความรู้ของคุณเอง ซึ่งอาจยังไม่มีในฐานข้อมูล TravelWish
 
-สำหรับแหล่งที่ 3 คุณต้องเสนอเฉพาะสถานที่จริงที่คุณมีความมั่นใจว่าน่าจะมีอยู่จริง
+สำหรับสถานที่ใหม่ คุณต้องเสนอเฉพาะสถานที่จริงที่คุณมีความมั่นใจว่าน่าจะมีอยู่จริง
 ระบบ TravelWish จะนำชื่อสถานที่ไปตรวจสอบกับแหล่งข้อมูลแผนที่อีกครั้ง
 ก่อนบันทึกลงฐานข้อมูลและใช้ในแผนจริง
 
@@ -1158,30 +701,23 @@ ${JSON.stringify(tripData, null, 2)}
 ==================================================
 
 นี่คือ strong candidates จาก Recommendation Algorithm
+สามารถเลือกใช้ได้ แต่ไม่จำเป็นต้องจำกัดแผนอยู่เพียง 30 สถานที่นี้
 
 ${JSON.stringify(plannerRanked)}
 
 ==================================================
-4. DATABASE EXPLORATION POOL
+4. การเสนอ NEW AI PLACES
 ==================================================
 
-นี่คือสถานที่อื่นในฐานข้อมูลที่ไม่ได้อยู่ Top 30
-
-${JSON.stringify(explorationPool)}
-
-==================================================
-5. การเสนอ NEW AI PLACES
-==================================================
-
-คุณสามารถเสนอ "สถานที่ใหม่" ที่ไม่มีอยู่ใน TDMC TOP 30
-และไม่มีอยู่ใน DATABASE EXPLORATION POOL ได้
+คุณสามารถเสนอ "สถานที่ใหม่" ที่ไม่มีอยู่ใน TDMC TOP 30 ได้
+โดยอาศัยความรู้ของคุณเองและข้อมูลผู้ใช้ทั้งหมด
 
 เหมาะสำหรับกรณีที่:
-- สถานที่ในฐานข้อมูลยังไม่ครอบคลุม preference ของผู้ใช้
-- มีสถานที่ที่คุณรู้จักซึ่งเข้ากับ personality_tags มากกว่าอย่างชัดเจน
+- Top 30 ยังไม่ครอบคลุม preference ของผู้ใช้
+- คุณรู้จักสถานที่จริงที่เข้ากับ personality_tags มากกว่าอย่างชัดเจน
 - ผู้ใช้มี preference เฉพาะ เช่น content, wellness, nightlife, hidden gem,
   local experience, cafe style หรือ activity เฉพาะทาง
-- แผนจะดีขึ้นอย่างมีนัยสำคัญหากเพิ่มสถานที่ใหม่
+- แผนจะเหมาะกับผู้ใช้มากขึ้นอย่างมีนัยสำคัญหากเพิ่มสถานที่ใหม่
 
 ข้อกำหนด NEW AI PLACES:
 - ต้องอยู่ในจังหวัด ${tripData.province}
@@ -1191,15 +727,15 @@ ${JSON.stringify(explorationPool)}
 - ห้ามสร้าง place_id เอง
 - ไม่ต้องส่ง latitude/longitude
 - ระบบจะตรวจสอบชื่อและหาพิกัดจริงภายหลัง
-- หากไม่มั่นใจว่าสถานที่มีจริง ให้ใช้สถานที่จากฐานข้อมูลแทน
-- ไม่ควรใช้สถานที่ใหม่ทั้งหมดทั้งทริป
-- ให้ใช้เมื่อช่วย personalization ได้ดีกว่า candidate ที่มีอยู่จริง
+- หากไม่มั่นใจว่าสถานที่มีจริง ให้ใช้สถานที่จาก Top 30 แทน
+- ไม่จำเป็นต้องใช้เฉพาะสถานที่ใหม่ทั้งทริป
+- ให้ใช้เมื่อช่วย personalization ได้ดีกว่า Top 30
 
 สำหรับทุกสถานที่ใหม่ที่ใช้ใน selectedPlaces
 ต้องเพิ่มข้อมูลใน proposedNewPlaces ด้วย
 
 ==================================================
-6. PERSONALIZATION RULES
+5. PERSONALIZATION RULES
 ==================================================
 
 - ไม่จำเป็นต้องเลือกตาม rank
@@ -1207,7 +743,7 @@ ${JSON.stringify(explorationPool)}
 - หากเป็นสายชิล / Slow Travel อย่าอัดสถานที่
 - หากเป็นสายเที่ยวแน่น สามารถมีหลายจุดได้
 - หากไม่อยากเดินเยอะ ให้หลีกเลี่ยงกิจกรรมเดินหนักต่อเนื่อง
-- หากไม่ชอบอยู่บนรถนาน ให้จัดสถานที่ใกล้กัน
+- หากไม่ชอบอยู่บนรถนาน ให้จัดสถานที่ใกล้กันเมื่อข้อมูลเอื้อ
 - หากยอมเดินทางไกลเพื่อของกิน/วิว/กิจกรรม สามารถออกนอกเส้นทางได้เมื่อคุ้ม
 - ถ้าชอบ hidden gem ไม่ควรเต็มไปด้วยแลนด์มาร์กยอดนิยม
 - ถ้าชอบ social/content ให้พิจารณาสถานที่ที่มี visual/activity/storytelling value
@@ -1220,10 +756,10 @@ ${JSON.stringify(explorationPool)}
 - ห้ามใช้สถานที่ซ้ำตลอดทริป
 
 ==================================================
-7. RESTAURANT RULES
+6. RESTAURANT RULES
 ==================================================
 
-สำหรับสถานที่จากฐานข้อมูล:
+สำหรับสถานที่จาก Top 30:
 - restaurant_id ต้องมาจาก nearbyRestaurants ของสถานที่นั้น
 - restaurant_name ต้องตรงกับ restaurant_name_th
 
@@ -1236,7 +772,7 @@ ${JSON.stringify(explorationPool)}
 ห้ามสร้างร้านอาหารปลอม
 
 ==================================================
-8. RESPONSE FORMAT
+7. RESPONSE FORMAT
 ==================================================
 
 ตอบ JSON รูปแบบนี้เท่านั้น
@@ -1267,7 +803,7 @@ ${JSON.stringify(explorationPool)}
       "title": "ชื่อธีมของวัน",
       "period": "Morning",
       "source": "database",
-      "place_id": "id จาก candidate",
+      "place_id": "id จาก Top 30",
       "place_name": "ชื่อสถานที่",
       "proposed_place_key": null,
       "fallback_place_id": null,
@@ -1282,7 +818,7 @@ ${JSON.stringify(explorationPool)}
       "place_id": null,
       "place_name": "ชื่อสถานที่ใหม่",
       "proposed_place_key": "new-place-1",
-      "fallback_place_id": "id ของ candidate ในฐานข้อมูลที่ใช้แทนได้หากตรวจสอบสถานที่ใหม่ไม่สำเร็จ",
+      "fallback_place_id": "id ของสถานที่ใน Top 30 ที่ใช้แทนได้หากตรวจสอบสถานที่ใหม่ไม่สำเร็จ",
       "restaurant_id": null,
       "restaurant_name": null
     }
@@ -1291,27 +827,27 @@ ${JSON.stringify(explorationPool)}
 }
 
 ==================================================
-9. SELECTED PLACES RULES
+8. SELECTED PLACES RULES
 ==================================================
 
 source = "database":
-- place_id ต้องมาจาก TDMC TOP 30 หรือ DATABASE EXPLORATION POOL
+- place_id ต้องมาจาก TDMC TOP 30 เท่านั้น
 - place_name ต้องตรงกับชื่อที่ระบบส่งมา
 - proposed_place_key = null
 
 source = "ai_external":
 - place_id = null
 - proposed_place_key ต้องตรงกับ key ใน proposedNewPlaces
-- fallback_place_id ต้องเป็น attraction.id จริงจาก TDMC TOP 30 หรือ EXPLORATION POOL
+- fallback_place_id ต้องเป็น attraction.id จริงจาก TDMC TOP 30
 - restaurant_id = null
 - restaurant_name = null
 
 fallback_place_id สำคัญมาก:
 ระบบจะใช้เมื่อไม่สามารถยืนยันสถานที่ใหม่ได้
-ดังนั้นต้องเลือกสถานที่สำรองที่มีลักษณะใกล้เคียงกับจุดประสงค์ของสถานที่ใหม่
+ดังนั้นต้องเลือกสถานที่สำรองจาก Top 30 ที่มีลักษณะใกล้เคียงกับจุดประสงค์ของสถานที่ใหม่
 
 ==================================================
-10. MARKDOWN
+9. MARKDOWN
 ==================================================
 
 - อ่านง่าย
@@ -1337,9 +873,9 @@ console.log("📦 ข้อมูลผู้ใช้");
 console.log(trip);
 
 console.log(
-    "📍 Candidates sent to AI =",
-    ranked.length + explorationPool.length,
-    "(Top 30 + Exploration Pool)"
+    "📍 Database candidates sent to AI =",
+    ranked.length,
+    "(TDMC Top 30)"
 );
 
     console.log(
@@ -1425,18 +961,6 @@ const candidateNameById =
     new Map<string, string>();
 
 for (const item of plannerRanked) {
-    candidateNameById.set(
-        String(
-            item.attraction.id
-        ),
-        String(
-            item.attraction.name_th ??
-            ""
-        )
-    );
-}
-
-for (const item of explorationPool) {
     candidateNameById.set(
         String(
             item.attraction.id
