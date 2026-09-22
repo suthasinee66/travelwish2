@@ -1366,15 +1366,121 @@ const resolvedSelectedPlaces =
         )
         .filter(Boolean);
 
+const enforceAlgorithmFirstPlaces = (
+    items: any[]
+) => {
+    const total =
+        items.length;
+
+    if (total === 0) {
+        return items;
+    }
+
+    // อย่างน้อย ~80% ของ itinerary ต้องมาจาก TDMC Top 30
+    // สำหรับทริปสั้นกว่า 5 จุด ไม่อนุญาต external place
+    // เพื่อไม่ให้ AI กลบสัญญาณของ algorithm
+    const maxAIPlaces =
+        total >= 5
+            ? Math.floor(total * 0.2)
+            : 0;
+
+    let keptAIPlaces = 0;
+
+    return items
+        .map((item: any) => {
+            if (
+                item?.source !==
+                "ai_verified"
+            ) {
+                return item;
+            }
+
+            if (
+                keptAIPlaces <
+                maxAIPlaces
+            ) {
+                keptAIPlaces += 1;
+                return item;
+            }
+
+            const fallbackId =
+                String(
+                    item?.fallback_place_id ??
+                    ""
+                );
+
+            const fallbackName =
+                candidateNameById.get(
+                    fallbackId
+                );
+
+            if (
+                fallbackId &&
+                fallbackName
+            ) {
+                console.warn(
+                    "🧮 ALGORITHM-FIRST GUARD → USE TDMC FALLBACK:",
+                    {
+                        aiPlace:
+                            item.place_name,
+                        fallbackId,
+                        fallbackName
+                    }
+                );
+
+                return {
+                    ...item,
+
+                    source:
+                        "database_fallback",
+
+                    place_id:
+                        fallbackId,
+
+                    place_name:
+                        fallbackName,
+
+                    proposed_place_key:
+                        null,
+
+                    restaurant_source:
+                        null,
+
+                    restaurant_id:
+                        null,
+
+                    restaurant_name:
+                        null,
+
+                    proposed_restaurant_key:
+                        null
+                };
+            }
+
+            console.warn(
+                "🧮 ALGORITHM-FIRST GUARD → DROP EXTRA AI PLACE:",
+                item.place_name
+            );
+
+            return null;
+        })
+        .filter(Boolean);
+};
+
+const algorithmFirstSelectedPlaces =
+    enforceAlgorithmFirstPlaces(
+        resolvedSelectedPlaces
+    );
+
 const resolvedAIRestaurants =
     await resolveAIProposedRestaurants(
         proposedNewRestaurants,
-        resolvedSelectedPlaces,
+        algorithmFirstSelectedPlaces,
         tripData.province
     );
 
 const selectedPlaces =
-    resolvedSelectedPlaces.map(
+    algorithmFirstSelectedPlaces.map(
         (item: any) => {
             if (
                 item?.restaurant_source !==
