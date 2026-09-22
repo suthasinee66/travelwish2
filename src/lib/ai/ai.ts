@@ -12,7 +12,10 @@ const API_URL =
 
 export async function generateWithSelectedModel(
     selectedModel: AIModel,
-    prompt: string
+    prompt: string,
+    options?: {
+        structuredPlanner?: boolean;
+    }
 ): Promise<string> {
 
     const response = await fetch(
@@ -26,7 +29,9 @@ export async function generateWithSelectedModel(
 
             body: JSON.stringify({
                 model: selectedModel,
-                prompt
+                prompt,
+                structuredPlanner:
+                    options?.structuredPlanner === true
             })
         }
     );
@@ -52,6 +57,18 @@ export async function generateWithSelectedModel(
     if (!data.content) {
         throw new Error(
             "AI returned empty response"
+        );
+    }
+
+    if (
+        options?.structuredPlanner &&
+        data.finish_reason &&
+        !["stop", "tool_calls"].includes(
+            String(data.finish_reason)
+        )
+    ) {
+        throw new Error(
+            `AI response incomplete: ${data.finish_reason}`
         );
     }
 
