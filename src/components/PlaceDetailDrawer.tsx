@@ -832,7 +832,7 @@ export default function PlaceDetailDrawer({
             </div>
           </section>
 
-          <section className="mt-7">
+          <section className="mt-6 sm:mt-7">
             {selectedImage ? (
               <div>
                 <div
@@ -840,15 +840,50 @@ export default function PlaceDetailDrawer({
                     changeImage,
                     images.length > 1
                   )}
-                  className="group relative overflow-hidden rounded-[24px] bg-[#f1edf2] touch-pan-y"
+                  className="
+                    group relative isolate overflow-hidden
+                    rounded-[26px] border border-white/70
+                    bg-[#eee8ef]
+                    shadow-[0_18px_50px_rgba(72,54,80,0.12)]
+                    touch-pan-y sm:rounded-[30px]
+                  "
                 >
-                  <div className="aspect-[16/10] w-full sm:aspect-[16/9]">
+                  <img
+                    src={selectedImage}
+                    alt=""
+                    aria-hidden="true"
+                    draggable={false}
+                    className="
+                      absolute inset-0 -z-10 h-full w-full
+                      scale-110 select-none object-cover
+                      opacity-30 blur-2xl
+                    "
+                  />
+
+                  <div className="relative aspect-[4/3] w-full sm:aspect-[16/10] lg:aspect-[16/9]">
                     <img
                       src={selectedImage}
                       alt={title}
                       draggable={false}
-                      className="h-full w-full select-none object-cover"
+                      className="
+                        h-full w-full select-none object-cover
+                        transition-transform duration-500
+                        sm:group-hover:scale-[1.015]
+                      "
                     />
+
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/20 to-transparent" />
+
+                    {images.length > 1 && (
+                      <div className="absolute right-3 top-3 rounded-full border border-white/25 bg-black/35 px-3 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md sm:right-4 sm:top-4">
+                        {mainImageIndex + 1} / {images.length}
+                      </div>
+                    )}
+
+                    <div className="absolute bottom-3 left-3 rounded-full border border-white/25 bg-black/30 px-3 py-1.5 text-[11px] font-medium text-white/95 backdrop-blur-md sm:bottom-4 sm:left-4">
+                      {typeLabel}
+                    </div>
                   </div>
 
                   {images.length > 1 && (
@@ -860,20 +895,20 @@ export default function PlaceDetailDrawer({
                           changeImage("prev");
                         }}
                         className="
-                          absolute left-3 top-1/2 hidden
-                          h-10 w-10 -translate-y-1/2
+                          absolute left-4 top-1/2 hidden
+                          h-11 w-11 -translate-y-1/2
                           items-center justify-center
-                          rounded-full border border-black/5
-                          bg-white/95 text-[#3f3545]
-                          shadow-[0_8px_24px_rgba(35,25,39,0.18)]
-                          opacity-0 transition
-                          hover:bg-white
+                          rounded-full border border-white/70
+                          bg-white/90 text-[#3f3545]
+                          shadow-[0_10px_28px_rgba(35,25,39,0.22)]
+                          opacity-0 backdrop-blur-md transition-all
+                          hover:scale-105 hover:bg-white
                           group-hover:opacity-100
                           sm:flex
                         "
                         aria-label="รูปก่อนหน้า"
                       >
-                        <ChevronLeft size={20} />
+                        <ChevronLeft size={21} />
                       </button>
 
                       <button
@@ -883,68 +918,105 @@ export default function PlaceDetailDrawer({
                           changeImage("next");
                         }}
                         className="
-                          absolute right-3 top-1/2 hidden
-                          h-10 w-10 -translate-y-1/2
+                          absolute right-4 top-1/2 hidden
+                          h-11 w-11 -translate-y-1/2
                           items-center justify-center
-                          rounded-full border border-black/5
-                          bg-white/95 text-[#3f3545]
-                          shadow-[0_8px_24px_rgba(35,25,39,0.18)]
-                          opacity-0 transition
-                          hover:bg-white
+                          rounded-full border border-white/70
+                          bg-white/90 text-[#3f3545]
+                          shadow-[0_10px_28px_rgba(35,25,39,0.22)]
+                          opacity-0 backdrop-blur-md transition-all
+                          hover:scale-105 hover:bg-white
                           group-hover:opacity-100
                           sm:flex
                         "
                         aria-label="รูปถัดไป"
                       >
-                        <ChevronRight size={20} />
+                        <ChevronRight size={21} />
                       </button>
-
-                      <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                        {mainImageIndex + 1} / {images.length}
-                      </div>
                     </>
                   )}
                 </div>
 
                 {images.length > 1 && (
-                  <div className="mt-3 flex items-center justify-center gap-1.5">
-                    {images.slice(0, 8).map((_, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() =>
-                          setMainImageIndex(index)
-                        }
-                        aria-label={`ดูรูปที่ ${index + 1}`}
-                        className={`
-                          rounded-full transition-all
-                          ${index === mainImageIndex
-                            ? "h-2 w-5 bg-[#573d63]"
-                            : "h-2 w-2 bg-[#d9cfdc] hover:bg-[#b9aabe]"}
-                        `}
-                      />
-                    ))}
+                  <div
+                    className="
+                      mt-3 flex snap-x snap-mandatory gap-2.5
+                      overflow-x-auto pb-1
+                      [scrollbar-width:none]
+                      [&::-webkit-scrollbar]:hidden
+                    "
+                    aria-label="รูปทั้งหมด"
+                  >
+                    {images.map((image, index) => {
+                      const active =
+                        index === mainImageIndex;
 
-                    {images.length > 8 && (
-                      <span className="ml-1 text-[11px] text-[#9a8da0]">
-                        +{images.length - 8}
-                      </span>
-                    )}
+                      return (
+                        <button
+                          key={`${image}-${index}`}
+                          type="button"
+                          onClick={() =>
+                            setMainImageIndex(index)
+                          }
+                          aria-label={`ดูรูปที่ ${index + 1}`}
+                          aria-current={
+                            active ? "true" : undefined
+                          }
+                          className={`
+                            relative h-[68px] w-[92px]
+                            shrink-0 snap-start overflow-hidden
+                            rounded-[16px] bg-[#eee8ef]
+                            transition-all duration-200
+                            sm:h-[76px] sm:w-[108px]
+                            ${active
+                              ? "ring-2 ring-[#573d63] ring-offset-2 ring-offset-[#fffdfb]"
+                              : "opacity-70 hover:opacity-100"}
+                          `}
+                        >
+                          <img
+                            src={image}
+                            alt=""
+                            draggable={false}
+                            loading="lazy"
+                            className={`
+                              h-full w-full select-none object-cover
+                              transition-transform duration-300
+                              ${active
+                                ? "scale-[1.03]"
+                                : "hover:scale-105"}
+                            `}
+                          />
+
+                          {active && (
+                            <span className="pointer-events-none absolute inset-0 bg-[#573d63]/5" />
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
 
                 {images.length > 1 && (
-                  <div className="mt-2 text-center text-[11px] text-[#a093a4] sm:hidden">
-                    ปัดซ้าย–ขวาเพื่อดูรูป
+                  <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-[#a093a4] sm:hidden">
+                    <span className="h-1 w-8 rounded-full bg-[#d9cfdc]" />
+                    ปัดรูปใหญ่เพื่อดูภาพถัดไป
+                    <span className="h-1 w-8 rounded-full bg-[#d9cfdc]" />
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex aspect-[16/7] max-h-[320px] items-center justify-center rounded-[24px] bg-[#f4f0f4] text-[#9c8fa0]">
-                <TypeIcon
-                  size={42}
-                  strokeWidth={1.4}
-                />
+              <div className="flex aspect-[16/8] max-h-[360px] items-center justify-center rounded-[26px] border border-[#ebe4ec] bg-gradient-to-br from-[#f7f2f7] to-[#eee7ef] text-[#9c8fa0] shadow-[0_14px_36px_rgba(72,54,80,0.06)] sm:rounded-[30px]">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/75 shadow-sm">
+                    <TypeIcon
+                      size={30}
+                      strokeWidth={1.4}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-[#9a8da0]">
+                    ยังไม่มีรูปภาพสำหรับสถานที่นี้
+                  </span>
+                </div>
               </div>
             )}
           </section>
