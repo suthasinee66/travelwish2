@@ -15,6 +15,7 @@ import {
 } from "react";
 import Sidebar from "@/components/Sidebar";
 import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
+import PlaceDetailDrawer, { type PlaceDetailTarget } from "@/components/PlaceDetailDrawer";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { supabase } from "@/lib/supabase";
 import { useTravelStore } from "@/store/travelStore";
@@ -103,6 +104,8 @@ function uniquePlaces(places: any[]) {
 function Explore() {
   const [placeToAddTrip, setPlaceToAddTrip] =
     useState<any | null>(null);
+  const [placeDetailTarget, setPlaceDetailTarget] =
+    useState<PlaceDetailTarget | null>(null);
   const [loading, setLoading] = useState(true);
   const [imageIndex, setImageIndex] = useState<
     Record<string, number>
@@ -474,8 +477,33 @@ function Explore() {
 
     return (
       <article
+        onClick={() =>
+          setPlaceDetailTarget({
+            type: "attraction",
+            data: place,
+          })
+        }
+        onKeyDown={(event) => {
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
+            event.preventDefault();
+            setPlaceDetailTarget({
+              type: "attraction",
+              data: place,
+            });
+          }
+        }}
+        role="button"
+        tabIndex={0}
         className="
           group
+          cursor-pointer
+          focus:outline-none
+          focus-visible:ring-2
+          focus-visible:ring-[#573d63]
+          focus-visible:ring-offset-2
           overflow-hidden
           rounded-[24px]
           border
@@ -803,6 +831,12 @@ function Explore() {
   }
 
   return (
+    <>
+      <PlaceDetailDrawer
+        open={Boolean(placeDetailTarget)}
+        target={placeDetailTarget}
+        onClose={() => setPlaceDetailTarget(null)}
+      />
     <div className="
       travel-home
       flex
@@ -1510,5 +1544,6 @@ function Explore() {
         </div>
       </main>
     </div>
+    </>
   );
 }
