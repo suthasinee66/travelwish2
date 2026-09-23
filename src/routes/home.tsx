@@ -53,6 +53,8 @@ import {
   Check,
   Link2,
   Pencil,
+  ArrowLeft,
+  Search,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Fragment, useEffect, useState, useMemo } from "react";
@@ -4663,6 +4665,8 @@ const selectHotelForTrip = (
   );
 
   setHotelModal(false);
+  setHotelSearch("");
+  setHotelLinkError("");
 
   applyRouteMode(
     routeMode,
@@ -4895,7 +4899,498 @@ mapPlaces.length
 mapCenter;
 
   return (
-  <div className="travel-trip-plan flex flex-col gap-5 w-full">
+  <div className="travel-trip-plan relative flex w-full flex-col gap-5 overflow-hidden">
+
+  {/* Full-page accommodation selector */}
+  <section
+    aria-hidden={!hotelModal}
+    className={\`
+      absolute
+      inset-0
+      z-[95]
+      min-h-full
+      w-full
+      overflow-y-auto
+      bg-[#fffdfb]
+      transition-transform
+      duration-500
+      ease-[cubic-bezier(0.22,1,0.36,1)]
+      \${hotelModal
+        ? "translate-x-0"
+        : "translate-x-full pointer-events-none"
+      }
+    \`}
+  >
+    <div className="mx-auto min-h-full w-full max-w-5xl px-1 pb-10">
+      <div
+        className="
+          sticky
+          top-0
+          z-20
+          flex
+          items-center
+          gap-3
+          border-b
+          border-[#eee5ef]
+          bg-[#fffdfb]/95
+          px-1
+          py-4
+          backdrop-blur-sm
+        "
+      >
+        <button
+          type="button"
+          onClick={() => setHotelModal(false)}
+          className="
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            border
+            border-[#e5dbe8]
+            bg-white
+            text-[#5f4967]
+            transition
+            hover:border-[#cdbbd2]
+            hover:bg-[#f8f3f9]
+          "
+          aria-label="กลับไป TripPlan"
+        >
+          <ArrowLeft
+            size={19}
+            strokeWidth={2}
+          />
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-bold text-[#40364b]">
+            เลือกที่พักสำหรับทริป
+          </h2>
+
+          <p className="mt-0.5 text-xs text-[#8a7d8f]">
+            {tripInput.province}
+            {selectedHotel
+              ? " · เปลี่ยนจากที่พักปัจจุบันได้"
+              : " · ใช้เป็นจุดเริ่มและจุดกลับของแต่ละวัน"
+            }
+          </p>
+        </div>
+
+        {selectedHotel && (
+          <div
+            className="
+              hidden
+              max-w-[240px]
+              items-center
+              gap-2
+              rounded-xl
+              bg-[#f4edf6]
+              px-3
+              py-2
+              md:flex
+            "
+          >
+            <Hotel
+              size={15}
+              className="shrink-0 text-[#6f456f]"
+            />
+            <span className="truncate text-xs font-semibold text-[#604c66]">
+              {selectedHotel.acc_name_th ??
+                selectedHotel.acc_name_en}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="pt-5">
+        <div
+          className="
+            rounded-2xl
+            border
+            border-[#eadfeb]
+            bg-[#f9f5fa]
+            p-4
+          "
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="
+                flex
+                h-10
+                w-10
+                shrink-0
+                items-center
+                justify-center
+                rounded-xl
+                bg-white
+                text-[#6f456f]
+                shadow-sm
+              "
+            >
+              <Link2
+                size={18}
+                strokeWidth={1.9}
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-bold text-[#4f4256]">
+                มีลิงก์ที่พักที่จองแล้ว?
+              </div>
+
+              <p className="mt-1 text-xs leading-5 text-[#8a7d8f]">
+                วางลิงก์ Google Maps, Agoda, Booking.com หรือเว็บจองที่พัก
+                ระบบจะตรวจสอบและใช้ที่พักนี้กับทริปทันที
+              </p>
+
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  value={hotelLinkUrl}
+                  onChange={event => {
+                    setHotelLinkUrl(event.target.value);
+                    setHotelLinkError("");
+                  }}
+                  onKeyDown={event => {
+                    if (
+                      event.key === "Enter" &&
+                      hotelLinkUrl.trim() &&
+                      !hotelLinkLoading
+                    ) {
+                      event.preventDefault();
+                      void resolveHotelLinkInTripPlan();
+                    }
+                  }}
+                  placeholder="วางลิงก์ที่พักที่นี่..."
+                  className="
+                    min-w-0
+                    flex-1
+                    rounded-xl
+                    border
+                    border-[#e3d9e5]
+                    bg-white
+                    px-4
+                    py-3
+                    text-sm
+                    outline-none
+                    transition
+                    focus:border-[#a887af]
+                    focus:ring-2
+                    focus:ring-[#a887af]/10
+                  "
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    void resolveHotelLinkInTripPlan()
+                  }
+                  disabled={
+                    hotelLinkLoading ||
+                    !hotelLinkUrl.trim()
+                  }
+                  className="
+                    flex
+                    min-h-11
+                    shrink-0
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-xl
+                    bg-[#6f456f]
+                    px-5
+                    py-3
+                    text-sm
+                    font-semibold
+                    text-white
+                    transition
+                    hover:bg-[#5d3a5e]
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
+                  "
+                >
+                  {hotelLinkLoading ? (
+                    <>
+                      <LoaderCircle
+                        size={16}
+                        className="animate-spin"
+                      />
+                      กำลังตรวจสอบ
+                    </>
+                  ) : (
+                    <>
+                      <Check
+                        size={16}
+                        strokeWidth={2}
+                      />
+                      ใช้ที่พักนี้
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {hotelLinkError && (
+                <div className="mt-2 text-xs font-medium text-red-500">
+                  {hotelLinkError}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="my-5 flex items-center gap-3">
+          <span className="h-px flex-1 bg-[#ece3ed]" />
+          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#a092a5]">
+            หรือเลือกจากที่พักในระบบ
+          </span>
+          <span className="h-px flex-1 bg-[#ece3ed]" />
+        </div>
+
+        <div className="relative">
+          <Search
+            size={17}
+            className="
+              pointer-events-none
+              absolute
+              left-4
+              top-1/2
+              -translate-y-1/2
+              text-[#9b8ca0]
+            "
+          />
+
+          <input
+            value={hotelSearch}
+            onChange={event =>
+              setHotelSearch(event.target.value)
+            }
+            placeholder="ค้นหาชื่อโรงแรม..."
+            className="
+              w-full
+              rounded-2xl
+              border
+              border-[#e5dbe8]
+              bg-white
+              py-3
+              pl-11
+              pr-4
+              text-sm
+              outline-none
+              transition
+              focus:border-[#a887af]
+              focus:ring-2
+              focus:ring-[#a887af]/10
+            "
+          />
+        </div>
+
+        <div className="mt-4">
+          {hotelLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[0, 1, 2, 3].map(item => (
+                <div
+                  key={item}
+                  className="
+                    h-[112px]
+                    animate-pulse
+                    rounded-2xl
+                    bg-[#f2edf3]
+                  "
+                />
+              ))}
+            </div>
+          ) : filteredHotels.length > 0 ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {filteredHotels.map(hotel => {
+                const hotelImage =
+                  Array.isArray(hotel.images)
+                    ? hotel.images[0]
+                    : null;
+
+                const isSelected =
+                  selectedHotel?.acc_id ===
+                  hotel.acc_id;
+
+                return (
+                  <button
+                    key={hotel.acc_id}
+                    type="button"
+                    onClick={() =>
+                      selectHotelForTrip(hotel)
+                    }
+                    className={\`
+                      group
+                      flex
+                      min-w-0
+                      gap-3
+                      rounded-2xl
+                      border
+                      bg-white
+                      p-3
+                      text-left
+                      transition
+                      duration-200
+                      hover:-translate-y-0.5
+                      hover:shadow-[0_10px_26px_rgba(87,61,99,0.08)]
+                      \${isSelected
+                        ? "border-[#8c6694] ring-2 ring-[#8c6694]/10"
+                        : "border-[#ece3ed] hover:border-[#cfbdd3]"
+                      }
+                    \`}
+                  >
+                    <div
+                      className="
+                        flex
+                        h-20
+                        w-20
+                        shrink-0
+                        items-center
+                        justify-center
+                        overflow-hidden
+                        rounded-xl
+                        bg-[#f1ebf2]
+                      "
+                    >
+                      {hotelImage ? (
+                        <img
+                          src={hotelImage}
+                          alt={
+                            hotel.acc_name_th ??
+                            hotel.acc_name_en ??
+                            "ที่พัก"
+                          }
+                          className="
+                            h-full
+                            w-full
+                            object-cover
+                            transition
+                            duration-300
+                            group-hover:scale-[1.03]
+                          "
+                        />
+                      ) : (
+                        <Hotel
+                          size={24}
+                          className="text-[#9b869f]"
+                          strokeWidth={1.7}
+                        />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1 py-0.5">
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-bold text-[#40364b]">
+                            {hotel.acc_name_th ??
+                              hotel.acc_name_en ??
+                              "ที่พัก"}
+                          </div>
+
+                          {hotel.acc_name_en &&
+                            hotel.acc_name_en !==
+                              hotel.acc_name_th && (
+                              <div className="mt-0.5 truncate text-[11px] text-[#8d8092]">
+                                {hotel.acc_name_en}
+                              </div>
+                            )}
+                        </div>
+
+                        {isSelected && (
+                          <CircleCheck
+                            size={17}
+                            className="shrink-0 text-[#6f456f]"
+                            strokeWidth={2}
+                          />
+                        )}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#8a7d8f]">
+                        {hotel.star_level != null && (
+                          <span className="flex items-center gap-1">
+                            <Star
+                              size={12}
+                              strokeWidth={1.8}
+                            />
+                            {hotel.star_level}
+                          </span>
+                        )}
+
+                        {hotel.accom_price_name && (
+                          <span className="truncate">
+                            {hotel.accom_price_name}
+                          </span>
+                        )}
+                      </div>
+
+                      {hotel.acc_address && (
+                        <div className="mt-1.5 flex items-start gap-1 text-[11px] leading-4 text-[#95899a]">
+                          <MapPin
+                            size={12}
+                            className="mt-0.5 shrink-0"
+                            strokeWidth={1.8}
+                          />
+                          <span className="line-clamp-2">
+                            {hotel.acc_address}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div
+              className="
+                flex
+                min-h-[220px]
+                flex-col
+                items-center
+                justify-center
+                rounded-2xl
+                border
+                border-dashed
+                border-[#ddd0df]
+                bg-[#fbf8fb]
+                px-6
+                text-center
+              "
+            >
+              <Hotel
+                size={28}
+                className="text-[#a891ad]"
+                strokeWidth={1.6}
+              />
+              <div className="mt-3 text-sm font-semibold text-[#5e5063]">
+                ไม่พบที่พักที่ตรงกับคำค้น
+              </div>
+              <div className="mt-1 text-xs text-[#968a9a]">
+                ลองค้นด้วยชื่ออื่น หรือวางลิงก์ที่พักที่จองไว้ด้านบน
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div
+    className={\`
+      flex
+      w-full
+      flex-col
+      gap-5
+      transition-transform
+      duration-500
+      ease-[cubic-bezier(0.22,1,0.36,1)]
+      \${hotelModal
+        ? "-translate-x-[12%] pointer-events-none"
+        : "translate-x-0"
+      }
+    \`}
+  >
 
   {/* MAP */}
   {showMap && (
@@ -5044,7 +5539,7 @@ mapCenter;
   <Hotel size={18} />
 </button>
 
-  {hotelModal && (
+  {false && hotelModal && (
     <div
   style={{
     backgroundColor: "#fffdfb",
@@ -6322,6 +6817,7 @@ justify-center
   </div>
 )}
 
+  </div>
     </div>
     
   );
