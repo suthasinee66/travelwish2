@@ -16,6 +16,7 @@ export async function generateWithSelectedModel(
     options?: {
         responseMode?:
             | "planner_json"
+            | "trend_context"
             | "markdown";
     }
 ): Promise<string> {
