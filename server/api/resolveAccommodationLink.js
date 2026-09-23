@@ -263,6 +263,184 @@ function getNameFromGoogleUrl(
   }
 }
 
+
+function titleCaseSlug(
+  value
+) {
+  return cleanText(
+    String(value ?? "")
+      .replace(
+        /\.(html?|aspx?)$/i,
+        ""
+      )
+      .replace(
+        /[_-]+/g,
+        " "
+      )
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim()
+      .split(" ")
+      .map(word => {
+        const upperKeep =
+          new Set([
+            "uhg",
+            "ibis",
+            "novotel",
+            "oyo",
+            "b2",
+          ]);
+
+        if (
+          upperKeep.has(
+            word.toLowerCase()
+          )
+        ) {
+          return word.toUpperCase();
+        }
+
+        return word
+          ? (
+              word[0].toUpperCase() +
+              word.slice(1)
+            )
+          : "";
+      })
+      .join(" ")
+  );
+}
+
+function getNameFromBookingUrl(
+  url
+) {
+  try {
+    const parsed =
+      new URL(
+        String(url ?? "")
+      );
+
+    const host =
+      parsed.hostname
+        .toLowerCase()
+        .replace(
+          /^www\./,
+          ""
+        );
+
+    const segments =
+      parsed.pathname
+        .split("/")
+        .filter(Boolean)
+        .map(segment => {
+          try {
+            return decodeURIComponent(
+              segment
+            );
+          } catch {
+            return segment;
+          }
+        });
+
+    if (
+      host.includes(
+        "agoda.com"
+      )
+    ) {
+      const hotelIndex =
+        segments.findIndex(
+          segment =>
+            segment.toLowerCase() ===
+            "hotel"
+        );
+
+      const slug =
+        hotelIndex > 0
+          ? segments[
+              hotelIndex - 1
+            ]
+          : segments.find(
+              segment =>
+                ![
+                  "th-th",
+                  "en-gb",
+                  "en-us",
+                  "hotel",
+                ].includes(
+                  segment.toLowerCase()
+                ) &&
+                !segment
+                  .toLowerCase()
+                  .endsWith(".html")
+            );
+
+      return titleCaseSlug(
+        slug
+      );
+    }
+
+    if (
+      host.includes(
+        "booking.com"
+      )
+    ) {
+      const hotelIndex =
+        segments.findIndex(
+          segment =>
+            segment.toLowerCase() ===
+            "hotel"
+        );
+
+      const slug =
+        hotelIndex >= 0
+          ? segments[
+              hotelIndex + 2
+            ] ??
+            segments[
+              hotelIndex + 1
+            ]
+          : segments[
+              segments.length - 1
+            ];
+
+      return titleCaseSlug(
+        slug
+      );
+    }
+
+    if (
+      host.includes(
+        "trip.com"
+      ) ||
+      host.includes(
+        "traveloka."
+      ) ||
+      host.includes(
+        "hotels.com"
+      )
+    ) {
+      const slug =
+        [...segments]
+          .reverse()
+          .find(segment =>
+            segment &&
+            !/^\d+$/.test(
+              segment
+            )
+          );
+
+      return titleCaseSlug(
+        slug
+      );
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function coordinatesFromUrl(
   url
 ) {
@@ -662,6 +840,14 @@ router.post(
           parsed.toString()
         );
 
+      const bookingUrlName =
+        getNameFromBookingUrl(
+          finalUrl
+        ) ??
+        getNameFromBookingUrl(
+          parsed.toString()
+        );
+
       const htmlTitle =
         html
           ? getTitleFromHtml(
@@ -672,6 +858,7 @@ router.post(
       const name =
         normalizeTitle(
           googleUrlName ??
+          bookingUrlName ??
           htmlTitle,
           provider
         );
