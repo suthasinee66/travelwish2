@@ -2249,6 +2249,7 @@ export function TripPlanPanel({
   onExistingTripSaved,
   onRouteChange,
   onAccommodationChange,
+  onReplanForAccommodation,
 }: {
   plannerJson: any;
   plan: string;
@@ -2271,6 +2272,9 @@ export function TripPlanPanel({
   onAccommodationChange?: (
     hotel: any | null
   ) => void;
+  onReplanForAccommodation?: (
+    hotel: any
+  ) => Promise<void> | void;
 }) {
   console.log("🔥 TripPlanPanel RENDER");
 
@@ -2374,6 +2378,13 @@ const [appAlert, setAppAlert] = useState<{
   title: string;
   message: string;
 } | null>(null);
+const [retripSuggestion, setRetripSuggestion] = useState<{
+  hotel: any;
+  increasePercent: number;
+  addedKm: number;
+  averageHotelDistanceKm: number;
+} | null>(null);
+const [retripLoading, setRetripLoading] = useState(false);
 
 const showAppAlert = (
   type: "success" | "error" | "info",
@@ -4652,6 +4663,124 @@ const selectHotelForTrip = (
       true,
   };
 
+  const isSameHotel =
+    selectedHotel?.acc_id != null &&
+    userHotel?.acc_id != null &&
+    String(
+      selectedHotel.acc_id
+    ) ===
+      String(
+        userHotel.acc_id
+      );
+
+  let previousRouteMeters = 0;
+  let newRouteMeters = 0;
+  let hotelDistanceMeters = 0;
+  let hotelDistanceCount = 0;
+
+  days.forEach(
+    dayData => {
+      const dayStops =
+        buildRoutePlaces(
+          dayData.items ?? []
+        );
+
+      if (
+        dayStops.length === 0
+      ) {
+        return;
+      }
+
+      previousRouteMeters +=
+        routeTotalMeters(
+          dayStops,
+          selectedHotel,
+          Boolean(
+            selectedHotel
+          )
+        );
+
+      newRouteMeters +=
+        routeTotalMeters(
+          dayStops,
+          userHotel,
+          true
+        );
+
+      dayStops.forEach(
+        stop => {
+          const distance =
+            getDistanceFromHotelMeters(
+              stop,
+              userHotel
+            );
+
+          if (
+            distance != null &&
+            Number.isFinite(
+              distance
+            )
+          ) {
+            hotelDistanceMeters +=
+              distance;
+            hotelDistanceCount += 1;
+          }
+        }
+      );
+    }
+  );
+
+  const addedMeters =
+    Math.max(
+      0,
+      newRouteMeters -
+        previousRouteMeters
+    );
+
+  const increasePercent =
+    previousRouteMeters > 0
+      ? (
+          addedMeters /
+          previousRouteMeters
+        ) * 100
+      : 0;
+
+  const averageHotelDistanceKm =
+    hotelDistanceCount > 0
+      ? (
+          hotelDistanceMeters /
+          hotelDistanceCount
+        ) / 1000
+      : 0;
+
+  const shouldSuggestRetrip =
+    !isSameHotel &&
+    (
+      (
+        increasePercent >= 35 &&
+        addedMeters >= 8000
+      ) ||
+      averageHotelDistanceKm >= 15
+    );
+
+  console.log(
+    "🏨 ACCOMMODATION ROUTE IMPACT:",
+    {
+      previousRouteKm:
+        previousRouteMeters /
+        1000,
+      newRouteKm:
+        newRouteMeters /
+        1000,
+      addedKm:
+        addedMeters /
+        1000,
+      increasePercent,
+      averageHotelDistanceKm,
+      shouldSuggestRetrip,
+    }
+  );
+
   setSelectedHotel(
     userHotel
   );
@@ -4668,7 +4797,67 @@ const selectHotelForTrip = (
     routeMode,
     userHotel
   );
+
+  if (
+    shouldSuggestRetrip
+  ) {
+    setRetripSuggestion({
+      hotel:
+        userHotel,
+
+      increasePercent,
+
+      addedKm:
+        addedMeters /
+        1000,
+
+      averageHotelDistanceKm,
+    });
+  } else {
+    setRetripSuggestion(
+      null
+    );
+  }
 };
+
+const handleRetripForAccommodation =
+  async () => {
+    if (
+      !retripSuggestion ||
+      !onReplanForAccommodation
+    ) {
+      return;
+    }
+
+    setRetripLoading(
+      true
+    );
+
+    try {
+      await onReplanForAccommodation(
+        retripSuggestion.hotel
+      );
+
+      setRetripSuggestion(
+        null
+      );
+    } catch (error) {
+      console.error(
+        "RETRIP FOR ACCOMMODATION ERROR:",
+        error
+      );
+
+      showAppAlert(
+        "error",
+        "ปรับแผนไม่สำเร็จ",
+        "ไม่สามารถปรับแผนตามที่พักได้ กรุณาลองใหม่อีกครั้ง"
+      );
+    } finally {
+      setRetripLoading(
+        false
+      );
+    }
+  };
 
 const resolveHotelLinkInTripPlan =
   async () => {
@@ -5796,6 +5985,133 @@ mapCenter;
     )}
   </div>
 </div>
+
+{retripSuggestion && (
+  <div
+    className="
+      mt-4
+      rounded-2xl
+      border
+      border-[#dfd0e2]
+      bg-[#f9f5fa]
+      p-4
+      shadow-[0_8px_24px_rgba(87,61,99,0.04)]
+    "
+  >
+    <div className="flex items-start gap-3">
+      <div
+        className="
+          flex
+          h-10
+          w-10
+          shrink-0
+          items-center
+          justify-center
+          rounded-xl
+          bg-white
+          text-[#6f456f]
+          shadow-sm
+        "
+      >
+        <RouteIcon
+          size={18}
+          strokeWidth={1.9}
+        />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-bold text-[#4a3d50]">
+          ที่พักใหม่นี้ค่อนข้างไกลจากแผนเดิม
+        </div>
+
+        <p className="mt-1 text-xs leading-5 text-[#85798a]">
+          {retripSuggestion.averageHotelDistanceKm >= 15
+            ? `ระยะเฉลี่ยจากที่พักไปจุดในแผนประมาณ ${retripSuggestion.averageHotelDistanceKm.toFixed(1)} กม.`
+            : `เส้นทางรวมเพิ่มประมาณ ${retripSuggestion.addedKm.toFixed(1)} กม. (${retripSuggestion.increasePercent.toFixed(0)}%)`
+          }
+          {" "}ต้องการให้ AI ปรับสถานที่และร้านอาหารให้เข้ากับที่พักนี้ไหม?
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() =>
+              void handleRetripForAccommodation()
+            }
+            disabled={
+              retripLoading
+            }
+            className="
+              flex
+              min-h-10
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-[#6f456f]
+              px-4
+              py-2
+              text-xs
+              font-semibold
+              text-white
+              transition
+              hover:bg-[#5e3b5f]
+              disabled:cursor-not-allowed
+              disabled:opacity-60
+            "
+          >
+            {retripLoading ? (
+              <>
+                <LoaderCircle
+                  size={14}
+                  className="animate-spin"
+                />
+                กำลังปรับแผน
+              </>
+            ) : (
+              <>
+                <Sparkles
+                  size={14}
+                  strokeWidth={1.9}
+                />
+                ปรับแผนตามที่พัก
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setRetripSuggestion(
+                null
+              )
+            }
+            disabled={
+              retripLoading
+            }
+            className="
+              min-h-10
+              rounded-xl
+              border
+              border-[#dfd4e1]
+              bg-white
+              px-4
+              py-2
+              text-xs
+              font-semibold
+              text-[#685a6d]
+              transition
+              hover:bg-[#fbf8fc]
+              disabled:opacity-60
+            "
+          >
+            ใช้แผนเดิม
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
 {/* TABS */}
 <div className="travel-day-tabs flex gap-2 mt-4">
@@ -10544,6 +10860,152 @@ focus:ring-black/20
           currentChatId,
           nextTrip
         );
+      }
+    }}
+    onReplanForAccommodation={async (hotel) => {
+      if (!user?.id) {
+        throw new Error(
+          "Missing user"
+        );
+      }
+
+      const nextTrip: TripInput = {
+        ...tripInput,
+
+        days:
+          tripInput.days ?? 1,
+
+        accommodation: {
+          id:
+            String(
+              hotel.acc_id
+            ),
+
+          name:
+            hotel.acc_name_th ??
+            hotel.acc_name_en ??
+            "ที่พัก",
+
+          address:
+            hotel.acc_address ??
+            null,
+
+          latitude:
+            Number(
+              hotel.latitude
+            ),
+
+          longitude:
+            Number(
+              hotel.longitude
+            ),
+
+          source:
+            hotel.source ??
+            "user",
+
+          source_url:
+            hotel.source_url ??
+            null,
+
+          booking_provider:
+            hotel.booking_provider ??
+            null,
+
+          images:
+            Array.isArray(
+              hotel.images
+            )
+              ? hotel.images
+              : [],
+
+          locked:
+            true,
+        }
+      };
+
+      const chatId =
+        currentChatId ??
+        await ensureChatSession(
+          nextTrip
+        );
+
+      if (!chatId) {
+        throw new Error(
+          "Missing chat session"
+        );
+      }
+
+      setTripInput(
+        nextTrip
+      );
+
+      await updateChatSessionTrip(
+        chatId,
+        nextTrip
+      );
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "ai",
+          text:
+            "กำลังปรับแผนตามที่พักใหม่...",
+          loading: true
+        }
+      ]);
+
+      try {
+        const result =
+          await createPlanner(
+            nextTrip,
+            chatId,
+            user.id,
+            selectedModel
+          );
+
+        const plannedTrip: TripInput = {
+          ...nextTrip,
+
+          accommodation:
+            nextTrip.accommodation
+        };
+
+        setTripInput(
+          plannedTrip
+        );
+        setPlan(
+          result.markdown
+        );
+        setPlannerJson(
+          result.planner_json
+        );
+        setShowTripPlan(
+          true
+        );
+        setExploreOpen(
+          false
+        );
+
+        await updateChatSessionTrip(
+          chatId,
+          plannedTrip
+        );
+
+        setMessages(prev => [
+          ...prev.slice(0, -1),
+          {
+            role: "ai",
+            text:
+              result.markdown
+          }
+        ]);
+      } catch (error) {
+        setMessages(prev => [
+          ...prev.slice(0, -1)
+        ]);
+
+        throw error;
       }
     }}
   />
