@@ -907,6 +907,112 @@ const plannerRanked =
                 : []
     }));
 
+const trendResearchPrompt = `
+คุณคือ TravelWish Trend Researcher
+
+ค้นข้อมูลสดจากเว็บเกี่ยวกับจังหวัด ${tripData.province}
+เพื่อหาสถานที่ท่องเที่ยว กิจกรรม คาเฟ่ ย่าน ตลาด จุดถ่ายรูป
+หรือประสบการณ์ที่ "กำลังได้รับความนิยมในช่วงปัจจุบัน"
+
+วันที่อ้างอิงปัจจุบัน:
+${new Date().toISOString().slice(0, 10)}
+
+USER PERSONALIZATION
+${JSON.stringify(userContext.preferences, null, 2)}
+
+กติกา:
+- เน้นข้อมูลล่าสุด โดยเฉพาะช่วงประมาณ 30-90 วันที่ผ่านมาเมื่อมีข้อมูล
+- มองหาสัญญาณจากบทความล่าสุด ข่าว travel/lifestyle แหล่งท่องเที่ยว
+  หรือหน้าเว็บที่สะท้อนความนิยมปัจจุบัน
+- ห้ามเรียกสถานที่ว่า viral/current trend ถ้าไม่มีสัญญาณปัจจุบันรองรับ
+- ต้องอยู่ในจังหวัด ${tripData.province}
+- เลือกเฉพาะสถานที่หรือประสบการณ์ที่มีชื่อจริงและตรวจสอบต่อกับ Google Places ได้
+- ให้ความสำคัญกับ trend ที่เข้ากับ preference/personality ของผู้ใช้
+- ไม่ต้องเลือกสถานที่เพียงเพราะดัง ถ้าไม่เข้ากับผู้ใช้
+- ถ้าไม่มี trend ที่น่าเชื่อถือ ให้ trends เป็น []
+- ตอบตาม JSON schema เท่านั้น
+`;
+
+let liveTrendContext: any = {
+    province:
+        tripData.province,
+    researched_at:
+        new Date().toISOString(),
+    trends: []
+};
+
+try {
+    console.log(
+        "🔥 กำลังค้นหา CURRENT / VIRAL TRAVEL TRENDS..."
+    );
+
+    const trendRaw =
+        await generateWithSelectedModel(
+            selectedModel,
+            trendResearchPrompt,
+            {
+                responseMode:
+                    "trend_context"
+            }
+        );
+
+    const cleanedTrend =
+        trendRaw
+            .replace(
+                /^\`\`\`json\s*/i,
+                ""
+            )
+            .replace(
+                /^\`\`\`\s*/i,
+                ""
+            )
+            .replace(
+                /\`\`\`$/i,
+                ""
+            )
+            .trim();
+
+    const parsedTrend =
+        JSON.parse(
+            cleanedTrend
+        );
+
+    if (
+        parsedTrend &&
+        Array.isArray(
+            parsedTrend.trends
+        )
+    ) {
+        liveTrendContext = {
+            ...parsedTrend,
+            trends:
+                parsedTrend.trends
+                    .filter(
+                        (trend: any) =>
+                            trend &&
+                            trend.name &&
+                            (
+                                trend.confidence ===
+                                    "high" ||
+                                trend.confidence ===
+                                    "medium"
+                            )
+                    )
+                    .slice(0, 8)
+        };
+    }
+
+    console.log(
+        "🔥 LIVE TREND CANDIDATES:",
+        liveTrendContext.trends
+    );
+} catch (error) {
+    console.warn(
+        "⚠️ LIVE TREND SEARCH FAILED — continue with TDMC:",
+        error
+    );
+}
+
 console.log(
     "📦 Planner Ranked:",
     plannerRanked
@@ -986,7 +1092,28 @@ ${JSON.stringify(tripData, null, 2)}
 ${JSON.stringify(plannerRanked)}
 
 ==================================================
-4. การเสนอ NEW AI PLACES
+4. LIVE CURRENT / VIRAL TREND CONTEXT
+==================================================
+
+นี่คือข้อมูลที่ค้นจากเว็บปัจจุบันก่อนสร้างแผน
+ใช้เป็น "สัญญาณเสริม" ควบคู่กับ TDMC ไม่ใช่แทน TDMC
+
+${JSON.stringify(liveTrendContext, null, 2)}
+
+กฎการใช้ Trend:
+- ถ้า trends มี candidate ที่ confidence = high หรือ medium
+  และเข้ากับ preference ของผู้ใช้ ให้พิจารณานำมาใช้ใน itinerary อย่างน้อย 1 จุดเมื่อเหมาะสม
+- Trend candidate ที่อยู่นอก TDMC Top 30 ต้องใช้ source = "ai_external"
+- ต้องเพิ่ม candidate นั้นใน proposedNewPlaces เพื่อให้ระบบตรวจสอบกับ Google Places
+- ห้ามใช้ชื่อ trend จากเว็บเป็น place_id
+- ห้ามใช้ trend ที่ไม่เกี่ยวข้องกับจังหวัดหรือไม่เหมาะกับผู้ใช้
+- ห้ามแทน Top-ranked TDMC เพียงเพราะสถานที่นั้น viral
+- Viral/Trend เป็นโบนัสด้าน freshness และ personalization เท่านั้น
+- หาก trend ซ้ำกับสถานที่ใน TDMC Top 30 ให้ใช้สถานที่จาก database เดิม ไม่ต้องสร้างใหม่
+- ถ้าไม่มี trend ที่น่าเชื่อถือ ไม่จำเป็นต้องฝืนเพิ่ม
+
+==================================================
+5. การเสนอ NEW AI PLACES
 ==================================================
 
 คุณสามารถเสนอ "สถานที่ใหม่" ที่ไม่มีอยู่ใน TDMC TOP 30 ได้
@@ -1020,7 +1147,7 @@ ${JSON.stringify(plannerRanked)}
 ต้องเพิ่มข้อมูลใน proposedNewPlaces ด้วย
 
 ==================================================
-5. PERSONALIZATION RULES
+6. PERSONALIZATION RULES
 ==================================================
 
 - ranking ของ TDMC เป็น prior หลัก แต่ไม่ต้องเรียงตาม rank แบบตายตัว
@@ -1043,7 +1170,7 @@ ${JSON.stringify(plannerRanked)}
 - ห้ามใช้สถานที่ซ้ำตลอดทริป
 
 ==================================================
-6. RESTAURANT RULES
+7. RESTAURANT RULES
 ==================================================
 
 เป้าหมายของการเลือกร้านอาหารคือ
@@ -1113,7 +1240,7 @@ ${JSON.stringify(plannerRanked)}
 - สถานที่ใหม่ที่ AI เสนอและผ่านการ verify แล้ว
 
 ==================================================
-7. RESPONSE FORMAT
+8. RESPONSE FORMAT
 ==================================================
 
 ตอบ JSON รูปแบบนี้เท่านั้น
@@ -1469,12 +1596,17 @@ const enforceAlgorithmFirstPlaces = (
         return items;
     }
 
-    // อย่างน้อย ~80% ของ itinerary ต้องมาจาก TDMC Top 30
-    // สำหรับทริปสั้นกว่า 5 จุด ไม่อนุญาต external place
-    // เพื่อไม่ให้ AI กลบสัญญาณของ algorithm
+    // TDMC ยังเป็นฐานหลักของ itinerary
+    // แต่อนุญาต external/current-trend ได้ 1 จุดสำหรับทริปตั้งแต่ 3 จุดขึ้นไป
+    // เพื่อให้ทริปสั้นยังมี freshness โดยไม่ให้ AI กลบ algorithm
     const maxAIPlaces =
-        total >= 5
-            ? Math.floor(total * 0.2)
+        total >= 3
+            ? Math.max(
+                1,
+                Math.floor(
+                    total * 0.2
+                )
+            )
             : 0;
 
     let keptAIPlaces = 0;
