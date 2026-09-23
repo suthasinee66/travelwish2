@@ -737,6 +737,18 @@ atmosphere:
 
 };
 
+const accommodationLocked =
+    Boolean(
+        tripData.accommodation &&
+        (
+            tripData.accommodation.locked === true ||
+            (
+                tripData.accommodation.locked == null &&
+                tripData.accommodation.source !== "ai_verified"
+            )
+        )
+    );
+
 const userContext = {
     profile: {
         name:
@@ -1289,6 +1301,9 @@ ${JSON.stringify(tripData, null, 2)}
 - ให้พิจารณาความเหมาะสมของสถานที่กับทำเลที่พักด้วย
 - หลีกเลี่ยงการเลือกจุดที่ทำให้ต้องย้อนเส้นทางโดยไม่มีเหตุผล
 - ยังไม่ต้องจัด route สุดท้ายเอง เพราะ Route Optimization Algorithm จะทำหลังจากคุณเลือกสถานที่
+- หาก accommodation.locked = true ให้ถือว่าเป็นที่พักที่ผู้ใช้ยืนยันหรือจองแล้ว
+- ห้ามแนะนำ ห้ามเปลี่ยน และห้ามแทนที่ accommodation ที่ locked
+- ต้องปรับ attraction / restaurant / route ให้เข้ากับที่พักที่ locked แทน
 
 ==================================================
 3. COMBINED CANDIDATE POOL — AI 30 + TDMC 30
@@ -2365,6 +2380,9 @@ ${JSON.stringify(
                     source:
                         "ai_verified",
 
+                    locked:
+                        false,
+
                     images:
                         Array.isArray(
                             rawHotel.images
@@ -2450,6 +2468,9 @@ ${JSON.stringify(
                                     source:
                                         "ai_verified",
 
+                                    locked:
+                                        false,
+
                                     images:
                                         Array.isArray(
                                             enriched.images
@@ -2530,6 +2551,14 @@ const finalTripData = {
 
     accommodation:
         plannerAccommodation
+            ? {
+                ...plannerAccommodation,
+
+                locked:
+                    plannerAccommodation.locked ??
+                    accommodationLocked
+            }
+            : null
 };
 
 // บันทึก AI-recommended accommodation กลับเข้า chat session
