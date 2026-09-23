@@ -13,6 +13,8 @@ import {
   Wallet,
   CalendarDays,
   Check,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { THAI_REGIONS } from "@/lib/travel/thaiRegions";
@@ -626,6 +628,7 @@ function PersonalSurvey() {
   const [preferredRegion, setPreferredRegion] = useState<string[]>([]);
   const [personalityTags, setPersonalityTags] = useState<string[]>([]);
   const [foodRestrictions, setFoodRestrictions] = useState("");
+  const [showDeepSurvey, setShowDeepSurvey] = useState(false);
 
   const [atmosphere, setAtmosphere] = useState("");
   const [travelCompanion, setTravelCompanion] = useState("");
@@ -1276,7 +1279,36 @@ function PersonalSurvey() {
 
             </div>
 
-            <div className="space-y-6">
+            <button
+              type="button"
+              onClick={() =>
+                setShowDeepSurvey(
+                  current => !current
+                )
+              }
+              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#decfdf] bg-white/65 px-4 py-3.5 text-left transition hover:bg-white"
+            >
+              <div>
+                <p className="text-sm font-bold text-[#6f456f]">
+                  {showDeepSurvey
+                    ? "ซ่อนคำถามเจาะลึก"
+                    : "ตอบคำถามเจาะลึกเพิ่มเติม"}
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-[#8b7894]">
+                  ไม่จำเป็นต้องกรอก สามารถข้ามส่วนนี้และบันทึกแบบสอบถามได้เลย
+                </p>
+              </div>
+
+              {showDeepSurvey ? (
+                <ChevronUp className="h-4 w-4 shrink-0 text-[#6f456f]" />
+              ) : (
+                <ChevronDown className="h-4 w-4 shrink-0 text-[#6f456f]" />
+              )}
+            </button>
+
+            {showDeepSurvey && (
+              <div className="mt-6 space-y-6">
               {DEEP_SURVEY_DIMENSIONS.map(
                 (dimension, dimensionIndex) => (
                   <div
@@ -1384,17 +1416,20 @@ function PersonalSurvey() {
                   </div>
                 )
               )}
-            </div>
+              </div>
+            )}
 
-            <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-white/55 px-4 py-3">
-              <p className="text-xs leading-5 text-[#71697d]">
-                คำตอบส่วนนี้จะถูกใช้เป็นบริบทเสริมสำหรับ Recommendation และ AI Planner
-              </p>
+            {showDeepSurvey && (
+              <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-white/55 px-4 py-3">
+                <p className="text-xs leading-5 text-[#71697d]">
+                  คำตอบส่วนนี้จะถูกใช้เป็นบริบทเสริมสำหรับ Recommendation และ AI Planner
+                </p>
 
-              <span className="shrink-0 rounded-full bg-[#6f456f]/10 px-3 py-1 text-xs font-bold text-[#6f456f]">
-                {personalityTags.length} คำตอบ
-              </span>
-            </div>
+                <span className="shrink-0 rounded-full bg-[#6f456f]/10 px-3 py-1 text-xs font-bold text-[#6f456f]">
+                  {personalityTags.length} คำตอบ
+                </span>
+              </div>
+            )}
 
           </section>
 
