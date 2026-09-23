@@ -46,6 +46,11 @@ import {
   CircleCheck,
   TriangleAlert,
   Info,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Route as RouteIcon,
+  Clock3,
+  Check,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Fragment, useEffect, useState, useMemo } from "react";
@@ -146,33 +151,42 @@ type ItineraryRouteMode =
   | "loop"
   | "time_aware";
 
-const ITINERARY_ROUTE_MODES: Array<{
-  value: ItineraryRouteMode;
-  label: string;
-}> = [
+const ITINERARY_ROUTE_MODES = [
   {
-    value: "ai_balanced",
-    label: "✨ AI แนะนำ",
+    value: "ai_balanced" as ItineraryRouteMode,
+    label: "AI แนะนำ",
+    description: "สมดุลลำดับที่ AI จัดกับระยะทาง",
+    icon: Sparkles,
   },
   {
-    value: "near_to_far",
-    label: "🏨 ใกล้ที่พัก → ไกล",
+    value: "near_to_far" as ItineraryRouteMode,
+    label: "ใกล้ที่พัก → ไกล",
+    description: "เริ่มจากจุดใกล้ที่พักก่อน",
+    icon: ArrowUpRight,
   },
   {
-    value: "far_to_near",
-    label: "🌄 ไกลจากที่พัก → ใกล้",
+    value: "far_to_near" as ItineraryRouteMode,
+    label: "ไกลจากที่พัก → ใกล้",
+    description: "เที่ยวจุดไกลก่อนแล้วค่อยกลับ",
+    icon: ArrowDownLeft,
   },
   {
-    value: "shortest",
-    label: "🚗 ระยะทางสั้นที่สุด",
+    value: "shortest" as ItineraryRouteMode,
+    label: "ระยะทางสั้นที่สุด",
+    description: "ลดระยะทางรวมระหว่างทุกจุด",
+    icon: RouteIcon,
   },
   {
-    value: "loop",
-    label: "🔄 Loop กลับที่พัก",
+    value: "loop" as ItineraryRouteMode,
+    label: "วนกลับที่พัก",
+    description: "จัดเส้นทางเป็นวงและกลับที่พัก",
+    icon: RefreshCw,
   },
   {
-    value: "time_aware",
-    label: "⏰ ตามช่วงเวลา",
+    value: "time_aware" as ItineraryRouteMode,
+    label: "ตามช่วงเวลา",
+    description: "ให้ความสำคัญกับเวลาที่เหมาะสม",
+    icon: Clock3,
   },
 ];
 
@@ -2324,6 +2338,17 @@ const selectedHotelRouteStop =
       }
     : null;
 const [routeMode, setRouteMode] = useState<ItineraryRouteMode>("ai_balanced");
+const [routeMenuOpen, setRouteMenuOpen] = useState(false);
+
+const activeRouteMode =
+  ITINERARY_ROUTE_MODES.find(
+    option =>
+      option.value === routeMode
+  ) ??
+  ITINERARY_ROUTE_MODES[0];
+
+const ActiveRouteIcon =
+  activeRouteMode.icon;
 const [showSaveTripModal, setShowSaveTripModal] = useState(false);
 const [tripTitle, setTripTitle] = useState("");
 const [appAlert, setAppAlert] = useState<{
@@ -4785,9 +4810,9 @@ mapCenter;
   {/* HEADER */}
       <div>
 
-  <div className="flex items-start justify-between">
+  <div className="flex items-center justify-between gap-4">
 
-    <div>
+    <div className="min-w-0">
   <h1 className="text-xl font-bold">
   Trip to {tripInput.province}
 </h1>
@@ -4812,27 +4837,35 @@ mapCenter;
       await loadHotels();
     }
   }}
+  aria-label={
+    selectedHotel
+      ? "เปลี่ยนที่พัก"
+      : "เพิ่มที่พัก"
+  }
+  title={
+    selectedHotel
+      ? "เปลี่ยนที่พัก"
+      : "เพิ่มที่พัก"
+  }
   className="
     travel-hotel-button
     flex
+    h-10
+    w-10
     items-center
-    gap-2
-    px-4
-    py-2.5
+    justify-center
     rounded-xl
     border
-    text-sm
-    font-medium
+    border-[#e5dbe8]
+    bg-[#fffdfb]
+    text-[#6f456f]
+    shadow-sm
+    transition
+    hover:border-[#cdbbd2]
+    hover:bg-[#f8f2f9]
   "
 >
-  <Hotel size={16} />
-  {selectedHotel
-    ? (
-        selectedHotel.acc_name_th ??
-        selectedHotel.acc_name_en ??
-        "ที่พัก"
-      )
-    : "เพิ่มที่พัก"}
+  <Hotel size={18} />
 </button>
 
   {hotelModal && (
@@ -4984,8 +5017,14 @@ justify-center
 </div>
 
 
-<div className="text-xs text-gray-400">
-⭐ {hotel.star_level ?? "-"}
+<div className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+  <Star
+    size={12}
+    strokeWidth={1.8}
+  />
+  <span>
+    {hotel.star_level ?? "-"}
+  </span>
 </div>
 
 </div>
@@ -5004,80 +5043,279 @@ justify-center
 
   </div>
 
-<div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+<div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-stretch">
   <div
     className="
+      min-w-0
+      flex-1
       rounded-2xl
       border
       border-[#eadfeb]
-      bg-white/70
+      bg-[#fffdfb]
       px-4
       py-3
+      shadow-[0_8px_24px_rgba(87,61,99,0.04)]
     "
   >
     {selectedHotel ? (
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f1e8f3] text-[#6f456f]">
-          <Hotel size={17} />
+        <div
+          className="
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            bg-[#f2e9f4]
+            text-[#6f456f]
+          "
+        >
+          <Hotel
+            size={18}
+            strokeWidth={1.9}
+          />
         </div>
 
-        <div className="min-w-0">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a8da0]">
-            Route anchor
+        <div className="min-w-0 flex-1">
+          <div
+            className="
+              text-[10px]
+              font-semibold
+              uppercase
+              tracking-[0.14em]
+              text-[#9a8da0]
+            "
+          >
+            ที่พักหลัก
           </div>
 
-          <div className="truncate text-sm font-bold text-[#40364b]">
+          <div className="mt-0.5 truncate text-sm font-bold text-[#40364b]">
             {selectedHotel.acc_name_th ??
               selectedHotel.acc_name_en}
           </div>
 
-          <div className="truncate text-xs text-gray-500">
+          <div className="mt-0.5 truncate text-xs text-[#85798a]">
             {selectedHotel.acc_address ??
               "ใช้เป็นจุดเริ่มและจุดกลับของแต่ละวัน"}
           </div>
         </div>
       </div>
     ) : (
-      <div className="text-sm text-[#766c7b]">
-        🏨 ยังไม่ได้เลือกที่พัก — สามารถจัดเส้นทางได้ แต่โหมดที่อิงที่พักจะทำงานได้แม่นขึ้นเมื่อเลือกที่พัก
+      <div className="flex items-center gap-3">
+        <div
+          className="
+            flex
+            h-10
+            w-10
+            shrink-0
+            items-center
+            justify-center
+            rounded-xl
+            bg-[#f2e9f4]
+            text-[#6f456f]
+          "
+        >
+          <Hotel
+            size={18}
+            strokeWidth={1.9}
+          />
+        </div>
+
+        <div>
+          <div className="text-sm font-semibold text-[#51475a]">
+            ยังไม่ได้เลือกที่พัก
+          </div>
+
+          <div className="mt-0.5 text-xs text-[#85798a]">
+            เพิ่มที่พักเพื่อให้จัดเส้นทางได้แม่นขึ้น
+          </div>
+        </div>
       </div>
     )}
   </div>
 
-  <select
-    value={routeMode}
-    onChange={(event) => {
-      applyRouteMode(
-        event.target.value as ItineraryRouteMode
-      );
-    }}
-    className="
-      h-12
-      min-w-[210px]
-      rounded-2xl
-      border
-      border-[#dfd4e1]
-      bg-white
-      px-4
-      text-sm
-      font-semibold
-      text-[#51475a]
-      outline-none
-      transition
-      focus:border-[#9b7aa7]
-    "
-  >
-    {ITINERARY_ROUTE_MODES.map(
-      option => (
-        <option
-          key={option.value}
-          value={option.value}
+  <div className="relative lg:w-[270px]">
+    <button
+      type="button"
+      onClick={() =>
+        setRouteMenuOpen(
+          open => !open
+        )
+      }
+      className="
+        flex
+        h-full
+        min-h-[66px]
+        w-full
+        items-center
+        gap-3
+        rounded-2xl
+        border
+        border-[#e5dbe8]
+        bg-[#fffdfb]
+        px-4
+        py-3
+        text-left
+        shadow-[0_8px_24px_rgba(87,61,99,0.04)]
+        transition
+        hover:border-[#cdbbd2]
+      "
+    >
+      <div
+        className="
+          flex
+          h-10
+          w-10
+          shrink-0
+          items-center
+          justify-center
+          rounded-xl
+          bg-[#f2e9f4]
+          text-[#6f456f]
+        "
+      >
+        <ActiveRouteIcon
+          size={18}
+          strokeWidth={1.9}
+        />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div
+          className="
+            text-[10px]
+            font-semibold
+            uppercase
+            tracking-[0.14em]
+            text-[#9a8da0]
+          "
         >
-          {option.label}
-        </option>
-      )
+          รูปแบบเส้นทาง
+        </div>
+
+        <div className="mt-0.5 truncate text-sm font-bold text-[#40364b]">
+          {activeRouteMode.label}
+        </div>
+      </div>
+
+      <ChevronDown
+        size={17}
+        className={`
+          shrink-0
+          text-[#8e8193]
+          transition-transform
+          ${routeMenuOpen
+            ? "rotate-180"
+            : ""
+          }
+        `}
+      />
+    </button>
+
+    {routeMenuOpen && (
+      <div
+        className="
+          absolute
+          right-0
+          top-full
+          z-[80]
+          mt-2
+          w-full
+          min-w-[290px]
+          overflow-hidden
+          rounded-2xl
+          border
+          border-[#e5dbe8]
+          bg-[#fffdfb]
+          p-1.5
+          shadow-[0_18px_50px_rgba(70,49,80,0.16)]
+        "
+      >
+        {ITINERARY_ROUTE_MODES.map(
+          option => {
+            const OptionIcon =
+              option.icon;
+
+            const selected =
+              option.value ===
+              routeMode;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  applyRouteMode(
+                    option.value
+                  );
+
+                  setRouteMenuOpen(
+                    false
+                  );
+                }}
+                className={`
+                  flex
+                  w-full
+                  items-center
+                  gap-3
+                  rounded-xl
+                  px-3
+                  py-2.5
+                  text-left
+                  transition
+                  ${selected
+                    ? "bg-[#f3eaf5]"
+                    : "hover:bg-[#f8f4f9]"
+                  }
+                `}
+              >
+                <div
+                  className={`
+                    flex
+                    h-9
+                    w-9
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-lg
+                    ${selected
+                      ? "bg-white text-[#6f456f]"
+                      : "bg-[#f3eef4] text-[#7c6d82]"
+                    }
+                  `}
+                >
+                  <OptionIcon
+                    size={17}
+                    strokeWidth={1.9}
+                  />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold text-[#40364b]">
+                    {option.label}
+                  </div>
+
+                  <div className="mt-0.5 text-[11px] leading-4 text-[#8c7f91]">
+                    {option.description}
+                  </div>
+                </div>
+
+                {selected && (
+                  <Check
+                    size={16}
+                    className="shrink-0 text-[#6f456f]"
+                    strokeWidth={2.2}
+                  />
+                )}
+              </button>
+            );
+          }
+        )}
+      </div>
     )}
-  </select>
+  </div>
 </div>
 
 {/* TABS */}
