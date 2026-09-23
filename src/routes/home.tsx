@@ -552,7 +552,6 @@ function AccommodationPicker({
             latitude,
             longitude,
             star_level,
-            accom_price_name,
             images
           `)
           .eq(
@@ -974,9 +973,7 @@ function AccommodationPicker({
                     ⭐{" "}
                     {hotel.star_level ??
                       "-"}
-                    {hotel.accom_price_name
-                      ? ` · ${hotel.accom_price_name}`
-                      : ""}
+
                   </div>
                 </div>
               </button>
@@ -2444,7 +2441,6 @@ const filteredHotels = useMemo(() => {
       latitude,
       longitude,
       star_level,
-      accom_price_name,
       images,
       source_url,
       booking_provider,
@@ -5317,11 +5313,6 @@ mapCenter;
                           </span>
                         )}
 
-                        {hotel.accom_price_name && (
-                          <span className="truncate">
-                            {hotel.accom_price_name}
-                          </span>
-                        )}
                       </div>
 
                       {hotel.acc_address && (
@@ -5580,11 +5571,6 @@ mapCenter;
               "ใช้เป็นจุดเริ่มและจุดกลับของแต่ละวัน"}
           </div>
 
-          <div className="mt-1 text-[11px] font-medium text-[#6f456f]">
-            {selectedHotel.locked
-              ? "ใช้เป็นจุดอ้างอิงของทริป และ AI จะไม่เปลี่ยนที่พักนี้"
-              : "เป็นคำแนะนำชั่วคราว เปลี่ยนได้เมื่อคุณมีที่พักจริง"}
-          </div>
         </div>
       </div>
     ) : (
