@@ -51,6 +51,8 @@ import {
   Route as RouteIcon,
   Clock3,
   Check,
+  Link2,
+  Pencil,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Fragment, useEffect, useState, useMemo } from "react";
@@ -2283,6 +2285,9 @@ const [showAllDays, setShowAllDays] = useState(false);
 const [hotelSearch, setHotelSearch] = useState("");
 const [hotels, setHotels] = useState<any[]>([]);
 const [hotelLoading, setHotelLoading] = useState(false);
+const [hotelLinkUrl, setHotelLinkUrl] = useState("");
+const [hotelLinkLoading, setHotelLinkLoading] = useState(false);
+const [hotelLinkError, setHotelLinkError] = useState("");
 const [selectedHotel, setSelectedHotel] = useState<any | null>(
   tripInput?.accommodation
     ? {
@@ -2438,7 +2443,10 @@ const filteredHotels = useMemo(() => {
       longitude,
       star_level,
       accom_price_name,
-      images
+      images,
+      source_url,
+      booking_provider,
+      data_source
 
     `)
     .eq("province_name_th", tripInput.province)
@@ -2456,6 +2464,16 @@ console.log("FIRST HOTEL:", data?.[0]);
   setHotelLoading(false);
 
 };
+
+const openHotelSelector =
+  async () => {
+    setHotelModal(true);
+    setHotelLinkError("");
+
+    if (hotels.length === 0) {
+      await loadHotels();
+    }
+  };
 
 const getDefaultTripTitle = () => {
   const destination =
@@ -4652,6 +4670,121 @@ const selectHotelForTrip = (
   );
 };
 
+const resolveHotelLinkInTripPlan =
+  async () => {
+    const url =
+      hotelLinkUrl.trim();
+
+    if (!url) {
+      setHotelLinkError(
+        "กรุณาวางลิงก์ที่พัก"
+      );
+      return;
+    }
+
+    const apiUrl =
+      (
+        import.meta.env.VITE_API_URL ||
+        (
+          import.meta.env.DEV
+            ? "http://localhost:5000"
+            : ""
+        )
+      ).replace(
+        /\/$/,
+        ""
+      );
+
+    if (!apiUrl) {
+      setHotelLinkError(
+        "ยังไม่ได้ตั้งค่า VITE_API_URL"
+      );
+      return;
+    }
+
+    setHotelLinkLoading(
+      true
+    );
+    setHotelLinkError("");
+
+    try {
+      const response =
+        await fetch(
+          `${apiUrl}/api/resolve-accommodation-link`,
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                url,
+
+                province:
+                  tripInput.province,
+              }),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data?.accommodation
+      ) {
+        throw new Error(
+          data?.error ||
+          "ไม่สามารถอ่านข้อมูลที่พักจากลิงก์ได้"
+        );
+      }
+
+      const resolvedHotel = {
+        ...data.accommodation,
+
+        source:
+          data.accommodation.source ??
+          (
+            data.accommodation
+              .booking_provider
+              ? "booking_link"
+              : "google_maps"
+          ),
+
+        source_url:
+          data.accommodation.source_url ??
+          url,
+
+        locked:
+          true,
+      };
+
+      selectHotelForTrip(
+        resolvedHotel
+      );
+
+      setHotelLinkUrl("");
+    } catch (error: any) {
+      console.error(
+        "TRIP PLAN HOTEL LINK ERROR:",
+        error
+      );
+
+      setHotelLinkError(
+        error?.message ||
+        "ไม่สามารถอ่านลิงก์ที่พักได้"
+      );
+    } finally {
+      setHotelLinkLoading(
+        false
+      );
+    }
+  };
+
 const mapPlaces = useMemo(() => {
 
   return buildRoutePlaces(
@@ -4872,19 +5005,13 @@ mapCenter;
 </div>
 <div className="relative">
   <button
-  onClick={async () => {
-    console.log("CLICK HOTEL BUTTON");
-
+  onClick={() => {
     if (hotelModal) {
       setHotelModal(false);
       return;
     }
 
-    setHotelModal(true);
-
-    if (hotels.length === 0) {
-      await loadHotels();
-    }
+    void openHotelSelector();
   }}
   aria-label={
     selectedHotel
@@ -4935,7 +5062,7 @@ mapCenter;
     right-0
     top-full
     mt-2
-    w-[360px]
+    w-[min(420px,calc(100vw-2rem))]
     rounded-2xl
     border
     shadow-xl
@@ -4943,6 +5070,97 @@ mapCenter;
     z-50
   "
 >
+      <div className="mb-4">
+        <div className="flex items-center gap-2 text-sm font-bold text-[#51475a]">
+          <Link2
+            size={16}
+            strokeWidth={1.9}
+          />
+          เพิ่มที่พักจากลิงก์
+        </div>
+
+        <p className="mt-1 text-xs leading-5 text-[#8a7d8f]">
+          วางลิงก์ Google Maps, Agoda, Booking.com หรือเว็บจองที่พัก
+        </p>
+
+        <div className="mt-2 flex gap-2">
+          <input
+            value={hotelLinkUrl}
+            onChange={event => {
+              setHotelLinkUrl(
+                event.target.value
+              );
+              setHotelLinkError("");
+            }}
+            onKeyDown={event => {
+              if (
+                event.key === "Enter" &&
+                hotelLinkUrl.trim() &&
+                !hotelLinkLoading
+              ) {
+                event.preventDefault();
+                void resolveHotelLinkInTripPlan();
+              }
+            }}
+            placeholder="วางลิงก์ที่พัก..."
+            className="
+              min-w-0
+              flex-1
+              rounded-xl
+              border
+              border-[#e4dbe6]
+              bg-white
+              px-3
+              py-2.5
+              text-sm
+              outline-none
+              focus:border-[#a887af]
+            "
+          />
+
+          <button
+            type="button"
+            onClick={() =>
+              void resolveHotelLinkInTripPlan()
+            }
+            disabled={
+              hotelLinkLoading ||
+              !hotelLinkUrl.trim()
+            }
+            className="
+              shrink-0
+              rounded-xl
+              bg-[#6f456f]
+              px-3.5
+              py-2.5
+              text-xs
+              font-semibold
+              text-white
+              transition
+              hover:bg-[#5f3b60]
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+            "
+          >
+            {hotelLinkLoading
+              ? "กำลังตรวจ..."
+              : "ใช้ลิงก์"}
+          </button>
+        </div>
+
+        {hotelLinkError && (
+          <div className="mt-2 text-xs font-medium text-red-500">
+            {hotelLinkError}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[#8b7d90]">
+        <span className="h-px flex-1 bg-[#eee6ef]" />
+        หรือเลือกจากที่พักในระบบ
+        <span className="h-px flex-1 bg-[#eee6ef]" />
+      </div>
+
       <input
         value={hotelSearch}
         onChange={(e) => setHotelSearch(e.target.value)}
@@ -5001,10 +5219,13 @@ ${selectedHotel?.acc_id === hotel.acc_id
 >
 
 {/* รูปโรงแรม */}
-{hotel.images ? (
+{Array.isArray(
+  hotel.images
+) &&
+hotel.images[0] ? (
 
 <img
-src={hotel.images}
+src={hotel.images[0]}
 alt={hotel.acc_name_th}
 
 className="
@@ -5082,8 +5303,18 @@ justify-center
   </div>
 
 <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-stretch">
-  <div
+  <button
+    type="button"
+    onClick={() =>
+      void openHotelSelector()
+    }
+    aria-label={
+      selectedHotel
+        ? "เปลี่ยนที่พักของทริป"
+        : "เลือกที่พักของทริป"
+    }
     className="
+      group
       min-w-0
       flex-1
       rounded-2xl
@@ -5092,7 +5323,14 @@ justify-center
       bg-[#fffdfb]
       px-4
       py-3
+      text-left
       shadow-[0_8px_24px_rgba(87,61,99,0.04)]
+      transition
+      hover:border-[#cdbbd2]
+      hover:shadow-[0_10px_28px_rgba(87,61,99,0.08)]
+      focus:outline-none
+      focus:ring-2
+      focus:ring-[#d9c6dd]
     "
   >
     {selectedHotel ? (
@@ -5183,7 +5421,15 @@ justify-center
         </div>
       </div>
     )}
-  </div>
+
+    <div className="mt-2 flex items-center justify-end gap-1 text-[11px] font-semibold text-[#7b657f] opacity-80 transition group-hover:opacity-100">
+      <Pencil
+        size={12}
+        strokeWidth={1.9}
+      />
+      เปลี่ยนที่พัก
+    </div>
+  </button>
 
   <div className="relative lg:w-[270px]">
     <button
