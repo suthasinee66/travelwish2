@@ -832,7 +832,7 @@ if (!isGuest) {
 const trendResearchPrompt = `
 คุณคือ TravelWish Independent Discovery AI
 
-แนะนำสถานที่ 10 แห่งในจังหวัด ${tripData.province}
+แนะนำสถานที่ 30 แห่งในจังหวัด ${tripData.province}
 จากข้อมูลผู้ใช้และข้อมูลสดจากเว็บ โดยคุณยังไม่เห็นผลจาก TDMC หรือ Recommendation Algorithm
 
 สถานที่อาจเป็นแลนด์มาร์ก คาเฟ่ ย่าน ตลาด จุดถ่ายรูป
@@ -856,9 +856,9 @@ ${JSON.stringify(tripData, null, 2)}
 - เลือกเฉพาะสถานที่หรือประสบการณ์ที่มีชื่อจริงและตรวจสอบต่อกับ Google Places ได้
 - ให้ความสำคัญกับ trend ที่เข้ากับ preference/personality ของผู้ใช้
 - ไม่ต้องเลือกสถานที่เพียงเพราะดัง ถ้าไม่เข้ากับผู้ใช้
-- ต้องคืนสถานที่ 10 รายการตาม JSON schema
+- ต้องคืนสถานที่ 30 รายการตาม JSON schema
 - ห้ามอ้างอิงหรือเดาอันดับจาก TDMC เพราะรอบนี้คุณไม่ได้รับข้อมูล TDMC
-- หลีกเลี่ยงชื่อซ้ำภายใน 10 รายการ
+- หลีกเลี่ยงชื่อซ้ำภายใน 30 รายการ
 - ตอบตาม JSON schema เท่านั้น
 `;
 
@@ -921,7 +921,7 @@ try {
                             trend &&
                             trend.name
                     )
-                    .slice(0, 10)
+                    .slice(0, 30)
         };
     }
 
@@ -945,7 +945,7 @@ const aiDiscoveryProposals =
             ? liveTrendContext.trends
             : []
     )
-        .slice(0, 10)
+        .slice(0, 30)
         .map(
             (
                 trend: any,
@@ -1107,10 +1107,10 @@ const aiDiscoveryCandidates =
             }
         )
         .filter(Boolean)
-        .slice(0, 10);
+        .slice(0, 30);
 
 console.log(
-    `🤖 AI DISCOVERY VERIFIED = ${aiDiscoveryCandidates.length}/10`
+    `🤖 AI DISCOVERY VERIFIED = ${aiDiscoveryCandidates.length}/30`
 );
 
 const ranked =
@@ -1242,7 +1242,7 @@ const prompt = `
 โดยใช้ข้อมูลผู้ใช้ทั้งหมดจริง ๆ ไม่ใช่แค่เลือกตาม ranking
 
 คุณจะได้รับ candidate จาก 2 ระบบที่ทำงานแยกจากกันก่อนหน้านี้:
-1. AI DISCOVERY 10 — AI รอบแรกหาโดยใช้ข้อมูลผู้ใช้ + ข้อมูลสดจากเว็บ โดยไม่เห็น TDMC
+1. AI DISCOVERY 30 — AI รอบแรกหาโดยใช้ข้อมูลผู้ใช้ + ข้อมูลสดจากเว็บ โดยไม่เห็น TDMC
 2. TDMC TOP 30 — Recommendation Algorithm จัดอันดับจากฐานข้อมูลโดยไม่ใช้ผล AI Discovery
 
 รอบนี้คือ FINAL DECISION
@@ -1291,7 +1291,7 @@ ${JSON.stringify(tripData, null, 2)}
 - ยังไม่ต้องจัด route สุดท้ายเอง เพราะ Route Optimization Algorithm จะทำหลังจากคุณเลือกสถานที่
 
 ==================================================
-3. COMBINED CANDIDATE POOL — AI 10 + TDMC 30
+3. COMBINED CANDIDATE POOL — AI 30 + TDMC 30
 ==================================================
 
 AI DISCOVERY:
@@ -1305,9 +1305,9 @@ TDMC:
 - source = "tdmc"
 
 จำนวนเป้าหมาย:
-- AI Discovery = 10
+- AI Discovery = 30
 - TDMC = 30
-- รวมสูงสุด = 40 candidates
+- รวมสูงสุด = 60 candidates
 
 ${JSON.stringify(combinedCandidatePool)}
 
