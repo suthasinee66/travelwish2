@@ -349,7 +349,7 @@ app.post("/api/ai", async (req, res) => {
               "auto",
             max_results:
               responseMode === "trend_context"
-                ? 30
+                ? 25
                 : 5,
             max_total_results:
               responseMode === "trend_context"
