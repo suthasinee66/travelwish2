@@ -139,8 +139,14 @@ async function searchPlaceWithGoogle(
             "places.primaryType",
             "places.nationalPhoneNumber",
             "places.websiteUri",
+            "places.googleMapsUri",
             "places.rating",
             "places.userRatingCount",
+            "places.priceLevel",
+            "places.businessStatus",
+            "places.regularOpeningHours",
+            "places.addressComponents",
+            "places.editorialSummary",
             "places.photos",
           ].join(","),
         },
@@ -311,6 +317,47 @@ async function searchPlaceWithGoogle(
       )
         ? best.photos
         : [],
+
+    google_maps_uri:
+      best.googleMapsUri ??
+      null,
+
+    primary_type:
+      best.primaryType ??
+      null,
+
+    types:
+      Array.isArray(
+        best.types
+      )
+        ? best.types
+        : [],
+
+    business_status:
+      best.businessStatus ??
+      null,
+
+    opening_hours:
+      best.regularOpeningHours ??
+      null,
+
+    address_components:
+      Array.isArray(
+        best.addressComponents
+      )
+        ? best.addressComponents
+        : null,
+
+    price_level:
+      best.priceLevel ??
+      null,
+
+    editorial_summary:
+      best.editorialSummary?.text ??
+      null,
+
+    raw_google_place:
+      best,
   };
 }
 
@@ -1017,6 +1064,89 @@ router.post(
             : (
                 existing?.visitor_count ??
                 0
+              ),
+
+        google_maps_uri:
+          verifiedPlace.google_maps_uri ??
+          existing?.google_maps_uri ??
+          null,
+
+        google_primary_type:
+          verifiedPlace.primary_type ??
+          verifiedPlace.type ??
+          existing?.google_primary_type ??
+          null,
+
+        google_types:
+          Array.isArray(
+            verifiedPlace.types
+          )
+            ? verifiedPlace.types
+            : (
+                Array.isArray(
+                  existing?.google_types
+                )
+                  ? existing.google_types
+                  : []
+              ),
+
+        google_business_status:
+          verifiedPlace.business_status ??
+          existing?.google_business_status ??
+          null,
+
+        google_opening_hours:
+          verifiedPlace.opening_hours ??
+          existing?.google_opening_hours ??
+          null,
+
+        google_address_components:
+          verifiedPlace.address_components ??
+          existing?.google_address_components ??
+          null,
+
+        google_price_level:
+          verifiedPlace.price_level ??
+          existing?.google_price_level ??
+          null,
+
+        google_editorial_summary:
+          verifiedPlace.editorial_summary ??
+          existing?.google_editorial_summary ??
+          null,
+
+        google_photo_names:
+          Array.isArray(
+            verifiedPlace.photos
+          )
+            ? verifiedPlace.photos
+                .map(
+                  photo =>
+                    photo?.name ??
+                    null
+                )
+                .filter(Boolean)
+            : (
+                Array.isArray(
+                  existing?.google_photo_names
+                )
+                  ? existing.google_photo_names
+                  : []
+              ),
+
+        google_place_data:
+          verifiedPlace.raw_google_place ??
+          existing?.google_place_data ??
+          null,
+
+        google_last_synced_at:
+          verifiedPlace.source ===
+          "google_places"
+            ? new Date()
+                .toISOString()
+            : (
+                existing?.google_last_synced_at ??
+                null
               ),
 
         data_source:
