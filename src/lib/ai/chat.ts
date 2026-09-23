@@ -1,5 +1,9 @@
 import { createPlanner } from "./planner";
 import {
+  detectProvinceInText,
+  normalizeProvinceInput,
+} from "@/lib/travel/normalizeProvince";
+import {
     generateWithSelectedModel,
     type AIModel
 } from "./ai";
@@ -119,27 +123,14 @@ const data:any = {
 
 
 // จังหวัด
-
-const provinces=[
-"เชียงใหม่",
-"เชียงราย",
-"กรุงเทพมหานคร",
-"ภูเก็ต",
-"กระบี่",
-"พังงา",
-"ชลบุรี",
-"กาญจนบุรี"
-];
-
-
-for(const p of provinces){
-
- if(text.includes(p)){
-   data.province=p;
-   break;
- }
-
-}
+//
+// รองรับชื่อจังหวัดทั้ง 77 จังหวัด
+// ชื่อย่อ/ชื่อเรียก เช่น กรุงเทพ, กทม, โคราช
+// และ typo เล็กน้อย เช่น กรุงเพท
+data.province =
+  detectProvinceInText(
+    message
+  );
 
 
 // วัน
@@ -271,7 +262,12 @@ async function updateTrip(
 
       data = {
 
-        province: data.province ?? aiData.province,
+        province:
+          data.province ??
+          normalizeProvinceInput(
+            aiData.province
+          ) ??
+          aiData.province,
         days: data.days ?? aiData.days,
         budget: data.budget ?? aiData.budget,
         companion: data.companion ?? aiData.companion,
