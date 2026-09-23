@@ -205,7 +205,7 @@ function WherePicker({
   setActiveStep: any;
   showProvinceDropdown: boolean;
   setShowProvinceDropdown: React.Dispatch<React.SetStateAction<boolean>>;
-  onComplete: () => void;
+  onComplete: (nextTrip?: any) => void;
 }) {
   console.log(tripInput.province);
   console.log(filteredProvinces);
@@ -686,62 +686,69 @@ function AccommodationPicker({
     accommodation:
       any | null
   ) => {
+    const nextAccommodation =
+      accommodation
+        ? {
+            id:
+              String(
+                accommodation.acc_id
+              ),
+
+            name:
+              accommodation.acc_name_th ??
+              accommodation.acc_name_en ??
+              "ที่พัก",
+
+            address:
+              accommodation.acc_address ??
+              null,
+
+            latitude:
+              Number(
+                accommodation.latitude
+              ),
+
+            longitude:
+              Number(
+                accommodation.longitude
+              ),
+
+            source:
+              accommodation.source ??
+              "travelwish",
+
+            source_url:
+              accommodation.source_url ??
+              null,
+
+            booking_provider:
+              accommodation.booking_provider ??
+              null,
+
+            images:
+              Array.isArray(
+                accommodation.images
+              )
+                ? accommodation.images
+                : [],
+          }
+        : null;
+
+    const nextTrip = {
+      ...tripInput,
+      accommodation:
+        nextAccommodation,
+    };
+
     setTripInput(
-      (previous: any) => ({
-        ...previous,
-
-        accommodation:
-          accommodation
-            ? {
-                id:
-                  String(
-                    accommodation.acc_id
-                  ),
-
-                name:
-                  accommodation.acc_name_th ??
-                  accommodation.acc_name_en ??
-                  "ที่พัก",
-
-                address:
-                  accommodation.acc_address ??
-                  null,
-
-                latitude:
-                  Number(
-                    accommodation.latitude
-                  ),
-
-                longitude:
-                  Number(
-                    accommodation.longitude
-                  ),
-
-                source:
-                  accommodation.source ??
-                  "travelwish",
-
-                source_url:
-                  accommodation.source_url ??
-                  null,
-
-                booking_provider:
-                  accommodation.booking_provider ??
-                  null,
-
-                images:
-                  Array.isArray(
-                    accommodation.images
-                  )
-                    ? accommodation.images
-                    : [],
-              }
-            : null
-      })
+      nextTrip
     );
 
     setTripModal(false);
-    onComplete();
+
+    onComplete(
+      nextTrip
+    );
   };
 
   return (
@@ -6331,7 +6338,128 @@ console.log(data?.[0]?.planner_json);
   .single();
 
 if (session?.trip_preferences) {
-  setTripInput(session.trip_preferences);
+  let restoredTrip =
+    session.trip_preferences as TripInput;
+
+  const savedAccommodation =
+    restoredTrip?.accommodation;
+
+  if (
+    savedAccommodation?.id &&
+    (
+      !Array.isArray(
+        savedAccommodation.images
+      ) ||
+      savedAccommodation.images.length === 0
+    )
+  ) {
+    const {
+      data: accommodationRow,
+      error: accommodationError
+    } = await supabase
+      .from("accommodation")
+      .select(`
+        acc_id,
+        acc_name_th,
+        acc_name_en,
+        acc_address,
+        latitude,
+        longitude,
+        images,
+        data_source,
+        source_url,
+        booking_provider
+      `)
+      .eq(
+        "acc_id",
+        savedAccommodation.id
+      )
+      .maybeSingle();
+
+    if (
+      !accommodationError &&
+      accommodationRow
+    ) {
+      restoredTrip = {
+        ...restoredTrip,
+
+        accommodation: {
+          ...savedAccommodation,
+
+          name:
+            accommodationRow.acc_name_th ??
+            accommodationRow.acc_name_en ??
+            savedAccommodation.name,
+
+          address:
+            accommodationRow.acc_address ??
+            savedAccommodation.address ??
+            null,
+
+          latitude:
+            Number(
+              accommodationRow.latitude ??
+              savedAccommodation.latitude
+            ),
+
+          longitude:
+            Number(
+              accommodationRow.longitude ??
+              savedAccommodation.longitude
+            ),
+
+          images:
+            Array.isArray(
+              accommodationRow.images
+            )
+              ? accommodationRow.images
+              : [],
+
+          source:
+            (
+              accommodationRow.data_source ===
+              "google_maps"
+                ? "google_maps"
+                : accommodationRow.data_source ===
+                    "booking_link"
+                  ? "booking_link"
+                  : savedAccommodation.source
+            ),
+
+          source_url:
+            accommodationRow.source_url ??
+            savedAccommodation.source_url ??
+            null,
+
+          booking_provider:
+            accommodationRow.booking_provider ??
+            savedAccommodation.booking_provider ??
+            null,
+        },
+      };
+
+      // ซ่อม session เก่าที่เคยบันทึก accommodation โดยไม่มี images
+      if (
+        currentChatId ||
+        chatId
+      ) {
+        await supabase
+          .from("chat_sessions")
+          .update({
+            trip_preferences:
+              restoredTrip,
+          })
+          .eq(
+            "id",
+            chatId
+          );
+      }
+    }
+  }
+
+  setTripInput(
+    restoredTrip
+  );
 }
 
 // โหลด AI model ของ chat นี้
@@ -6341,10 +6469,6 @@ if (
   session?.ai_model === "claude"
 ) {
   setSelectedModel(session.ai_model);
-}
-
-if (session?.trip_preferences) {
-  setTripInput(session.trip_preferences);
 }
 
 const formatted = data.map((m) => ({
@@ -6878,7 +7002,9 @@ const updateChatSessionTrip = async (
   );
 };
 
-const ensureChatSession = async (): Promise<string | null> => {
+const ensureChatSession = async (
+  tripOverride?: TripInput
+): Promise<string | null> => {
   // มี session อยู่แล้ว
   if (currentChatId) {
     return currentChatId;
@@ -6900,14 +7026,21 @@ const ensureChatSession = async (): Promise<string | null> => {
     return guestChatId;
   }
 
+  const tripToSave =
+    tripOverride ??
+    tripInput;
+
   const title =
-    buildChatTitle(tripInput);
+    buildChatTitle(
+      tripToSave
+    );
 
   console.log("🔥 CREATE CHAT SESSION");
   console.log({
     user_id: user.id,
     title,
-    trip_preferences: tripInput,
+    trip_preferences:
+      tripToSave,
     ai_model: selectedModel,
   });
 
@@ -6916,7 +7049,8 @@ const ensureChatSession = async (): Promise<string | null> => {
     .insert({
       user_id: user.id,
       title,
-      trip_preferences: tripInput,
+      trip_preferences:
+        tripToSave,
       ai_model: selectedModel,
     })
     .select()
@@ -6938,8 +7072,17 @@ const ensureChatSession = async (): Promise<string | null> => {
 
   return data.id;
 };
-const handleTripComplete = async () => {
-  const chatId = await ensureChatSession();
+const handleTripComplete = async (
+  tripOverride?: TripInput
+) => {
+  const tripToSave =
+    tripOverride ??
+    tripInput;
+
+  const chatId =
+    await ensureChatSession(
+      tripToSave
+    );
 
   if (!chatId) {
     setMessages(prev => [
@@ -6955,7 +7098,7 @@ const handleTripComplete = async () => {
 
   await updateChatSessionTrip(
     chatId,
-    tripInput
+    tripToSave
   );
 
   setMessages(prev => [
@@ -9607,8 +9750,8 @@ focus:ring-black/20
     mapCenter={mapCenter}
     chatId={currentChatId}
     onAccommodationChange={(hotel) => {
-      setTripInput(prev => ({
-        ...prev,
+      const nextTrip: TripInput = {
+        ...tripInput,
 
         accommodation:
           hotel
@@ -9657,7 +9800,20 @@ focus:ring-black/20
                     : [],
               }
             : null
-      }));
+      };
+
+      setTripInput(
+        nextTrip
+      );
+
+      if (
+        currentChatId
+      ) {
+        void updateChatSessionTrip(
+          currentChatId,
+          nextTrip
+        );
+      }
     }}
   />
 )}
