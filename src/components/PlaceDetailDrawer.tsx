@@ -5,7 +5,6 @@ import {
   ExternalLink,
   Globe2,
   Hotel,
-  Mail,
   MapPin,
   Phone,
   Star,
@@ -30,103 +29,89 @@ type Props = {
   onClose: () => void;
 };
 
-const EMPTY_VALUES = new Set(["", "-", "null", "undefined"]);
+type DetailTab = "overview" | "reviews" | "location";
 
-const LABELS: Record<string, string> = {
-  att_id: "รหัสสถานที่",
-  place_id: "รหัสร้านอาหาร",
-  google_place_id: "Google Place ID",
-  acc_id: "รหัสที่พัก",
-  name_th: "ชื่อภาษาไทย",
-  name_en: "ชื่อภาษาอังกฤษ",
-  place_name_th: "ชื่อภาษาไทย",
-  place_name_en: "ชื่อภาษาอังกฤษ",
-  acc_name_th: "ชื่อภาษาไทย",
-  acc_name_en: "ชื่อภาษาอังกฤษ",
-  detail_th: "รายละเอียด",
-  detail_en: "รายละเอียดภาษาอังกฤษ",
-  category: "หมวดหมู่",
-  type: "ประเภท",
-  place_type: "ประเภทร้าน",
-  region: "ภูมิภาค",
-  province: "จังหวัด",
-  province_name_th: "จังหวัด",
-  district: "อำเภอ/เขต",
-  subdistrict: "ตำบล/แขวง",
-  highlight: "จุดเด่น",
-  activity: "กิจกรรม",
-  activities: "กิจกรรม",
-  suitable_duration: "ระยะเวลาที่เหมาะสม",
-  travel_type: "สไตล์การท่องเที่ยว",
-  atmosphere: "บรรยากาศ",
-  budget: "งบประมาณ",
-  travel_companion: "เหมาะกับ",
-  tel: "โทรศัพท์",
-  place_phone: "โทรศัพท์",
-  email: "อีเมล",
-  website: "เว็บไซต์",
-  place_website: "เว็บไซต์",
-  facebook: "Facebook",
-  payment: "การชำระเงิน",
-  place_address: "ที่อยู่",
-  acc_address: "ที่อยู่",
-  address: "ที่อยู่",
-  star_level: "ระดับดาว",
-  accom_price_name: "ระดับราคา",
-  rating: "คะแนน",
-  user_ratings_total: "จำนวนรีวิว",
-  google_business_status: "สถานะธุรกิจ",
-  google_primary_type: "ประเภทหลัก",
-  google_types: "ประเภทจาก Google",
-  google_price_level: "ระดับราคา Google",
-  booking_provider: "ผู้ให้บริการจอง",
-  data_source: "แหล่งข้อมูล",
-  source: "แหล่งข้อมูล",
-  source_url: "ลิงก์ต้นทาง",
-  google_maps_uri: "Google Maps",
-  latitude: "ละติจูด",
-  longitude: "ลองจิจูด",
-  created_at: "สร้างเมื่อ",
-  updated_at: "อัปเดตเมื่อ",
-  google_last_synced_at: "ซิงก์ Google ล่าสุด",
-};
-
-const RESERVED_KEYS = new Set([
-  "images",
-  "image",
-  "location",
-  "name",
-  "period",
+const EMPTY_VALUES = new Set([
+  "",
+  "-",
+  "null",
+  "undefined",
+  "n/a",
+  "na",
 ]);
 
 function hasValue(value: any) {
   if (value == null) return false;
-  if (Array.isArray(value)) return value.some(hasValue);
-  if (typeof value === "object") return Object.keys(value).length > 0;
-  return !EMPTY_VALUES.has(String(value).trim().toLowerCase());
+
+  if (Array.isArray(value)) {
+    return value.some(hasValue);
+  }
+
+  if (typeof value === "object") {
+    return Object.keys(value).length > 0;
+  }
+
+  return !EMPTY_VALUES.has(
+    String(value).trim().toLowerCase()
+  );
 }
 
-function textValue(value: any): string {
+function cleanText(value: any) {
+  if (!hasValue(value)) {
+    return "";
+  }
+
   if (Array.isArray(value)) {
     return value
       .filter(hasValue)
-      .map((item) =>
-        typeof item === "object" ? JSON.stringify(item) : String(item)
-      )
+      .map((item) => String(item))
       .join(" • ");
   }
 
-  if (typeof value === "object" && value !== null) {
-    return Object.entries(value)
-      .filter(([, item]) => hasValue(item))
-      .map(([key, item]) => `${LABELS[key] ?? key}: ${textValue(item)}`)
-      .join(" • ");
-  }
-
-  return String(value ?? "");
+  return String(value);
 }
 
-function getTitle(type: PlaceDetailTargetType, data: any) {
+function normalizeUrl(value: any) {
+  if (!hasValue(value)) return null;
+
+  const url = String(value).trim();
+
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://")
+  ) {
+    return url;
+  }
+
+  return `https://${url}`;
+}
+
+function formatReviewCount(value: any) {
+  const count = Number(value);
+
+  if (!Number.isFinite(count)) {
+    return null;
+  }
+
+  if (count >= 1_000_000) {
+    return `${(count / 1_000_000).toFixed(
+      count >= 10_000_000 ? 0 : 1
+    )}m`;
+  }
+
+  if (count >= 1_000) {
+    return `${(count / 1_000).toFixed(
+      count >= 100_000 ? 0 : 1
+    )}k`;
+  }
+
+  return count.toLocaleString();
+}
+
+function getTitle(
+  type: PlaceDetailTargetType,
+  data: any
+) {
   if (type === "restaurant") {
     return (
       data?.place_name_th ??
@@ -155,10 +140,18 @@ function getTitle(type: PlaceDetailTargetType, data: any) {
   );
 }
 
-function getSubtitle(type: PlaceDetailTargetType) {
-  if (type === "restaurant") return "ร้านอาหาร";
-  if (type === "accommodation") return "ที่พัก";
-  return "สถานที่ท่องเที่ยว";
+function getTypeLabel(
+  type: PlaceDetailTargetType
+) {
+  if (type === "restaurant") {
+    return "Restaurant";
+  }
+
+  if (type === "accommodation") {
+    return "Accommodation";
+  }
+
+  return "Attraction";
 }
 
 function getAddress(data: any) {
@@ -174,15 +167,30 @@ function getAddress(data: any) {
   return [
     data?.subdistrict,
     data?.district,
-    data?.province ?? data?.province_name_th,
+    data?.province ??
+      data?.province_name_th,
   ]
     .filter(hasValue)
-    .join(" ");
+    .join(", ");
+}
+
+function getLocationSummary(data: any) {
+  const parts = [
+    data?.district,
+    data?.province ??
+      data?.province_name_th,
+  ]
+    .filter(hasValue)
+    .map(String);
+
+  return Array.from(new Set(parts)).join(", ");
 }
 
 function getImages(data: any) {
   const candidates = [
-    ...(Array.isArray(data?.images) ? data.images : []),
+    ...(Array.isArray(data?.images)
+      ? data.images
+      : []),
     data?.image,
   ];
 
@@ -190,17 +198,22 @@ function getImages(data: any) {
     new Set(
       candidates.filter(
         (value): value is string =>
-          typeof value === "string" && value.trim().length > 0
+          typeof value === "string" &&
+          value.trim().length > 0
       )
     )
   );
 }
 
-async function loadFullRecord(target: PlaceDetailTarget) {
+async function loadFullRecord(
+  target: PlaceDetailTarget
+) {
   const data = target.data ?? {};
 
   if (target.type === "attraction") {
-    const id = data.att_id ?? data.place_id;
+    const id =
+      data.att_id ?? data.place_id;
+
     if (!id) return data;
 
     const result = await supabase
@@ -209,7 +222,9 @@ async function loadFullRecord(target: PlaceDetailTarget) {
       .eq("att_id", String(id))
       .maybeSingle();
 
-    return result.data ? { ...data, ...result.data } : data;
+    return result.data
+      ? { ...data, ...result.data }
+      : data;
   }
 
   if (target.type === "restaurant") {
@@ -227,21 +242,32 @@ async function loadFullRecord(target: PlaceDetailTarget) {
       .maybeSingle();
 
     if (byPlaceId.data) {
-      return { ...data, ...byPlaceId.data };
+      return {
+        ...data,
+        ...byPlaceId.data,
+      };
     }
 
     const byGoogleId = await supabase
       .from("restaurant")
       .select("*")
-      .eq("google_place_id", String(placeId))
+      .eq(
+        "google_place_id",
+        String(placeId)
+      )
       .maybeSingle();
 
     return byGoogleId.data
-      ? { ...data, ...byGoogleId.data }
+      ? {
+          ...data,
+          ...byGoogleId.data,
+        }
       : data;
   }
 
-  const accId = data.acc_id ?? data.id;
+  const accId =
+    data.acc_id ?? data.id;
+
   if (!accId) return data;
 
   const result = await supabase
@@ -250,26 +276,85 @@ async function loadFullRecord(target: PlaceDetailTarget) {
     .eq("acc_id", String(accId))
     .maybeSingle();
 
-  return result.data ? { ...data, ...result.data } : data;
+  return result.data
+    ? { ...data, ...result.data }
+    : data;
 }
 
-function DetailRow({
+function InfoItem({
+  icon,
   label,
   value,
+  href,
 }: {
+  icon: React.ReactNode;
   label: string;
-  value: any;
+  value: string;
+  href?: string | null;
 }) {
-  if (!hasValue(value)) return null;
+  if (!value) return null;
+
+  const body = (
+    <>
+      <div className="mt-0.5 shrink-0 text-[#6f456f]">
+        {icon}
+      </div>
+
+      <div className="min-w-0">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a093a4]">
+          {label}
+        </div>
+
+        <div className="mt-1 break-words text-sm font-medium leading-6 text-[#4e4453]">
+          {value}
+        </div>
+      </div>
+
+      {href && (
+        <ExternalLink
+          size={15}
+          className="ml-auto mt-1 shrink-0 text-[#a093a4]"
+        />
+      )}
+    </>
+  );
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        target={
+          href.startsWith("tel:")
+            ? undefined
+            : "_blank"
+        }
+        rel={
+          href.startsWith("tel:")
+            ? undefined
+            : "noreferrer"
+        }
+        className="flex min-w-0 items-start gap-3 rounded-2xl p-3 transition hover:bg-[#faf7fb]"
+      >
+        {body}
+      </a>
+    );
+  }
 
   return (
-    <div className="grid gap-1 border-b border-[#efe7ef] py-3 last:border-b-0 sm:grid-cols-[170px_minmax(0,1fr)] sm:gap-4">
-      <div className="text-xs font-semibold text-[#9a8da0]">
-        {label}
-      </div>
-      <div className="break-words text-sm leading-6 text-[#51475a]">
-        {textValue(value)}
-      </div>
+    <div className="flex min-w-0 items-start gap-3 rounded-2xl p-3">
+      {body}
+    </div>
+  );
+}
+
+function EmptyState({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-[180px] items-center justify-center rounded-[24px] border border-dashed border-[#ded5e0] bg-[#fcfafc] px-6 text-center text-sm leading-6 text-[#948798]">
+      {children}
     </div>
   );
 }
@@ -279,32 +364,54 @@ export default function PlaceDetailDrawer({
   target,
   onClose,
 }: Props) {
-  const [record, setRecord] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [imageIndex, setImageIndex] = useState(0);
+  const [record, setRecord] =
+    useState<any>(null);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [activeTab, setActiveTab] =
+    useState<DetailTab>("overview");
+
+  const [mainImageIndex, setMainImageIndex] =
+    useState(0);
+
+  const [descriptionExpanded, setDescriptionExpanded] =
+    useState(false);
 
   useEffect(() => {
     let active = true;
 
     if (!open || !target) {
       setRecord(null);
-      setImageIndex(0);
+      setMainImageIndex(0);
+      setActiveTab("overview");
+      setDescriptionExpanded(false);
       return;
     }
 
     setRecord(target.data ?? {});
-    setImageIndex(0);
+    setMainImageIndex(0);
+    setActiveTab("overview");
+    setDescriptionExpanded(false);
     setLoading(true);
 
     loadFullRecord(target)
       .then((data) => {
-        if (active) setRecord(data);
+        if (active) {
+          setRecord(data);
+        }
       })
       .catch((error) => {
-        console.warn("LOAD PLACE DETAIL ERROR:", error);
+        console.warn(
+          "LOAD PLACE DETAIL ERROR:",
+          error
+        );
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -315,89 +422,266 @@ export default function PlaceDetailDrawer({
   useEffect(() => {
     if (!open) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const previousOverflow =
+      document.body.style.overflow;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+    document.body.style.overflow =
+      "hidden";
+
+    const handleKeyDown = (
+      event: KeyboardEvent
+    ) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
 
     return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow =
+        previousOverflow;
+
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
     };
   }, [open, onClose]);
 
-  const data = record ?? target?.data ?? {};
-  const type = target?.type ?? "attraction";
+  const data =
+    record ?? target?.data ?? {};
+
+  const type =
+    target?.type ?? "attraction";
+
   const title = getTitle(type, data);
-  const subtitle = getSubtitle(type);
+  const typeLabel = getTypeLabel(type);
   const images = getImages(data);
   const address = getAddress(data);
+  const locationSummary =
+    getLocationSummary(data);
 
   const description =
     data?.detail_th ??
     data?.detail_en ??
     data?.description ??
-    data?.highlight;
+    data?.highlight ??
+    "";
 
   const rating =
-    data?.rating != null && Number.isFinite(Number(data.rating))
+    data?.rating != null &&
+    Number.isFinite(Number(data.rating))
       ? Number(data.rating)
       : null;
 
-  const phone = data?.place_phone ?? data?.tel ?? data?.phone;
-  const email = data?.email;
-  const website =
+  const reviewCount =
+    formatReviewCount(
+      data?.user_ratings_total
+    );
+
+  const phone =
+    data?.place_phone ??
+    data?.tel ??
+    data?.phone ??
+    null;
+
+  const websiteValue =
     data?.place_website ??
     data?.website ??
-    data?.source_url;
+    data?.facebook ??
+    data?.source_url ??
+    null;
 
-  const latitude = Number(data?.latitude ?? data?.location?.latitude);
-  const longitude = Number(data?.longitude ?? data?.location?.longitude);
+  const website =
+    normalizeUrl(websiteValue);
+
+  const latitude = Number(
+    data?.latitude ??
+      data?.location?.latitude
+  );
+
+  const longitude = Number(
+    data?.longitude ??
+      data?.location?.longitude
+  );
+
   const hasCoordinates =
-    Number.isFinite(latitude) && Number.isFinite(longitude);
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
 
-  const visibleEntries = useMemo(() => {
-    const hidden = new Set([
-      ...RESERVED_KEYS,
-      "detail_th",
-      "detail_en",
-      "description",
-      "place_address",
-      "acc_address",
-      "address",
-      "rating",
-      "user_ratings_total",
-      "place_phone",
-      "tel",
-      "phone",
-      "email",
-      "place_website",
-      "website",
-      "source_url",
-    ]);
+  const mapsUrl = useMemo(() => {
+    if (
+      hasValue(
+        data?.google_maps_uri
+      )
+    ) {
+      return String(
+        data.google_maps_uri
+      );
+    }
 
-    return Object.entries(data ?? {})
-      .filter(([key, value]) => !hidden.has(key) && hasValue(value))
-      .sort(([a], [b]) => a.localeCompare(b));
-  }, [data]);
+    if (hasCoordinates) {
+      return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+    }
+
+    if (address) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        address
+      )}`;
+    }
+
+    return null;
+  }, [
+    data?.google_maps_uri,
+    hasCoordinates,
+    latitude,
+    longitude,
+    address,
+  ]);
+
+  const categoryChips =
+    useMemo(() => {
+      const values: string[] = [];
+
+      if (type === "attraction") {
+        if (Array.isArray(data?.category)) {
+          values.push(
+            ...data.category
+              .filter(hasValue)
+              .map(String)
+          );
+        }
+
+        if (hasValue(data?.type)) {
+          values.push(String(data.type));
+        }
+
+        if (
+          hasValue(
+            data?.suitable_duration
+          )
+        ) {
+          values.push(
+            `ใช้เวลาประมาณ ${data.suitable_duration}`
+          );
+        }
+      }
+
+      if (type === "restaurant") {
+        if (hasValue(data?.place_type)) {
+          values.push(
+            cleanText(data.place_type)
+          );
+        }
+
+        if (
+          hasValue(
+            data?.google_primary_type
+          )
+        ) {
+          values.push(
+            String(
+              data.google_primary_type
+            )
+              .replaceAll("_", " ")
+          );
+        }
+      }
+
+      if (type === "accommodation") {
+        if (hasValue(data?.star_level)) {
+          values.push(
+            `${data.star_level} ดาว`
+          );
+        }
+
+        if (
+          hasValue(
+            data?.accom_price_name
+          )
+        ) {
+          values.push(
+            String(
+              data.accom_price_name
+            )
+          );
+        }
+      }
+
+      return Array.from(
+        new Set(
+          values
+            .map((value) =>
+              value.trim()
+            )
+            .filter(Boolean)
+        )
+      ).slice(0, 3);
+    }, [data, type]);
 
   const TypeIcon =
     type === "restaurant"
       ? Utensils
       : type === "accommodation"
         ? Hotel
-        : MapPin;
+        : Building2;
+
+  const selectedImage =
+    images[
+      Math.min(
+        mainImageIndex,
+        Math.max(
+          images.length - 1,
+          0
+        )
+      )
+    ];
+
+  const galleryThumbs =
+    images
+      .map((src, index) => ({
+        src,
+        index,
+      }))
+      .filter(
+        ({ index }) =>
+          index !== mainImageIndex
+      )
+      .slice(0, 4);
+
+  const tabs: Array<{
+    id: DetailTab;
+    label: string;
+  }> = [
+    {
+      id: "overview",
+      label: "Overview",
+    },
+    {
+      id: "reviews",
+      label: "Reviews",
+    },
+    {
+      id: "location",
+      label: "Location",
+    },
+  ];
+
+  const longDescription =
+    String(description).length > 430;
 
   return (
     <div
       className={`
         fixed inset-0 z-[320]
         transition
-        ${open ? "pointer-events-auto" : "pointer-events-none"}
+        ${open
+          ? "pointer-events-auto"
+          : "pointer-events-none"}
       `}
       aria-hidden={!open}
     >
@@ -406,269 +690,503 @@ export default function PlaceDetailDrawer({
         aria-label="ปิดรายละเอียด"
         onClick={onClose}
         className={`
-          absolute inset-0 bg-[#302b43]/25
+          absolute inset-0 bg-[#302b43]/30
           transition-opacity duration-300
-          ${open ? "opacity-100" : "opacity-0"}
+          ${open
+            ? "opacity-100"
+            : "opacity-0"}
         `}
       />
 
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label={`รายละเอียด${subtitle}`}
+        aria-label={`รายละเอียด ${title}`}
         className={`
-          absolute right-0 top-0 h-[100dvh]
-          w-full sm:w-[min(900px,92vw)] lg:w-[min(960px,72vw)]
-          overflow-y-auto border-l border-[#e7dce9]
+          absolute right-0 top-0
+          h-[100dvh]
+          w-full
+          overflow-y-auto
+          border-l border-[#e8e1e9]
           bg-[#fffdfb]
-          shadow-[-24px_0_70px_rgba(63,45,76,0.20)]
+          shadow-[-28px_0_80px_rgba(59,43,67,0.20)]
           transition-transform duration-300 ease-out
-          ${open ? "translate-x-0" : "translate-x-full"}
+          sm:w-[min(900px,92vw)]
+          lg:w-[min(940px,72vw)]
+          ${open
+            ? "translate-x-0"
+            : "translate-x-full"}
         `}
       >
-        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[#eadfeb] bg-[#fffdfb]/95 px-4 py-3 backdrop-blur sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#f2e9f4] text-[#6f456f]">
-              <TypeIcon size={19} />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs font-bold uppercase tracking-[0.12em] text-[#9a819f]">
-                {subtitle}
-              </div>
-              <div className="truncate text-sm font-semibold text-[#493c50]">
-                {title}
-              </div>
-            </div>
-          </div>
-
+        <div className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-[#eee8ef] bg-[#fffdfb]/96 px-4 backdrop-blur-md sm:px-6">
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#6f456f] transition hover:bg-[#f3edf4]"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e9e2ea] bg-white text-[#3f3545] shadow-sm transition hover:bg-[#f8f4f8]"
             aria-label="ปิด"
           >
             <X size={20} />
           </button>
+
+          {loading && (
+            <div className="rounded-full bg-[#f6f1f7] px-3 py-1.5 text-[11px] font-medium text-[#8d7d91]">
+              กำลังโหลดข้อมูล...
+            </div>
+          )}
+
+          {mapsUrl ? (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-full bg-[#573d63] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#684974]"
+            >
+              <MapPin size={16} />
+              <span className="hidden sm:inline">
+                เปิดแผนที่
+              </span>
+            </a>
+          ) : (
+            <div className="h-10 w-10" />
+          )}
         </div>
 
-        <div className="mx-auto w-full max-w-5xl px-4 pb-12 pt-4 sm:px-6 sm:pt-6">
-          {images.length > 0 ? (
-            <div className="overflow-hidden rounded-[28px] border border-[#eadfeb] bg-[#f2edf3]">
-              <div className="relative aspect-[16/9] max-h-[460px] w-full">
-                <img
-                  src={images[Math.min(imageIndex, images.length - 1)]}
-                  alt={title}
-                  className="h-full w-full object-cover"
-                />
-
-                {images.length > 1 && (
-                  <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-3 py-1 text-xs font-semibold text-white">
-                    {Math.min(imageIndex + 1, images.length)} / {images.length}
-                  </div>
-                )}
-              </div>
-
-              {images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto p-3">
-                  {images.map((src, index) => (
-                    <button
-                      key={`${src}-${index}`}
-                      type="button"
-                      onClick={() => setImageIndex(index)}
-                      className={`
-                        h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2
-                        ${index === imageIndex
-                          ? "border-[#6f456f]"
-                          : "border-transparent"}
-                      `}
-                    >
-                      <img
-                        src={src}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex aspect-[16/7] max-h-[300px] items-center justify-center rounded-[28px] border border-[#eadfeb] bg-[#f4eef5] text-[#9b869f]">
-              <TypeIcon size={42} strokeWidth={1.5} />
-            </div>
-          )}
-
-          <div className="mt-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-[#f2e9f4] px-3 py-1 text-xs font-bold text-[#6f456f]">
-                  <TypeIcon size={13} />
-                  {subtitle}
-                </div>
-                <h2 className="text-2xl font-bold leading-tight text-[#3f3545] sm:text-3xl">
+        <div className="mx-auto w-full max-w-[900px] px-4 pb-14 pt-7 sm:px-7 lg:px-8">
+          <section>
+            <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-[26px] font-bold leading-[1.22] tracking-[-0.02em] text-[#241f26] sm:text-[34px]">
                   {title}
-                </h2>
-              </div>
+                </h1>
 
-              {rating != null && (
-                <div className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-[#eadfeb] bg-white px-3 py-2 text-sm font-bold text-[#6f456f]">
-                  <Star size={16} fill="currentColor" />
-                  {rating.toFixed(1)}
-                  {data?.user_ratings_total != null && (
-                    <span className="font-normal text-[#9a8da0]">
-                      ({Number(data.user_ratings_total).toLocaleString()})
-                    </span>
+                <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-[#827883]">
+                  {rating != null && (
+                    <>
+                      <div className="inline-flex items-center gap-1.5 font-semibold text-[#3e3541]">
+                        <Star
+                          size={16}
+                          fill="#d8a536"
+                          className="text-[#d8a536]"
+                        />
+                        {rating.toFixed(1)}
+                      </div>
+
+                      {reviewCount && (
+                        <>
+                          <span>•</span>
+                          <span>
+                            {reviewCount} reviews
+                          </span>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {locationSummary && (
+                    <>
+                      {(rating != null ||
+                        reviewCount) && (
+                        <span>•</span>
+                      )}
+                      <span>
+                        {locationSummary}
+                      </span>
+                    </>
                   )}
                 </div>
-              )}
-            </div>
 
-            {address && (
-              <div className="mt-3 flex items-start gap-2 text-sm leading-6 text-[#746979]">
-                <MapPin size={17} className="mt-1 shrink-0 text-[#6f456f]" />
-                <span>{address}</span>
-              </div>
-            )}
-          </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f3eef4] px-3 py-1.5 text-xs font-semibold text-[#5d4a62]">
+                    <TypeIcon size={13} />
+                    {typeLabel}
+                  </span>
 
-          {(description || data?.highlight) && (
-            <section className="mt-6 rounded-[24px] border border-[#eadfeb] bg-white p-5 sm:p-6">
-              <h3 className="text-base font-bold text-[#493c50]">
-                เกี่ยวกับสถานที่
-              </h3>
-              {description && (
-                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-[#6f6474]">
-                  {String(description)}
-                </p>
-              )}
-              {data?.highlight && data.highlight !== description && (
-                <p className="mt-3 rounded-2xl bg-[#faf6fb] p-4 text-sm leading-6 text-[#6f6474]">
-                  {String(data.highlight)}
-                </p>
-              )}
-            </section>
-          )}
-
-          {(phone || email || website || hasCoordinates) && (
-            <section className="mt-5 grid gap-3 sm:grid-cols-2">
-              {phone && (
-                <a
-                  href={`tel:${phone}`}
-                  className="flex items-center gap-3 rounded-2xl border border-[#eadfeb] bg-white p-4 transition hover:bg-[#fbf8fc]"
-                >
-                  <Phone size={18} className="text-[#6f456f]" />
-                  <div className="min-w-0">
-                    <div className="text-xs text-[#9a8da0]">โทรศัพท์</div>
-                    <div className="truncate text-sm font-semibold text-[#51475a]">
-                      {String(phone)}
-                    </div>
-                  </div>
-                </a>
-              )}
-
-              {email && (
-                <a
-                  href={`mailto:${email}`}
-                  className="flex items-center gap-3 rounded-2xl border border-[#eadfeb] bg-white p-4 transition hover:bg-[#fbf8fc]"
-                >
-                  <Mail size={18} className="text-[#6f456f]" />
-                  <div className="min-w-0">
-                    <div className="text-xs text-[#9a8da0]">อีเมล</div>
-                    <div className="truncate text-sm font-semibold text-[#51475a]">
-                      {String(email)}
-                    </div>
-                  </div>
-                </a>
-              )}
-
-              {website && (
-                <a
-                  href={String(website)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 rounded-2xl border border-[#eadfeb] bg-white p-4 transition hover:bg-[#fbf8fc]"
-                >
-                  <Globe2 size={18} className="text-[#6f456f]" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs text-[#9a8da0]">เว็บไซต์</div>
-                    <div className="truncate text-sm font-semibold text-[#51475a]">
-                      เปิดเว็บไซต์
-                    </div>
-                  </div>
-                  <ExternalLink size={15} className="text-[#9a8da0]" />
-                </a>
-              )}
-
-              {hasCoordinates && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-3 rounded-2xl border border-[#eadfeb] bg-white p-4 transition hover:bg-[#fbf8fc]"
-                >
-                  <MapPin size={18} className="text-[#6f456f]" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs text-[#9a8da0]">แผนที่</div>
-                    <div className="truncate text-sm font-semibold text-[#51475a]">
-                      เปิดใน Google Maps
-                    </div>
-                  </div>
-                  <ExternalLink size={15} className="text-[#9a8da0]" />
-                </a>
-              )}
-            </section>
-          )}
-
-          <section className="mt-5 rounded-[24px] border border-[#eadfeb] bg-white px-5 py-2 sm:px-6">
-            <div className="flex items-center gap-2 py-4">
-              <Building2 size={18} className="text-[#6f456f]" />
-              <h3 className="text-base font-bold text-[#493c50]">
-                ข้อมูลทั้งหมด
-              </h3>
-              {loading && (
-                <span className="ml-auto text-xs text-[#9a8da0]">
-                  กำลังโหลดข้อมูลล่าสุด...
-                </span>
-              )}
-            </div>
-
-            <DetailRow label="ที่อยู่" value={address} />
-            <DetailRow label="คะแนน" value={rating} />
-            <DetailRow
-              label="จำนวนรีวิว"
-              value={data?.user_ratings_total}
-            />
-            <DetailRow label="โทรศัพท์" value={phone} />
-            <DetailRow label="อีเมล" value={email} />
-            <DetailRow label="เว็บไซต์" value={website} />
-
-            {visibleEntries.map(([key, value]) => (
-              <DetailRow
-                key={key}
-                label={LABELS[key] ?? key.replaceAll("_", " ")}
-                value={value}
-              />
-            ))}
-
-            {!loading &&
-              !address &&
-              rating == null &&
-              !phone &&
-              !email &&
-              !website &&
-              visibleEntries.length === 0 && (
-                <div className="py-8 text-center text-sm text-[#9a8da0]">
-                  ยังไม่มีข้อมูลรายละเอียดเพิ่มเติม
+                  {categoryChips.map(
+                    (chip) => (
+                      <span
+                        key={chip}
+                        className="rounded-full border border-[#ebe4ec] bg-white px-3 py-1.5 text-xs font-medium text-[#766a79]"
+                      >
+                        {chip}
+                      </span>
+                    )
+                  )}
                 </div>
-              )}
+              </div>
+            </div>
           </section>
 
-          {data?.suitable_duration && (
-            <div className="mt-4 flex items-center gap-2 text-xs text-[#8c7e91]">
-              <Clock3 size={14} />
-              ระยะเวลาที่เหมาะสม: {textValue(data.suitable_duration)}
+          <section className="mt-7">
+            {selectedImage ? (
+              <>
+                <div className="hidden h-[390px] grid-cols-12 grid-rows-2 gap-2.5 sm:grid">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMainImageIndex(
+                        mainImageIndex
+                      )
+                    }
+                    className="col-span-7 row-span-2 overflow-hidden rounded-l-[24px] rounded-r-xl bg-[#f1edf2]"
+                  >
+                    <img
+                      src={selectedImage}
+                      alt={title}
+                      className="h-full w-full object-cover transition duration-300 hover:scale-[1.01]"
+                    />
+                  </button>
+
+                  {galleryThumbs.length >
+                  0 ? (
+                    galleryThumbs.map(
+                      (
+                        image,
+                        thumbIndex
+                      ) => (
+                        <button
+                          key={`${image.src}-${image.index}`}
+                          type="button"
+                          onClick={() =>
+                            setMainImageIndex(
+                              image.index
+                            )
+                          }
+                          className={`
+                            col-span-5 overflow-hidden bg-[#f1edf2]
+                            ${thumbIndex === 0
+                              ? "rounded-tr-[24px]"
+                              : ""}
+                            ${thumbIndex ===
+                            galleryThumbs.length -
+                              1
+                              ? "rounded-br-[24px]"
+                              : ""}
+                          `}
+                        >
+                          <img
+                            src={image.src}
+                            alt=""
+                            className="h-full w-full object-cover transition duration-300 hover:scale-[1.02]"
+                          />
+                        </button>
+                      )
+                    )
+                  ) : (
+                    <div className="col-span-5 row-span-2 flex items-center justify-center rounded-r-[24px] bg-[#f4f0f4] text-[#a092a4]">
+                      <TypeIcon
+                        size={34}
+                        strokeWidth={1.4}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="sm:hidden">
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] bg-[#f1edf2]">
+                    <img
+                      src={selectedImage}
+                      alt={title}
+                      className="h-full w-full object-cover"
+                    />
+
+                    {images.length > 1 && (
+                      <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white">
+                        {mainImageIndex + 1} /{" "}
+                        {images.length}
+                      </div>
+                    )}
+                  </div>
+
+                  {images.length > 1 && (
+                    <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
+                      {images.map(
+                        (src, index) => (
+                          <button
+                            key={`${src}-${index}`}
+                            type="button"
+                            onClick={() =>
+                              setMainImageIndex(
+                                index
+                              )
+                            }
+                            className={`
+                              h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2
+                              ${index ===
+                              mainImageIndex
+                                ? "border-[#6f456f]"
+                                : "border-transparent"}
+                            `}
+                          >
+                            <img
+                              src={src}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="flex aspect-[16/7] max-h-[320px] items-center justify-center rounded-[24px] bg-[#f4f0f4] text-[#9c8fa0]">
+                <TypeIcon
+                  size={42}
+                  strokeWidth={1.4}
+                />
+              </div>
+            )}
+          </section>
+
+          <nav className="mt-7 flex gap-7 border-b border-[#e8e1e9]">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() =>
+                  setActiveTab(tab.id)
+                }
+                className={`
+                  relative pb-3 text-sm font-medium transition
+                  ${activeTab === tab.id
+                    ? "text-[#271f2a]"
+                    : "text-[#8d818f] hover:text-[#554b58]"}
+                `}
+              >
+                {tab.label}
+
+                {activeTab === tab.id && (
+                  <span className="absolute inset-x-0 bottom-[-1px] h-[2px] rounded-full bg-[#573d63]" />
+                )}
+              </button>
+            ))}
+          </nav>
+
+          {activeTab === "overview" && (
+            <div className="pt-6">
+              {hasValue(description) && (
+                <section>
+                  <p
+                    className={`
+                      whitespace-pre-line text-[15px] leading-7 text-[#564c59]
+                      ${!descriptionExpanded &&
+                      longDescription
+                        ? "line-clamp-6"
+                        : ""}
+                    `}
+                  >
+                    {String(description)}
+                  </p>
+
+                  {longDescription && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDescriptionExpanded(
+                          (value) => !value
+                        )
+                      }
+                      className="mt-2 text-sm font-semibold text-[#573d63] hover:underline"
+                    >
+                      {descriptionExpanded
+                        ? "ย่อรายละเอียด"
+                        : "อ่านเพิ่มเติม"}
+                    </button>
+                  )}
+                </section>
+              )}
+
+              {(address ||
+                website ||
+                phone) && (
+                <section className="mt-6 rounded-[24px] border border-[#e9e2ea] bg-white p-2 shadow-[0_10px_30px_rgba(72,54,80,0.04)]">
+                  <div className="grid sm:grid-cols-2 sm:divide-x sm:divide-[#eee8ef]">
+                    <div className="space-y-1">
+                      {address && (
+                        <InfoItem
+                          icon={
+                            <MapPin
+                              size={19}
+                            />
+                          }
+                          label="Address"
+                          value={address}
+                          href={mapsUrl}
+                        />
+                      )}
+                    </div>
+
+                    <div className="space-y-1 sm:pl-2">
+                      {website && (
+                        <InfoItem
+                          icon={
+                            <Globe2
+                              size={19}
+                            />
+                          }
+                          label="Website"
+                          value={String(
+                            websiteValue
+                          )}
+                          href={website}
+                        />
+                      )}
+
+                      {phone && (
+                        <InfoItem
+                          icon={
+                            <Phone
+                              size={19}
+                            />
+                          }
+                          label="Phone"
+                          value={String(phone)}
+                          href={`tel:${phone}`}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {mapsUrl && address && (
+                    <div className="px-3 pb-3 pt-1">
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-[#e6dee8] bg-[#fcfafc] px-3.5 py-2 text-xs font-semibold text-[#574d5a] transition hover:bg-[#f5eff6]"
+                      >
+                        <MapPin size={14} />
+                        เปิดใน Google Maps
+                        <ExternalLink
+                          size={13}
+                        />
+                      </a>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {!hasValue(description) &&
+                !address &&
+                !website &&
+                !phone && (
+                  <EmptyState>
+                    ยังไม่มีข้อมูล Overview
+                    เพิ่มเติมสำหรับสถานที่นี้
+                  </EmptyState>
+                )}
             </div>
           )}
+
+          {activeTab === "reviews" && (
+            <div className="pt-6">
+              {rating != null ? (
+                <section className="rounded-[24px] border border-[#e9e2ea] bg-white p-5 sm:p-6">
+                  <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+                    <div className="text-5xl font-bold tracking-[-0.04em] text-[#241f26]">
+                      {rating.toFixed(1)}
+                    </div>
+
+                    <div className="pb-1">
+                      <div className="flex items-center gap-1">
+                        <Star
+                          size={17}
+                          fill="#d8a536"
+                          className="text-[#d8a536]"
+                        />
+                        <span className="text-sm font-semibold text-[#443b47]">
+                          {rating >= 4.5
+                            ? "Excellent"
+                            : rating >= 4
+                              ? "Very good"
+                              : rating >= 3
+                                ? "Good"
+                                : "Rating"}
+                        </span>
+                      </div>
+
+                      {reviewCount && (
+                        <div className="mt-1 text-sm text-[#918593]">
+                          {reviewCount} reviews
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <p className="mt-5 max-w-2xl text-sm leading-7 text-[#746a77]">
+                    คะแนนและจำนวนรีวิวนี้มาจากข้อมูลของสถานที่ที่บันทึกไว้ในระบบ TravelWise
+                  </p>
+                </section>
+              ) : (
+                <EmptyState>
+                  ยังไม่มีคะแนนรีวิวสำหรับสถานที่นี้
+                </EmptyState>
+              )}
+            </div>
+          )}
+
+          {activeTab === "location" && (
+            <div className="pt-6">
+              {address || mapsUrl ? (
+                <section className="overflow-hidden rounded-[24px] border border-[#e9e2ea] bg-white">
+                  <div className="p-5 sm:p-6">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f3eef4] text-[#6f456f]">
+                        <MapPin size={19} />
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9b8f9e]">
+                          Location
+                        </div>
+
+                        {address && (
+                          <div className="mt-1.5 text-sm font-medium leading-7 text-[#4e4453]">
+                            {address}
+                          </div>
+                        )}
+
+                        {mapsUrl && (
+                          <a
+                            href={mapsUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#573d63] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#684974]"
+                          >
+                            <MapPin
+                              size={15}
+                            />
+                            Get directions
+                            <ExternalLink
+                              size={14}
+                            />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              ) : (
+                <EmptyState>
+                  ยังไม่มีข้อมูลตำแหน่งของสถานที่นี้
+                </EmptyState>
+              )}
+            </div>
+          )}
+
+          {type === "attraction" &&
+            hasValue(
+              data?.suitable_duration
+            ) && (
+              <div className="mt-6 flex items-center gap-2 text-xs text-[#998d9c]">
+                <Clock3 size={14} />
+                ระยะเวลาที่เหมาะสม:{" "}
+                {cleanText(
+                  data.suitable_duration
+                )}
+              </div>
+            )}
         </div>
       </aside>
     </div>
