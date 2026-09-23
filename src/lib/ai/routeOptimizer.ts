@@ -1,3 +1,18 @@
+export type RouteMode =
+  | "ai_balanced"
+  | "near_to_far"
+  | "far_to_near"
+  | "shortest"
+  | "loop"
+  | "time_aware";
+
+export type AccommodationAnchor = {
+  id?: string | null;
+  name?: string | null;
+  latitude: number;
+  longitude: number;
+};
+
 type RouteItem = {
   day?: number;
   period?: string;
@@ -50,7 +65,7 @@ function toNumber(
     : null;
 }
 
-function distanceKm(
+export function routeDistanceKm(
   lat1: number,
   lon1: number,
   lat2: number,
@@ -104,10 +119,72 @@ function distanceKm(
   );
 }
 
-function routeDistance(
-  order: any[]
+function validAnchor(
+  accommodation?:
+    AccommodationAnchor |
+    null
 ) {
+  if (!accommodation) {
+    return null;
+  }
+
+  const lat =
+    toNumber(
+      accommodation.latitude
+    );
+
+  const lng =
+    toNumber(
+      accommodation.longitude
+    );
+
+  if (
+    lat === null ||
+    lng === null
+  ) {
+    return null;
+  }
+
+  return {
+    ...accommodation,
+    latitude: lat,
+    longitude: lng,
+  };
+}
+
+function routeDistance(
+  order: any[],
+  accommodation?:
+    AccommodationAnchor |
+    null,
+  returnToAccommodation =
+    true
+) {
+  if (
+    order.length === 0
+  ) {
+    return 0;
+  }
+
+  const anchor =
+    validAnchor(
+      accommodation
+    );
+
   let total = 0;
+
+  if (
+    anchor &&
+    order[0]?.coords
+  ) {
+    total +=
+      routeDistanceKm(
+        anchor.latitude,
+        anchor.longitude,
+        order[0].coords.lat,
+        order[0].coords.lng
+      );
+  }
 
   for (
     let index = 1;
@@ -128,7 +205,7 @@ function routeDistance(
     }
 
     total +=
-      distanceKm(
+      routeDistanceKm(
         previous.coords.lat,
         previous.coords.lng,
         current.coords.lat,
@@ -136,7 +213,54 @@ function routeDistance(
       );
   }
 
+  if (
+    anchor &&
+    returnToAccommodation &&
+    order[
+      order.length - 1
+    ]?.coords
+  ) {
+    const last =
+      order[
+        order.length - 1
+      ];
+
+    total +=
+      routeDistanceKm(
+        last.coords.lat,
+        last.coords.lng,
+        anchor.latitude,
+        anchor.longitude
+      );
+  }
+
   return total;
+}
+
+function distanceFromAccommodation(
+  point: any,
+  accommodation?:
+    AccommodationAnchor |
+    null
+) {
+  const anchor =
+    validAnchor(
+      accommodation
+    );
+
+  if (
+    !anchor ||
+    !point?.coords
+  ) {
+    return null;
+  }
+
+  return routeDistanceKm(
+    anchor.latitude,
+    anchor.longitude,
+    point.coords.lat,
+    point.coords.lng
+  );
 }
 
 function aiOrderPenalty(
@@ -276,11 +400,16 @@ function anchorPenalty(
 function scoreRoute(
   order: any[],
   baselineDistance: number,
-  weights: RouteWeights
+  weights: RouteWeights,
+  accommodation?:
+    AccommodationAnchor |
+    null
 ) {
   const distance =
     routeDistance(
-      order
+      order,
+      accommodation,
+      true
     );
 
   const normalizedDistance =
@@ -311,7 +440,10 @@ function scoreRoute(
 
 function twoOpt(
   baseline: any[],
-  weights: RouteWeights
+  weights: RouteWeights,
+  accommodation?:
+    AccommodationAnchor |
+    null
 ) {
   if (
     baseline.length < 3
@@ -321,7 +453,9 @@ function twoOpt(
 
   const baselineDistance =
     routeDistance(
-      baseline
+      baseline,
+      accommodation,
+      true
     );
 
   let best =
@@ -331,7 +465,8 @@ function twoOpt(
     scoreRoute(
       best,
       baselineDistance,
-      weights
+      weights,
+      accommodation
     );
 
   let improved =
@@ -379,7 +514,8 @@ function twoOpt(
           scoreRoute(
             candidate,
             baselineDistance,
-            weights
+            weights,
+            accommodation
           );
 
         if (
@@ -401,6 +537,279 @@ function twoOpt(
   }
 
   return best;
+}
+
+function nearestNeighbor(
+  points: any[],
+  accommodation?:
+    AccommodationAnchor |
+    null,
+  startFar =
+    false
+) {
+  if (
+    points.length <= 1
+  ) {
+    return points;
+  }
+
+  const anchor =
+    validAnchor(
+      accommodation
+    );
+
+  const remaining =
+    [...points];
+
+  let current =
+    remaining.shift()!;
+
+  if (anchor) {
+    const byHotelDistance =
+      [...remaining, current]
+        .map(
+          point => ({
+            point,
+            distance:
+              distanceFromAccommodation(
+                point,
+                anchor
+              ) ??
+              Number.POSITIVE_INFINITY,
+          })
+        )
+        .sort(
+          (a, b) =>
+            startFar
+              ? b.distance -
+                a.distance
+              : a.distance -
+                b.distance
+        );
+
+    current =
+      byHotelDistance[0]
+        .point;
+
+    const index =
+      remaining.findIndex(
+        point =>
+          point === current
+      );
+
+    if (index >= 0) {
+      remaining.splice(
+        index,
+        1
+      );
+    } else {
+      const originalIndex =
+        points.findIndex(
+          point =>
+            point === current
+        );
+
+      const reconstructed =
+        points.filter(
+          (
+            _,
+            pointIndex
+          ) =>
+            pointIndex !==
+            originalIndex
+        );
+
+      remaining.splice(
+        0,
+        remaining.length,
+        ...reconstructed
+      );
+    }
+  }
+
+  const route =
+    [current];
+
+  while (
+    remaining.length > 0
+  ) {
+    const last =
+      route[
+        route.length - 1
+      ];
+
+    let bestIndex = 0;
+    let bestDistance =
+      Number.POSITIVE_INFINITY;
+
+    for (
+      let index = 0;
+      index <
+      remaining.length;
+      index += 1
+    ) {
+      const point =
+        remaining[index];
+
+      if (
+        !last.coords ||
+        !point.coords
+      ) {
+        continue;
+      }
+
+      const distance =
+        routeDistanceKm(
+          last.coords.lat,
+          last.coords.lng,
+          point.coords.lat,
+          point.coords.lng
+        );
+
+      if (
+        distance <
+        bestDistance
+      ) {
+        bestDistance =
+          distance;
+
+        bestIndex =
+          index;
+      }
+    }
+
+    route.push(
+      remaining.splice(
+        bestIndex,
+        1
+      )[0]
+    );
+  }
+
+  return route;
+}
+
+function orderNearToFar(
+  points: any[],
+  accommodation?:
+    AccommodationAnchor |
+    null
+) {
+  const anchor =
+    validAnchor(
+      accommodation
+    );
+
+  if (!anchor) {
+    return points;
+  }
+
+  return [...points].sort(
+    (a, b) =>
+      (
+        distanceFromAccommodation(
+          a,
+          anchor
+        ) ??
+        Number.POSITIVE_INFINITY
+      ) -
+      (
+        distanceFromAccommodation(
+          b,
+          anchor
+        ) ??
+        Number.POSITIVE_INFINITY
+      )
+  );
+}
+
+function orderFarToNear(
+  points: any[],
+  accommodation?:
+    AccommodationAnchor |
+    null
+) {
+  const anchor =
+    validAnchor(
+      accommodation
+    );
+
+  if (!anchor) {
+    return points;
+  }
+
+  return [...points].sort(
+    (a, b) =>
+      (
+        distanceFromAccommodation(
+          b,
+          anchor
+        ) ??
+        -1
+      ) -
+      (
+        distanceFromAccommodation(
+          a,
+          anchor
+        ) ??
+        -1
+      )
+  );
+}
+
+function orderByPeriod(
+  points: any[]
+) {
+  return [...points].sort(
+    (
+      left,
+      right
+    ) => {
+      const a =
+        PERIOD_ORDER[
+          String(
+            left.item
+              ?.period ?? ""
+          )
+        ];
+
+      const b =
+        PERIOD_ORDER[
+          String(
+            right.item
+              ?.period ?? ""
+          )
+        ];
+
+      if (
+        a === undefined &&
+        b === undefined
+      ) {
+        return (
+          left.aiIndex -
+          right.aiIndex
+        );
+      }
+
+      if (
+        a === undefined
+      ) {
+        return 1;
+      }
+
+      if (
+        b === undefined
+      ) {
+        return -1;
+      }
+
+      return (
+        a - b ||
+        left.aiIndex -
+          right.aiIndex
+      );
+    }
+  );
 }
 
 function sortedPeriodSlots(
@@ -454,14 +863,117 @@ function sortedPeriodSlots(
     );
 }
 
+function optimizeForMode(
+  baseline: any[],
+  mode: RouteMode,
+  weights: RouteWeights,
+  accommodation?:
+    AccommodationAnchor |
+    null
+) {
+  switch (mode) {
+    case "near_to_far":
+      return orderNearToFar(
+        baseline,
+        accommodation
+      );
+
+    case "far_to_near":
+      return orderFarToNear(
+        baseline,
+        accommodation
+      );
+
+    case "shortest": {
+      const nearest =
+        nearestNeighbor(
+          baseline,
+          accommodation,
+          false
+        );
+
+      return twoOpt(
+        nearest,
+        {
+          distance: 0.9,
+          aiOrder: 0.03,
+          period: 0.04,
+          anchors: 0.03,
+        },
+        accommodation
+      );
+    }
+
+    case "loop": {
+      const nearest =
+        nearestNeighbor(
+          baseline,
+          accommodation,
+          false
+        );
+
+      return twoOpt(
+        nearest,
+        {
+          distance: 0.82,
+          aiOrder: 0.08,
+          period: 0.05,
+          anchors: 0.05,
+        },
+        accommodation
+      );
+    }
+
+    case "time_aware": {
+      const byPeriod =
+        orderByPeriod(
+          baseline
+        );
+
+      return twoOpt(
+        byPeriod,
+        {
+          distance: 0.35,
+          aiOrder: 0.15,
+          period: 0.45,
+          anchors: 0.05,
+        },
+        accommodation
+      );
+    }
+
+    case "ai_balanced":
+    default:
+      return twoOpt(
+        baseline,
+        weights,
+        accommodation
+      );
+  }
+}
+
 export function optimizeSelectedRoute(
   items: RouteItem[],
   attractionDetails:
     AttractionDetail[],
   options?: {
     weights?: Partial<RouteWeights>;
+    mode?: RouteMode;
+    accommodation?:
+      AccommodationAnchor |
+      null;
+    returnToAccommodation?: boolean;
   }
 ) {
+  const mode =
+    options?.mode ??
+    "ai_balanced";
+
+  const accommodation =
+    validAnchor(
+      options?.accommodation
+    );
+
   const weights: RouteWeights = {
     ...DEFAULT_WEIGHTS,
     ...options?.weights,
@@ -566,19 +1078,29 @@ export function optimizeSelectedRoute(
       [...dayPoints];
 
     const optimized =
-      twoOpt(
+      optimizeForMode(
         baseline,
-        weights
+        mode,
+        weights,
+        accommodation
       );
 
     const beforeKm =
       routeDistance(
-        baseline
+        baseline,
+        accommodation,
+        options
+          ?.returnToAccommodation ??
+          true
       );
 
     const afterKm =
       routeDistance(
-        optimized
+        optimized,
+        accommodation,
+        options
+          ?.returnToAccommodation ??
+          true
       );
 
     const periodSlots =
@@ -595,6 +1117,18 @@ export function optimizeSelectedRoute(
           0;
 
         if (
+          index === 0 &&
+          accommodation &&
+          point.coords
+        ) {
+          fromPreviousKm =
+            routeDistanceKm(
+              accommodation.latitude,
+              accommodation.longitude,
+              point.coords.lat,
+              point.coords.lng
+            );
+        } else if (
           index > 0 &&
           optimized[
             index - 1
@@ -602,7 +1136,7 @@ export function optimizeSelectedRoute(
           point.coords
         ) {
           fromPreviousKm =
-            distanceKm(
+            routeDistanceKm(
               optimized[
                 index - 1
               ].coords.lat,
@@ -613,6 +1147,12 @@ export function optimizeSelectedRoute(
               point.coords.lng
             );
         }
+
+        const hotelDistance =
+          distanceFromAccommodation(
+            point,
+            accommodation
+          );
 
         optimizedItems.push({
           ...point.item,
@@ -631,12 +1171,29 @@ export function optimizeSelectedRoute(
             index + 1,
 
           period:
-            periodSlots[
-              index
-            ] ||
-            point.item
-              ?.period ||
-            null,
+            mode ===
+              "time_aware" ||
+            mode ===
+              "ai_balanced"
+              ? (
+                  periodSlots[
+                    index
+                  ] ||
+                  point.item
+                    ?.period ||
+                  null
+                )
+              : (
+                  point.item
+                    ?.period ??
+                  periodSlots[
+                    index
+                  ] ??
+                  null
+                ),
+
+          route_mode:
+            mode,
 
           route_from_previous_km:
             Number(
@@ -644,14 +1201,50 @@ export function optimizeSelectedRoute(
                 .toFixed(2)
             ),
 
+          distance_from_accommodation_km:
+            hotelDistance ===
+              null
+              ? null
+              : Number(
+                  hotelDistance
+                    .toFixed(2)
+                ),
+
+          accommodation_id:
+            accommodation?.id ??
+            null,
+
+          accommodation_name:
+            accommodation?.name ??
+            null,
+
           route_algorithm:
-            "ai-aware-2opt",
+            "ai-aware-route-optimizer",
         });
       }
     );
 
+    const returnKm =
+      accommodation &&
+      optimized[
+        optimized.length - 1
+      ]?.coords
+        ? routeDistanceKm(
+            optimized[
+              optimized.length - 1
+            ].coords.lat,
+            optimized[
+              optimized.length - 1
+            ].coords.lng,
+            accommodation.latitude,
+            accommodation.longitude
+          )
+        : 0;
+
     summary.push({
       day,
+
+      mode,
 
       stops:
         optimized.length,
@@ -679,6 +1272,17 @@ export function optimizeSelectedRoute(
           ).toFixed(2)
         ),
 
+      return_to_accommodation_km:
+        Number(
+          returnKm.toFixed(
+            2
+          )
+        ),
+
+      accommodation_name:
+        accommodation?.name ??
+        null,
+
       changed_order:
         optimized.some(
           (
@@ -698,5 +1302,9 @@ export function optimizeSelectedRoute(
     summary,
 
     weights,
+
+    mode,
+
+    accommodation,
   };
 }
