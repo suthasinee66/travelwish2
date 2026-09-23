@@ -155,6 +155,25 @@ type ItineraryRouteMode =
   | "loop"
   | "time_aware";
 
+const ALL_DAYS_COLORS = [
+  "#573d63",
+  "#5f7c73",
+  "#b06a6a",
+  "#6872a6",
+  "#b07a3b",
+  "#7a5c9e",
+  "#4f7d8a",
+  "#8a6f4d",
+];
+
+const getAllDaysColor = (
+  dayIndex: number
+) =>
+  ALL_DAYS_COLORS[
+    dayIndex %
+    ALL_DAYS_COLORS.length
+  ];
+
 const ITINERARY_ROUTE_MODES = [
   {
     value: "ai_balanced" as ItineraryRouteMode,
@@ -1645,6 +1664,7 @@ function SortablePlaceItem({
   removePlaceFromPlan,
   sortableIdOverride,
   sortableDayIndex,
+  numberColor,
 }: any) {
 
   const sortableId =
@@ -1733,6 +1753,9 @@ function SortablePlaceItem({
             WebkitUserSelect: "none",
             userSelect: "none",
             color: "#ffffff",
+            backgroundColor:
+              numberColor ??
+              "#573d63",
           }}
           className="
             w-8
@@ -5168,6 +5191,48 @@ const allDayItems = useMemo(() => {
   liveRestaurants
 ]);
 
+const allDayMapMarkers =
+  useMemo(
+    () =>
+      allDayItems.flatMap(
+        (
+          dayData,
+          dayIndex
+        ) =>
+          dayData.items
+            .filter(
+              place =>
+                Number.isFinite(
+                  Number(
+                    place?.location
+                      ?.latitude
+                  )
+                ) &&
+                Number.isFinite(
+                  Number(
+                    place?.location
+                      ?.longitude
+                  )
+                )
+            )
+            .map(
+              (
+                place,
+                localIndex
+              ) => ({
+                place,
+                dayIndex,
+                localIndex,
+                color:
+                  getAllDaysColor(
+                    dayIndex
+                  ),
+              })
+            )
+      ),
+    [allDayItems]
+  );
+
 useEffect(() => {
   console.log("🔄 CHANGE DAY:", selectedDay);
 
@@ -5226,6 +5291,20 @@ selectedHotelRouteStop
 {
  lat:Number(selectedHotelRouteStop.location.latitude),
  lng:Number(selectedHotelRouteStop.location.longitude)
+}
+:
+showAllDays &&
+allDayMapMarkers.length
+?
+{
+ lat:Number(
+   allDayMapMarkers[0]
+     .place.location.latitude
+ ),
+ lng:Number(
+   allDayMapMarkers[0]
+     .place.location.longitude
+ )
 }
 :
 mapPlaces.length
@@ -5808,41 +5887,85 @@ mapCenter;
             />
           )}
 
-          {routePlaces
-            .filter(
-              (place) =>
-                Number.isFinite(
-                  Number(place?.location?.latitude)
-                ) &&
-                Number.isFinite(
-                  Number(place?.location?.longitude)
+          {showAllDays
+            ? allDayMapMarkers.map(
+                ({
+                  place,
+                  dayIndex,
+                  localIndex,
+                  color,
+                }) => (
+                  <Marker
+                    key={`all-${dayIndex}-${place.type}-${place.restaurant_id ?? place.place_id}-${localIndex}`}
+                    position={{
+                      lat: Number(
+                        place.location.latitude
+                      ),
+                      lng: Number(
+                        place.location.longitude
+                      ),
+                    }}
+                    icon={{
+                      url:
+                        "data:image/svg+xml;charset=UTF-8," +
+                        encodeURIComponent(
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
+                          `<circle cx="16" cy="16" r="14" fill="${color}" stroke="#ffffff" stroke-width="2"/>` +
+                          "</svg>"
+                        ),
+                    }}
+                    label={{
+                      text:
+                        String(
+                          localIndex + 1
+                        ),
+                      color:
+                        "#ffffff",
+                      fontWeight:
+                        "700",
+                      fontSize:
+                        "14px",
+                    }}
+                    title={`Day ${dayIndex + 1} · ${place.name}`}
+                  />
                 )
-            )
-            .map((place, index) => (
-              <Marker
-                key={`${place.type}-${place.restaurant_id ?? place.place_id}`}
-                position={{
-                  lat: Number(place.location.latitude),
-                  lng: Number(place.location.longitude),
-                }}
-                icon={{
-                  url:
-                    "data:image/svg+xml;charset=UTF-8," +
-                    encodeURIComponent(
-                      '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
-                      '<circle cx="16" cy="16" r="14" fill="#573d63" stroke="#ffffff" stroke-width="2"/>' +
-                      "</svg>"
-                    ),
-                }}
-                label={{
-                  text: String(index + 1),
-                  color: "#ffffff",
-                  fontWeight: "700",
-                  fontSize: "14px",
-                }}
-                title={place.name}
-              />
-            ))}
+              )
+            : routePlaces
+                .filter(
+                  (place) =>
+                    Number.isFinite(
+                      Number(place?.location?.latitude)
+                    ) &&
+                    Number.isFinite(
+                      Number(place?.location?.longitude)
+                    )
+                )
+                .map((place, index) => (
+                  <Marker
+                    key={`${place.type}-${place.restaurant_id ?? place.place_id}`}
+                    position={{
+                      lat: Number(place.location.latitude),
+                      lng: Number(place.location.longitude),
+                    }}
+                    icon={{
+                      url:
+                        "data:image/svg+xml;charset=UTF-8," +
+                        encodeURIComponent(
+                          '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
+                          '<circle cx="16" cy="16" r="14" fill="#573d63" stroke="#ffffff" stroke-width="2"/>' +
+                          "</svg>"
+                        ),
+                    }}
+                    label={{
+                      text: String(index + 1),
+                      color: "#ffffff",
+                      fontWeight: "700",
+                      fontSize: "14px",
+                    }}
+                    title={place.name}
+                  />
+                ))}
+
         </Map>
       </APIProvider>
     </div>
@@ -6467,14 +6590,9 @@ mapCenter;
 
     {allDayItems.map(
       (dayData, dayIndex) => {
-
-        // จำนวนรายการของ Day ก่อนหน้า
-        const previousCount = allDayItems
-          .slice(0, dayIndex)
-          .reduce(
-            (sum, day) =>
-              sum + day.items.length,
-            0
+        const dayColor =
+          getAllDaysColor(
+            dayIndex
           );
 
         return (
@@ -6485,8 +6603,21 @@ mapCenter;
 
             {/* DAY HEADER */}
             <div className="flex items-center gap-2">
+              <span
+                className="h-3 w-3 shrink-0 rounded-full"
+                style={{
+                  backgroundColor:
+                    dayColor,
+                }}
+              />
 
-              <h3 className="text-base font-bold">
+              <h3
+                className="text-base font-bold"
+                style={{
+                  color:
+                    dayColor,
+                }}
+              >
                 Day {dayData.day}
               </h3>
 
@@ -6545,9 +6676,10 @@ mapCenter;
                     <SortablePlaceItem
                       item={item}
 
-                      // ⭐ เลขต่อเนื่องทุก Day
-                      index={
-                        previousCount + index
+                      // โหมดทั้งหมด: เริ่มเลขใหม่ทุกวัน
+                      index={index}
+                      numberColor={
+                        dayColor
                       }
 
                       sortableIdOverride={
