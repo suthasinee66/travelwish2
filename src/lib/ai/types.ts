@@ -8,6 +8,7 @@ export interface TripAccommodation {
   source_url?: string | null;
   booking_provider?: string | null;
   images?: string[] | null;
+  locked?: boolean;
 }
 
 export interface TripPlanInput {
