@@ -170,7 +170,8 @@ async function resolveAIProposedPlaces(
 async function resolveAIRestaurant(
     proposedRestaurant: any,
     province: string,
-    attId: string | null
+    attId: string | null,
+    selectedModel: AIModel
 ) {
     if (!API_URL) {
         throw new Error(
@@ -197,7 +198,10 @@ async function resolveAIRestaurant(
                     province,
 
                     att_id:
-                        attId
+                        attId,
+
+                    ai_model:
+                        selectedModel
                 })
             }
         );
@@ -217,7 +221,8 @@ async function resolveAIRestaurant(
 async function resolveAIProposedRestaurants(
     proposedRestaurants: any[],
     selectedPlaces: any[],
-    province: string
+    province: string,
+    selectedModel: AIModel
 ) {
     const resolvedByKey =
         new Map<string, any>();
@@ -288,7 +293,8 @@ async function resolveAIProposedRestaurants(
                     province,
                     placeByRestaurantKey.get(
                         key
-                    ) ?? null
+                    ) ?? null,
+                    selectedModel
                 );
 
             if (
@@ -1687,7 +1693,8 @@ const resolvedAIRestaurants =
     await resolveAIProposedRestaurants(
         proposedNewRestaurants,
         algorithmFirstSelectedPlaces,
-        tripData.province
+        tripData.province,
+        selectedModel
     );
 
 const selectedPlaces =
