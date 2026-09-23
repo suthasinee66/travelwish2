@@ -392,6 +392,7 @@ router.post(
         name,
         province,
         att_id,
+        ai_model,
       } = req.body ?? {};
 
       if (
@@ -535,8 +536,15 @@ router.post(
               ),
 
         ai_model:
-          existing?.ai_model ??
-          null,
+          isNewAIRestaurant
+            ? (
+                ai_model ??
+                null
+              )
+            : (
+                existing?.ai_model ??
+                null
+              ),
 
         ai_discovered_at:
           isNewAIRestaurant
