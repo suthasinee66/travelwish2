@@ -1746,8 +1746,8 @@ function SortablePlaceItem({
             src={item.images[0]}
             alt={item.name}
             className="
-              w-14
-              h-14
+              w-20
+              h-16
               rounded-xl
               object-cover
               shrink-0
@@ -1758,8 +1758,8 @@ function SortablePlaceItem({
 
           <div
             className="
-              w-14
-              h-14
+              w-20
+              h-16
               rounded-xl
               bg-gray-200
               shrink-0
