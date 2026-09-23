@@ -7485,10 +7485,12 @@ function SmoothRecommendationImage({
 function RecommendationCarouselCard({
   images,
   className,
+  onClick,
   children,
 }: {
   images?: string[];
   className?: string;
+  onClick?: () => void;
   children: (state: {
     index: number;
     changeImage: (
@@ -7563,6 +7565,19 @@ function RecommendationCarouselCard({
         changeImage,
         safeImages.length > 1
       )}
+      onClick={onClick}
+      onKeyDown={(event) => {
+        if (
+          onClick &&
+          (event.key === "Enter" ||
+            event.key === " ")
+        ) {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className={className}
     >
       {children({
@@ -11581,7 +11596,21 @@ focus:ring-black/20
                         bg-gray-100
                         [contain:layout_paint]
                         [transform:translateZ(0)]
+                        cursor-pointer
+                        focus:outline-none
+                        focus-visible:ring-2
+                        focus-visible:ring-[#573d63]
+                        focus-visible:ring-offset-2
                       "
+                      onClick={
+                        recommendLoading
+                          ? undefined
+                          : () =>
+                              setPlaceDetailTarget({
+                                type: "attraction",
+                                data: c,
+                              })
+                      }
                     >
                       {({
                         index: cardImageIndex,
@@ -11904,7 +11933,27 @@ text-white/80
                   {tripPlaces.map((place) => (
                     <div
                       key={place.att_id}
-                      className="rounded-xl overflow-hidden border bg-card shadow-sm hover:shadow-md transition"
+                      onClick={() =>
+                        setPlaceDetailTarget({
+                          type: "attraction",
+                          data: place,
+                        })
+                      }
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "Enter" ||
+                          event.key === " "
+                        ) {
+                          event.preventDefault();
+                          setPlaceDetailTarget({
+                            type: "attraction",
+                            data: place,
+                          });
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      className="cursor-pointer rounded-xl overflow-hidden border bg-card shadow-sm hover:shadow-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#573d63] focus-visible:ring-offset-2"
                     >
                       <img
                         src={place.image}
