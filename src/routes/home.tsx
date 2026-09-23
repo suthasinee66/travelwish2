@@ -2213,10 +2213,14 @@ function SortablePlaceItem({
 
 function AccommodationThumbnail({
   hotel,
+  onEnriched,
 }: {
   hotel: any;
+  onEnriched?: (hotel: any) => void;
 }) {
   const [failed, setFailed] =
+    useState(false);
+  const [synced, setSynced] =
     useState(false);
 
   const existingImage =
@@ -2282,6 +2286,66 @@ function AccommodationThumbnail({
         hotel.acc_name_en ??
         "ที่พัก"
       }
+      onLoad={async () => {
+        if (
+          synced ||
+          existingImage ||
+          !hotel?.acc_id
+        ) {
+          return;
+        }
+
+        setSynced(true);
+
+        const {
+          data,
+          error
+        } = await supabase
+          .from("accommodation")
+          .select(`
+            acc_id,
+            acc_name_th,
+            acc_name_en,
+            acc_address,
+            latitude,
+            longitude,
+            images,
+            google_place_id,
+            rating,
+            user_ratings_total,
+            google_maps_uri,
+            google_primary_type,
+            google_types,
+            google_business_status,
+            google_price_level,
+            google_last_synced_at
+          `)
+          .eq(
+            "acc_id",
+            String(
+              hotel.acc_id
+            )
+          )
+          .maybeSingle();
+
+        if (
+          error ||
+          !data
+        ) {
+          if (error) {
+            console.warn(
+              "REFRESH ENRICHED ACCOMMODATION ERROR:",
+              error
+            );
+          }
+          return;
+        }
+
+        onEnriched?.({
+          ...hotel,
+          ...data,
+        });
+      }}
       onError={() =>
         setFailed(true)
       }
@@ -5498,6 +5562,42 @@ mapCenter;
                     >
                       <AccommodationThumbnail
                         hotel={hotel}
+                        onEnriched={enrichedHotel => {
+                          setHotels(
+                            current =>
+                              current.map(
+                                item =>
+                                  String(
+                                    item.acc_id
+                                  ) ===
+                                  String(
+                                    enrichedHotel.acc_id
+                                  )
+                                    ? {
+                                        ...item,
+                                        ...enrichedHotel,
+                                      }
+                                    : item
+                              )
+                          );
+
+                          if (
+                            selectedHotel &&
+                            String(
+                              selectedHotel.acc_id
+                            ) ===
+                            String(
+                              enrichedHotel.acc_id
+                            )
+                          ) {
+                            setSelectedHotel(
+                              current => ({
+                                ...current,
+                                ...enrichedHotel,
+                              })
+                            );
+                          }
+                        }}
                       />
                     </div>
 
@@ -5766,6 +5866,14 @@ mapCenter;
         >
           <AccommodationThumbnail
             hotel={selectedHotel}
+            onEnriched={enrichedHotel =>
+              setSelectedHotel(
+                current => ({
+                  ...current,
+                  ...enrichedHotel,
+                })
+              )
+            }
           />
         </div>
 
