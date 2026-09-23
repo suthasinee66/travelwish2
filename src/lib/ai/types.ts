@@ -7,6 +7,7 @@ export interface TripAccommodation {
   source?: "user" | "travelwish" | "google_maps" | "booking_link" | "ai_verified";
   source_url?: string | null;
   booking_provider?: string | null;
+  images?: string[] | null;
 }
 
 export interface TripPlanInput {
