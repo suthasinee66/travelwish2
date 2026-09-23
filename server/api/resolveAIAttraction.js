@@ -794,21 +794,6 @@ router.post(
           province
         );
 
-      if (
-        existing &&
-        Array.isArray(
-          existing.images
-        ) &&
-        existing.images.length > 0
-      ) {
-        return res.json({
-          success: true,
-          cached: true,
-          attraction:
-            existing,
-        });
-      }
-
       const isNewAIAttraction =
         !existing;
 
@@ -990,6 +975,48 @@ router.post(
                 )
                   ? existing.images
                   : []
+              ),
+
+        avg_rating:
+          Number.isFinite(
+            Number(
+              verifiedPlace.rating
+            )
+          )
+            ? Number(
+                verifiedPlace.rating
+              )
+            : (
+                existing?.avg_rating ??
+                0
+              ),
+
+        // Google Places ไม่มี visitor count จริง
+        // จึงใช้ userRatingCount เป็น popularity proxy
+        // เฉพาะกรณี AI-discovered/new row หรือ row เดิมยังไม่มีค่า
+        visitor_count:
+          (
+            isNewAIAttraction ||
+            !Number.isFinite(
+              Number(
+                existing?.visitor_count
+              )
+            ) ||
+            Number(
+              existing?.visitor_count
+            ) <= 0
+          ) &&
+          Number.isFinite(
+            Number(
+              verifiedPlace.reviews
+            )
+          )
+            ? Number(
+                verifiedPlace.reviews
+              )
+            : (
+                existing?.visitor_count ??
+                0
               ),
 
         data_source:
