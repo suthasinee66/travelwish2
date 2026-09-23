@@ -704,44 +704,22 @@ function PersonalSurvey() {
   };
 
   const selectDeepAnswer = (
-    question: DeepSurveyQuestion,
+    _question: DeepSurveyQuestion,
     optionValue: string
   ) => {
     setPersonalityTags((current) => {
-      const optionValues =
-        question.options.map(
-          option => option.value
-        );
-
       const alreadySelected =
         current.includes(
           optionValue
         );
 
-      if (question.multiple) {
-        return alreadySelected
-          ? current.filter(
-              value =>
-                value !== optionValue
-            )
-          : [
-              ...current,
-              optionValue
-            ];
-      }
-
-      const withoutThisQuestion =
-        current.filter(
-          value =>
-            !optionValues.includes(
-              value
-            )
-        );
-
       return alreadySelected
-        ? withoutThisQuestion
+        ? current.filter(
+            value =>
+              value !== optionValue
+          )
         : [
-            ...withoutThisQuestion,
+            ...current,
             optionValue
           ];
     });
@@ -1397,11 +1375,9 @@ function PersonalSurvey() {
                                 {question.question}
                               </p>
 
-                              {question.description && (
-                                <p className="mt-1 text-[11px] font-medium text-[#978c9d]">
-                                  {question.description}
-                                </p>
-                              )}
+                              <p className="mt-1 text-[11px] font-medium text-[#978c9d]">
+                                {question.description || "เลือกได้หลายคำตอบ"}
+                              </p>
                             </div>
 
                             <div className="flex flex-wrap gap-2.5">
