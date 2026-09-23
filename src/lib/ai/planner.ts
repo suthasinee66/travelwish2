@@ -1896,6 +1896,553 @@ const selectedAttractionDetails =
 const selectedRestaurantDetails =
     selectedRestaurantResult.data ?? [];
 
+// =========================================================
+// AI ACCOMMODATION RECOMMENDATION
+// ถ้าผู้ใช้ยังไม่มีที่พัก ให้ AI model ที่กำลังวางแผน
+// เลือก 1 ที่พักจริงจาก Supabase หลังรู้ itinerary แล้ว
+// =========================================================
+let plannerAccommodation =
+    tripData.accommodation ??
+    null;
+
+let accommodationRecommendationReason:
+    string | null =
+    null;
+
+if (!plannerAccommodation) {
+    try {
+        const {
+            data:
+                accommodationRows,
+            error:
+                accommodationError
+        } =
+            await supabase
+                .from("accommodation")
+                .select(`
+                    acc_id,
+                    acc_name_th,
+                    acc_name_en,
+                    acc_address,
+                    province_name_th,
+                    district_name_th,
+                    latitude,
+                    longitude,
+                    star_level,
+                    accom_price_name,
+                    acc_low_rate,
+                    acc_high_rate,
+                    rating,
+                    user_ratings_total,
+                    images
+                `)
+                .eq(
+                    "province_name_th",
+                    tripData.province
+                )
+                .not(
+                    "latitude",
+                    "is",
+                    null
+                )
+                .not(
+                    "longitude",
+                    "is",
+                    null
+                )
+                .limit(120);
+
+        if (accommodationError) {
+            console.warn(
+                "⚠️ LOAD ACCOMMODATION CANDIDATES FAILED:",
+                accommodationError
+            );
+        }
+
+        const validAttractionCoords =
+            selectedAttractionDetails
+                .map(
+                    (
+                        attraction:
+                            any
+                    ) => ({
+                        latitude:
+                            Number(
+                                attraction.latitude
+                            ),
+
+                        longitude:
+                            Number(
+                                attraction.longitude
+                            )
+                    })
+                )
+                .filter(
+                    point =>
+                        Number.isFinite(
+                            point.latitude
+                        ) &&
+                        Number.isFinite(
+                            point.longitude
+                        )
+                );
+
+        const routeCenter =
+            validAttractionCoords.length >
+            0
+                ? {
+                    latitude:
+                        validAttractionCoords
+                            .reduce(
+                                (
+                                    sum,
+                                    point
+                                ) =>
+                                    sum +
+                                    point.latitude,
+                                0
+                            ) /
+                        validAttractionCoords
+                            .length,
+
+                    longitude:
+                        validAttractionCoords
+                            .reduce(
+                                (
+                                    sum,
+                                    point
+                                ) =>
+                                    sum +
+                                    point.longitude,
+                                0
+                            ) /
+                        validAttractionCoords
+                            .length
+                }
+                : null;
+
+        const toRadians =
+            (value: number) =>
+                value *
+                Math.PI /
+                180;
+
+        const distanceKm =
+            (
+                lat1: number,
+                lon1: number,
+                lat2: number,
+                lon2: number
+            ) => {
+                const R =
+                    6371;
+
+                const dLat =
+                    toRadians(
+                        lat2 -
+                        lat1
+                    );
+
+                const dLon =
+                    toRadians(
+                        lon2 -
+                        lon1
+                    );
+
+                const a =
+                    Math.sin(
+                        dLat / 2
+                    ) ** 2 +
+                    Math.cos(
+                        toRadians(
+                            lat1
+                        )
+                    ) *
+                    Math.cos(
+                        toRadians(
+                            lat2
+                        )
+                    ) *
+                    Math.sin(
+                        dLon / 2
+                    ) ** 2;
+
+                return (
+                    R *
+                    2 *
+                    Math.atan2(
+                        Math.sqrt(a),
+                        Math.sqrt(
+                            1 - a
+                        )
+                    )
+                );
+            };
+
+        const accommodationCandidates =
+            (
+                accommodationRows ??
+                []
+            )
+                .map(
+                    (
+                        hotel:
+                            any
+                    ) => {
+                        const latitude =
+                            Number(
+                                hotel.latitude
+                            );
+
+                        const longitude =
+                            Number(
+                                hotel.longitude
+                            );
+
+                        const centerDistanceKm =
+                            routeCenter &&
+                            Number.isFinite(
+                                latitude
+                            ) &&
+                            Number.isFinite(
+                                longitude
+                            )
+                                ? distanceKm(
+                                    routeCenter.latitude,
+                                    routeCenter.longitude,
+                                    latitude,
+                                    longitude
+                                )
+                                : null;
+
+                        return {
+                            id:
+                                String(
+                                    hotel.acc_id
+                                ),
+
+                            name:
+                                hotel.acc_name_th ??
+                                hotel.acc_name_en ??
+                                "ที่พัก",
+
+                            address:
+                                hotel.acc_address ??
+                                null,
+
+                            district:
+                                hotel.district_name_th ??
+                                null,
+
+                            latitude,
+                            longitude,
+
+                            star_level:
+                                hotel.star_level ??
+                                null,
+
+                            price_label:
+                                hotel.accom_price_name ??
+                                null,
+
+                            low_rate:
+                                hotel.acc_low_rate ??
+                                null,
+
+                            high_rate:
+                                hotel.acc_high_rate ??
+                                null,
+
+                            rating:
+                                hotel.rating ??
+                                null,
+
+                            user_ratings_total:
+                                hotel.user_ratings_total ??
+                                null,
+
+                            has_images:
+                                Array.isArray(
+                                    hotel.images
+                                ) &&
+                                hotel.images.length >
+                                0,
+
+                            route_center_distance_km:
+                                centerDistanceKm ===
+                                null
+                                    ? null
+                                    : Number(
+                                        centerDistanceKm
+                                            .toFixed(
+                                                2
+                                            )
+                                    ),
+
+                            raw:
+                                hotel
+                        };
+                    }
+                )
+                .filter(
+                    (
+                        hotel:
+                            any
+                    ) =>
+                        Number.isFinite(
+                            hotel.latitude
+                        ) &&
+                        Number.isFinite(
+                            hotel.longitude
+                        )
+                )
+                .sort(
+                    (
+                        left:
+                            any,
+                        right:
+                            any
+                    ) =>
+                        (
+                            left
+                                .route_center_distance_km ??
+                            999
+                        ) -
+                        (
+                            right
+                                .route_center_distance_km ??
+                            999
+                        )
+                )
+                .slice(
+                    0,
+                    24
+                );
+
+        if (
+            accommodationCandidates
+                .length >
+            0
+        ) {
+            const accommodationPrompt = `
+คุณคือ TravelWish AI Accommodation Selector
+
+ผู้ใช้ยังไม่ได้เลือกที่พัก
+ให้เลือก "1 ที่พักหลัก" ที่เหมาะกับ itinerary นี้มากที่สุด
+จาก ACCOMMODATION CANDIDATES ที่ระบบให้เท่านั้น
+
+USER PROFILE
+${JSON.stringify(
+    userContext,
+    null,
+    2
+)}
+
+TRIP
+${JSON.stringify(
+    tripData,
+    null,
+    2
+)}
+
+SELECTED ITINERARY
+${JSON.stringify(
+    selectedPlaces,
+    null,
+    2
+)}
+
+SELECTED ATTRACTION DETAILS
+${JSON.stringify(
+    selectedAttractionDetails,
+    null,
+    2
+)}
+
+ACCOMMODATION CANDIDATES
+${JSON.stringify(
+    accommodationCandidates.map(
+        ({
+            raw,
+            ...candidate
+        }: any) =>
+            candidate
+    ),
+    null,
+    2
+)}
+
+หลักการเลือก:
+- ต้องเลือกจาก candidate เท่านั้น ห้ามสร้างชื่อโรงแรมใหม่
+- พิจารณาทำเลเทียบกับสถานที่ใน itinerary ทั้งทริป
+- พิจารณางบรวม จำนวนวัน companion และ personality_tags
+- ถ้ามีราคา ให้หลีกเลี่ยงที่พักที่ดูไม่สอดคล้องกับงบ
+- ถ้าผู้ใช้ชอบความสะดวก ให้ความสำคัญกับ route_center_distance_km
+- ถ้าคุณภาพใกล้กัน ให้พิจารณา rating, จำนวนรีวิว, star_level และความเหมาะสมกับผู้ใช้
+- ไม่จำเป็นต้องเลือกโรงแรมที่ใกล้ที่สุด ถ้าตัวอื่นเหมาะกับผู้ใช้และทริปมากกว่า
+
+ตอบ JSON เท่านั้น:
+{
+  "accommodation_id": "id จาก candidate",
+  "reason": "เหตุผลสั้น ๆ ภาษาไทยว่าทำไมที่พักนี้เหมาะกับทริป"
+}
+`;
+
+            const accommodationRaw =
+                await generateWithSelectedModel(
+                    selectedModel,
+                    accommodationPrompt
+                );
+
+            const accommodationCleaned =
+                accommodationRaw
+                    .replace(
+                        /^\`\`\`json\s*/i,
+                        ""
+                    )
+                    .replace(
+                        /^\`\`\`\s*/i,
+                        ""
+                    )
+                    .replace(
+                        /\`\`\`$/i,
+                        ""
+                    )
+                    .trim();
+
+            const accommodationChoice =
+                JSON.parse(
+                    accommodationCleaned
+                );
+
+            const chosenId =
+                String(
+                    accommodationChoice
+                        ?.accommodation_id ??
+                    ""
+                );
+
+            const chosen =
+                accommodationCandidates
+                    .find(
+                        (
+                            hotel:
+                                any
+                        ) =>
+                            hotel.id ===
+                            chosenId
+                    );
+
+            if (chosen) {
+                const rawHotel =
+                    chosen.raw;
+
+                plannerAccommodation = {
+                    id:
+                        String(
+                            rawHotel.acc_id
+                        ),
+
+                    name:
+                        rawHotel.acc_name_th ??
+                        rawHotel.acc_name_en ??
+                        chosen.name,
+
+                    address:
+                        rawHotel.acc_address ??
+                        null,
+
+                    latitude:
+                        Number(
+                            rawHotel.latitude
+                        ),
+
+                    longitude:
+                        Number(
+                            rawHotel.longitude
+                        ),
+
+                    source:
+                        "ai_verified",
+
+                    images:
+                        Array.isArray(
+                            rawHotel.images
+                        )
+                            ? rawHotel.images
+                            : []
+                };
+
+                accommodationRecommendationReason =
+                    String(
+                        accommodationChoice
+                            ?.reason ??
+                        ""
+                    ).trim() ||
+                    null;
+
+                console.log(
+                    "🏨 AI RECOMMENDED ACCOMMODATION:",
+                    {
+                        model:
+                            selectedModel,
+                        accommodation:
+                            plannerAccommodation,
+                        reason:
+                            accommodationRecommendationReason
+                    }
+                );
+            }
+        }
+    } catch (error) {
+        console.warn(
+            "⚠️ AI ACCOMMODATION RECOMMENDATION FAILED:",
+            error
+        );
+    }
+}
+
+const finalTripData = {
+    ...tripData,
+
+    accommodation:
+        plannerAccommodation
+};
+
+// บันทึก AI-recommended accommodation กลับเข้า chat session
+if (
+    !isGuest &&
+    plannerAccommodation
+) {
+    const {
+        error:
+            accommodationSessionError
+    } =
+        await supabase
+            .from(
+                "chat_sessions"
+            )
+            .update({
+                trip_preferences:
+                    finalTripData,
+                ai_model:
+                    selectedModel
+            })
+            .eq(
+                "id",
+                chatId
+            );
+
+    if (
+        accommodationSessionError
+    ) {
+        console.warn(
+            "⚠️ SAVE AI ACCOMMODATION TO SESSION FAILED:",
+            accommodationSessionError
+        );
+    }
+}
+
 const routeOptimization =
     optimizeSelectedRoute(
         selectedPlaces,
@@ -1912,22 +2459,22 @@ const routeOptimization =
                 "ai_balanced",
 
             accommodation:
-                tripData.accommodation
+                plannerAccommodation
                     ? {
                         id:
-                            tripData.accommodation.id ?? null,
+                            plannerAccommodation.id ?? null,
 
                         name:
-                            tripData.accommodation.name ?? null,
+                            plannerAccommodation.name ?? null,
 
                         latitude:
                             Number(
-                                tripData.accommodation.latitude
+                                plannerAccommodation.latitude
                             ),
 
                         longitude:
                             Number(
-                                tripData.accommodation.longitude
+                                plannerAccommodation.longitude
                             )
                     }
                     : null,
@@ -1957,7 +2504,10 @@ USER CONTEXT
 ${JSON.stringify(userContext, null, 2)}
 
 CURRENT TRIP
-${JSON.stringify(tripData, null, 2)}
+${JSON.stringify(finalTripData, null, 2)}
+
+AI ACCOMMODATION RECOMMENDATION REASON
+${accommodationRecommendationReason ?? "ผู้ใช้เลือกที่พักเองหรือไม่มีคำแนะนำเพิ่มเติม"}
 
 ROUTE-OPTIMIZED ITINERARY ITEMS
 ${JSON.stringify(routeOptimizedPlaces, null, 2)}
@@ -2130,7 +2680,11 @@ console.log("==================================================");
 
 return {
     markdown: aiMessage,
-    planner_json: routeOptimizedPlaces
+    planner_json: routeOptimizedPlaces,
+    accommodation:
+        plannerAccommodation,
+    accommodation_reason:
+        accommodationRecommendationReason
 };
 }
 
