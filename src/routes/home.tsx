@@ -57,7 +57,7 @@ import {
   Search,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { Fragment, useEffect, useState, useMemo, useRef } from "react";
+import { Fragment, useEffect, useState, useMemo } from "react";
 import { getRecommendations } from "@/lib/recommend/getRecommendations";
 import { getRecommendations as getInspireVideos } from "@/lib/inspire/getRecommendations";
 import { Link } from "@tanstack/react-router";
@@ -2463,14 +2463,6 @@ const [selectedHotel, setSelectedHotel] = useState<any | null>(
             ? tripInput.accommodation.images
             : [],
 
-        rating:
-          tripInput.accommodation.rating ??
-          null,
-
-        user_ratings_total:
-          tripInput.accommodation.user_ratings_total ??
-          null,
-
         source:
           tripInput.accommodation.source ??
           "travelwish",
@@ -2484,80 +2476,6 @@ const [selectedHotel, setSelectedHotel] = useState<any | null>(
       }
     : null
 );
-
-useEffect(() => {
-  const accommodation =
-    tripInput?.accommodation;
-
-  if (!accommodation) {
-    setSelectedHotel(null);
-    return;
-  }
-
-  setSelectedHotel({
-    acc_id:
-      accommodation.id,
-
-    acc_name_th:
-      accommodation.name,
-
-    acc_address:
-      accommodation.address ??
-      null,
-
-    latitude:
-      accommodation.latitude,
-
-    longitude:
-      accommodation.longitude,
-
-    images:
-      Array.isArray(
-        accommodation.images
-      )
-        ? accommodation.images
-        : [],
-
-    rating:
-      accommodation.rating ??
-      null,
-
-    user_ratings_total:
-      accommodation.user_ratings_total ??
-      null,
-
-    source:
-      accommodation.source ??
-      "travelwish",
-
-    source_url:
-      accommodation.source_url ??
-      null,
-
-    booking_provider:
-      accommodation.booking_provider ??
-      null,
-
-    locked:
-      accommodation.locked ??
-      (
-        accommodation.source !==
-        "ai_verified"
-      ),
-  });
-}, [
-  chatId,
-  tripInput?.accommodation?.id,
-  tripInput?.accommodation?.name,
-  tripInput?.accommodation?.address,
-  tripInput?.accommodation?.latitude,
-  tripInput?.accommodation?.longitude,
-  tripInput?.accommodation?.source,
-  tripInput?.accommodation?.locked,
-  tripInput?.accommodation?.rating,
-  tripInput?.accommodation?.user_ratings_total,
-  tripInput?.accommodation?.images,
-]);
 
 const selectedHotelRouteStop =
   selectedHotel &&
@@ -7494,8 +7412,6 @@ type TripInput = {
     source_url?: string | null;
     booking_provider?: string | null;
     images?: string[] | null;
-    rating?: number | null;
-    user_ratings_total?: number | null;
     locked?: boolean;
   } | null;
 };
@@ -7517,7 +7433,6 @@ const [tripInput, setTripInput] = useState<TripInput>({
   const [restaurants, setRestaurants] = useState([]);
   const [chatSessions, setChatSessions] = useState<any[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-  const chatLoadRequestRef = useRef(0);
   const [searchProvince, setSearchProvince] = useState("");
   const [showTripPlan, setShowTripPlan] = useState(false);
   const hasFilter =
@@ -7635,15 +7550,8 @@ const aiModels = [
 ];
 
   const loadChatMessages = async (chatId: string) => {
-    const requestId =
-      ++chatLoadRequestRef.current;
 
-    console.log(
-      "LOAD CHAT:",
-      chatId,
-      "request:",
-      requestId
-    );
+    console.log("LOAD CHAT:", chatId);
 
     const { data, error } = await supabase
       .from("chat_messages")
@@ -7669,36 +7577,16 @@ console.log(data?.[0]);
 console.log(data?.[0]?.planner_json);
 
 
-    if (
-      requestId !==
-      chatLoadRequestRef.current
-    ) {
-      return;
-    }
-
     const { data: session } = await supabase
   .from("chat_sessions")
   .select("trip_preferences, ai_model")
   .eq("id", chatId)
   .single();
 
-if (
-  requestId !==
-  chatLoadRequestRef.current
-) {
-  return;
-}
+if (session?.trip_preferences) {
+  let restoredTrip =
+    session.trip_preferences as TripInput;
 
-let restoredTrip:
-  TripInput | null =
-    session?.trip_preferences
-      ? (
-          session.trip_preferences
-            as TripInput
-        )
-      : null;
-
-if (restoredTrip) {
   const savedAccommodation =
     restoredTrip?.accommodation;
 
@@ -7777,12 +7665,10 @@ if (restoredTrip) {
 
           rating:
             accommodationRow.rating ??
-            savedAccommodation.rating ??
             null,
 
           user_ratings_total:
             accommodationRow.user_ratings_total ??
-            savedAccommodation.user_ratings_total ??
             null,
 
           source:
@@ -7827,42 +7713,21 @@ if (restoredTrip) {
     }
   }
 
-  if (
-    requestId !==
-    chatLoadRequestRef.current
-  ) {
-    return;
-  }
-
   setTripInput(
     restoredTrip
   );
 } else {
-  // แชทนี้ไม่มี trip_preferences:
-  // ห้ามใช้จังหวัด/ที่พักจากแชทก่อนหน้า
   setTripInput(prev => ({
+    ...prev,
     province: "",
     days: null,
     companion: "",
     budget: null,
-    travelType:
-      prev.travelType ?? [],
-    activities:
-      prev.activities ?? [],
-    atmosphere:
-      prev.atmosphere ?? [],
     accommodation: null,
   }));
 }
 
-// เปลี่ยน current chat หลัง trip ของ session ใหม่พร้อมแล้ว
-if (
-  requestId !==
-  chatLoadRequestRef.current
-) {
-  return;
-}
-
+// เปลี่ยน current chat หลังข้อมูลทริปของ session ใหม่ถูกใส่แล้ว
 setCurrentChatId(
   chatId
 );
@@ -7874,13 +7739,6 @@ if (
   session?.ai_model === "claude"
 ) {
   setSelectedModel(session.ai_model);
-}
-
-if (
-  requestId !==
-  chatLoadRequestRef.current
-) {
-  return;
 }
 
 const formatted = data.map((m) => ({
@@ -11220,14 +11078,6 @@ focus:ring-black/20
                     ? hotel.images
                     : [],
 
-                rating:
-                  hotel.rating ??
-                  null,
-
-                user_ratings_total:
-                  hotel.user_ratings_total ??
-                  null,
-
                 locked:
                   true,
               }
@@ -11303,14 +11153,6 @@ focus:ring-black/20
             )
               ? hotel.images
               : [],
-
-          rating:
-            hotel.rating ??
-            null,
-
-          user_ratings_total:
-            hotel.user_ratings_total ??
-            null,
 
           locked:
             true,
