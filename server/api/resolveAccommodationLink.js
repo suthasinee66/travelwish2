@@ -24,6 +24,27 @@ const supabase =
     SUPABASE_SERVICE_ROLE_KEY
   );
 
+const ACCOMMODATION_GOOGLE_PLACE_FIELDS = [
+  "id",
+  "displayName",
+  "formattedAddress",
+  "location",
+  "types",
+  "primaryType",
+  "websiteUri",
+  "googleMapsUri",
+  "nationalPhoneNumber",
+  "internationalPhoneNumber",
+  "rating",
+  "userRatingCount",
+  "priceLevel",
+  "businessStatus",
+  "regularOpeningHours",
+  "addressComponents",
+  "editorialSummary",
+  "photos",
+];
+
 function cleanText(
   value
 ) {
@@ -568,26 +589,13 @@ async function searchAccommodationWithGoogle(
           "X-Goog-Api-Key":
             GOOGLE_PLACES_API_KEY,
 
-          "X-Goog-FieldMask": [
-            "places.id",
-            "places.displayName",
-            "places.formattedAddress",
-            "places.location",
-            "places.types",
-            "places.primaryType",
-            "places.websiteUri",
-            "places.googleMapsUri",
-            "places.nationalPhoneNumber",
-            "places.internationalPhoneNumber",
-            "places.rating",
-            "places.userRatingCount",
-            "places.priceLevel",
-            "places.businessStatus",
-            "places.regularOpeningHours",
-            "places.addressComponents",
-            "places.editorialSummary",
-            "places.photos",
-          ].join(","),
+          "X-Goog-FieldMask":
+            ACCOMMODATION_GOOGLE_PLACE_FIELDS
+              .map(
+                field =>
+                  `places.${field}`
+              )
+              .join(","),
         },
 
         body:
@@ -739,6 +747,130 @@ async function searchAccommodationWithGoogle(
     ranked[0]?.place ??
     null
   );
+}
+
+async function getAccommodationPlaceDetails(
+  googlePlaceId
+) {
+  if (
+    !GOOGLE_PLACES_API_KEY ||
+    !googlePlaceId
+  ) {
+    return null;
+  }
+
+  const response =
+    await fetch(
+      `https://places.googleapis.com/v1/places/${encodeURIComponent(
+        googlePlaceId
+      )}`,
+      {
+        headers: {
+          "X-Goog-Api-Key":
+            GOOGLE_PLACES_API_KEY,
+
+          "X-Goog-FieldMask":
+            ACCOMMODATION_GOOGLE_PLACE_FIELDS
+              .join(","),
+        },
+      }
+    );
+
+  if (!response.ok) {
+    const text =
+      await response.text();
+
+    throw new Error(
+      `Google Places accommodation details failed: ${text}`
+    );
+  }
+
+  return response.json();
+}
+
+function buildAccommodationGooglePayload(
+  existing,
+  googlePlace
+) {
+  const freshImages =
+    googlePhotoUrls(
+      googlePlace
+    );
+
+  return {
+    acc_name_th:
+      googlePlace
+        ?.displayName
+        ?.text ??
+      existing.acc_name_th,
+
+    acc_address:
+      googlePlace
+        ?.formattedAddress ??
+      existing.acc_address,
+
+    latitude:
+      googlePlace
+        ?.location
+        ?.latitude ??
+      existing.latitude,
+
+    longitude:
+      googlePlace
+        ?.location
+        ?.longitude ??
+      existing.longitude,
+
+    acc_tel:
+      googlePlace
+        ?.nationalPhoneNumber ??
+      googlePlace
+        ?.internationalPhoneNumber ??
+      existing.acc_tel ??
+      null,
+
+    acc_website:
+      googlePlace
+        ?.websiteUri ??
+      existing.acc_website ??
+      null,
+
+    images:
+      freshImages.length > 0
+        ? freshImages
+        : (
+            Array.isArray(
+              existing.images
+            )
+              ? existing.images
+              : []
+          ),
+
+    google_place_id:
+      googlePlace?.id ??
+      existing.google_place_id ??
+      null,
+
+    rating:
+      googlePlace?.rating ??
+      existing.rating ??
+      null,
+
+    user_ratings_total:
+      googlePlace
+        ?.userRatingCount ??
+      existing
+        .user_ratings_total ??
+      null,
+
+    ...googlePlaceMetadata(
+      googlePlace
+    ),
+
+    acc_updated_date:
+      new Date()
+        .toISOString(),
+  };
 }
 
 function googlePhotoUrls(
@@ -1587,16 +1719,7 @@ router.get(
           .from(
             "accommodation"
           )
-          .select(
-            [
-              "acc_id",
-              "acc_name_th",
-              "acc_name_en",
-              "province_name_th",
-              "google_place_id",
-              "images",
-            ].join(",")
-          )
+          .select("*")
           .eq(
             "acc_id",
             accId
@@ -1631,7 +1754,18 @@ router.get(
               )
           : null;
 
-      if (existingImage) {
+      const alreadyEnriched =
+        Boolean(
+          accommodation
+            .google_last_synced_at &&
+          accommodation
+            .google_place_id
+        );
+
+      if (
+        existingImage &&
+        alreadyEnriched
+      ) {
         res.set(
           "Cache-Control",
           "public, max-age=86400"
@@ -1649,49 +1783,22 @@ router.get(
         accommodation
           .google_place_id
       ) {
-        const detailsResponse =
-          await fetch(
-            `https://places.googleapis.com/v1/places/${encodeURIComponent(
+        try {
+          googlePlace =
+            await getAccommodationPlaceDetails(
               accommodation
                 .google_place_id
-            )}`,
-            {
-              headers: {
-                "X-Goog-Api-Key":
-                  GOOGLE_PLACES_API_KEY,
-
-                "X-Goog-FieldMask":
-                  "id,photos",
-              },
-            }
-          );
-
-        if (
-          detailsResponse.ok
-        ) {
-          googlePlace =
-            await detailsResponse
-              .json();
-        } else {
+            );
+        } catch (error) {
           console.warn(
-            "⚠️ ACCOMMODATION PHOTO PLACE DETAILS FAILED:",
-            detailsResponse
-              .status,
-            await detailsResponse
-              .text()
+            "⚠️ ACCOMMODATION FULL PLACE DETAILS FAILED:",
+            error?.message ??
+              error
           );
         }
       }
 
-      if (
-        !googlePlace ||
-        !Array.isArray(
-          googlePlace.photos
-        ) ||
-        googlePlace
-          .photos
-          .length === 0
-      ) {
+      if (!googlePlace) {
         const name =
           accommodation
             .acc_name_th ??
@@ -1704,170 +1811,88 @@ router.get(
             .end();
         }
 
-        const searchResponse =
-          await fetch(
-            "https://places.googleapis.com/v1/places:searchText",
-            {
-              method:
-                "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-
-                "X-Goog-Api-Key":
-                  GOOGLE_PLACES_API_KEY,
-
-                "X-Goog-FieldMask":
-                  "places.id,places.photos",
-              },
-
-              body:
-                JSON.stringify({
-                  textQuery:
-                    [
-                      name,
-                      accommodation
-                        .province_name_th,
-                      "Thailand hotel",
-                    ]
-                      .filter(
-                        Boolean
-                      )
-                      .join(
-                        " "
-                      ),
-
-                  languageCode:
-                    "th",
-
-                  regionCode:
-                    "TH",
-
-                  maxResultCount:
-                    1,
-                }),
-            }
-          );
-
-        if (
-          !searchResponse.ok
-        ) {
-          console.warn(
-            "⚠️ ACCOMMODATION PHOTO SEARCH FAILED:",
-            searchResponse
-              .status,
-            await searchResponse
-              .text()
-          );
-
-          return res
-            .status(404)
-            .end();
-        }
-
-        const searchData =
-          await searchResponse
-            .json();
-
         googlePlace =
-          Array.isArray(
-            searchData.places
-          )
-            ? (
-                searchData
-                  .places[0] ??
-                null
-              )
-            : null;
-
-        if (
-          googlePlace?.id &&
-          googlePlace.id !==
+          await searchAccommodationWithGoogle(
+            name,
             accommodation
-              .google_place_id
-        ) {
-          const {
-            error:
-              updateGoogleIdError,
-          } =
-            await supabase
-              .from(
-                "accommodation"
-              )
-              .update({
-                google_place_id:
-                  googlePlace.id,
-              })
-              .eq(
-                "acc_id",
-                accId
-              );
-
-          if (
-            updateGoogleIdError
-          ) {
-            console.warn(
-              "⚠️ SAVE ACCOMMODATION GOOGLE PLACE ID FAILED:",
-              updateGoogleIdError
-            );
-          }
-        }
+              .province_name_th
+          );
       }
 
-      const photoName =
+      if (!googlePlace) {
+        return res
+          .status(404)
+          .end();
+      }
+
+      const googlePayload =
+        buildAccommodationGooglePayload(
+          accommodation,
+          googlePlace
+        );
+
+      const {
+        data:
+          savedAccommodation,
+        error:
+          saveError,
+      } =
+        await supabase
+          .from(
+            "accommodation"
+          )
+          .update(
+            googlePayload
+          )
+          .eq(
+            "acc_id",
+            accId
+          )
+          .select("*")
+          .single();
+
+      if (saveError) {
+        throw saveError;
+      }
+
+      console.log(
+        "✅ ACCOMMODATION GOOGLE DATA SAVED:",
+        {
+          acc_id:
+            accId,
+          google_place_id:
+            savedAccommodation
+              .google_place_id,
+          rating:
+            savedAccommodation
+              .rating,
+          user_ratings_total:
+            savedAccommodation
+              .user_ratings_total,
+          photos:
+            savedAccommodation
+              .google_photo_names
+              ?.length ??
+            0,
+        }
+      );
+
+      const savedImage =
         Array.isArray(
-          googlePlace?.photos
+          savedAccommodation
+            .images
         )
-          ? googlePlace
-              .photos[0]
-              ?.name
+          ? savedAccommodation
+              .images
+              .find(
+                image =>
+                  typeof image ===
+                    "string" &&
+                  image.length > 0
+              )
           : null;
 
-      if (
-        !photoName ||
-        !String(
-          photoName
-        ).startsWith(
-          "places/"
-        )
-      ) {
-        return res
-          .status(404)
-          .end();
-      }
-
-      const mediaResponse =
-        await fetch(
-          `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=480&skipHttpRedirect=true&key=${encodeURIComponent(
-            GOOGLE_PLACES_API_KEY
-          )}`
-        );
-
-      if (
-        !mediaResponse.ok
-      ) {
-        console.warn(
-          "⚠️ ACCOMMODATION PHOTO MEDIA FAILED:",
-          mediaResponse
-            .status,
-          await mediaResponse
-            .text()
-        );
-
-        return res
-          .status(404)
-          .end();
-      }
-
-      const mediaData =
-        await mediaResponse
-          .json();
-
-      if (
-        !mediaData
-          ?.photoUri
-      ) {
+      if (!savedImage) {
         return res
           .status(404)
           .end();
@@ -1880,11 +1905,11 @@ router.get(
 
       return res.redirect(
         302,
-        mediaData.photoUri
+        savedImage
       );
     } catch (error) {
       console.error(
-        "❌ ACCOMMODATION IMAGE ERROR:",
+        "❌ ACCOMMODATION IMAGE/ENRICH ERROR:",
         error
       );
 
