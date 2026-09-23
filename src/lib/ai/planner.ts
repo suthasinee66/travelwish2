@@ -2373,6 +2373,129 @@ ${JSON.stringify(
                             : []
                 };
 
+                // Enrich โรงแรมที่ AI เลือกด้วย Google Places
+                // และบันทึกข้อมูลเต็มกลับ Supabase ก่อนใช้ใน TripPlan
+                try {
+                    if (API_URL) {
+                        const enrichResponse =
+                            await fetch(
+                                `${API_URL}/api/resolve-ai-accommodation`,
+                                {
+                                    method:
+                                        "POST",
+
+                                    headers: {
+                                        "Content-Type":
+                                            "application/json"
+                                    },
+
+                                    body:
+                                        JSON.stringify({
+                                            accommodation_id:
+                                                rawHotel.acc_id,
+
+                                            name:
+                                                plannerAccommodation.name,
+
+                                            province:
+                                                tripData.province,
+
+                                            ai_model:
+                                                selectedModel
+                                        })
+                                }
+                            );
+
+                        if (
+                            enrichResponse.ok
+                        ) {
+                            const enrichData =
+                                await enrichResponse
+                                    .json();
+
+                            const enriched =
+                                enrichData
+                                    ?.accommodation;
+
+                            if (enriched) {
+                                plannerAccommodation = {
+                                    id:
+                                        String(
+                                            enriched.acc_id ??
+                                            rawHotel.acc_id
+                                        ),
+
+                                    name:
+                                        enriched.acc_name_th ??
+                                        enriched.acc_name_en ??
+                                        plannerAccommodation.name,
+
+                                    address:
+                                        enriched.acc_address ??
+                                        plannerAccommodation.address ??
+                                        null,
+
+                                    latitude:
+                                        Number(
+                                            enriched.latitude ??
+                                            plannerAccommodation.latitude
+                                        ),
+
+                                    longitude:
+                                        Number(
+                                            enriched.longitude ??
+                                            plannerAccommodation.longitude
+                                        ),
+
+                                    source:
+                                        "ai_verified",
+
+                                    images:
+                                        Array.isArray(
+                                            enriched.images
+                                        )
+                                            ? enriched.images
+                                            : plannerAccommodation.images,
+
+                                    google_place_id:
+                                        enriched.google_place_id ??
+                                        null,
+
+                                    rating:
+                                        enriched.rating ??
+                                        null,
+
+                                    user_ratings_total:
+                                        enriched.user_ratings_total ??
+                                        null,
+
+                                    phone:
+                                        enriched.acc_tel ??
+                                        null,
+
+                                    website:
+                                        enriched.acc_website ??
+                                        null,
+
+                                    google_maps_uri:
+                                        enriched.google_maps_uri ??
+                                        null
+                                };
+                            }
+                        } else {
+                            console.warn(
+                                "⚠️ ACCOMMODATION ENRICH HTTP ERROR:",
+                                await enrichResponse.text()
+                            );
+                        }
+                    }
+                } catch (enrichError) {
+                    console.warn(
+                        "⚠️ ACCOMMODATION ENRICH FAILED:",
+                        enrichError
+                    );
+                }
+
                 accommodationRecommendationReason =
                     String(
                         accommodationChoice
