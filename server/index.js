@@ -360,6 +360,77 @@ app.post("/api/ai", async (req, res) => {
           : 3;
     }
 
+    if (responseMode === "trend_context") {
+      requestPayload.response_format = {
+        type: "json_schema",
+        json_schema: {
+          name: "travelwish_trend_context",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              province: {
+                type: "string"
+              },
+              researched_at: {
+                type: "string"
+              },
+              trends: {
+                type: "array",
+                maxItems: 8,
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    name: {
+                      type: "string"
+                    },
+                    kind: {
+                      type: "string"
+                    },
+                    why_trending: {
+                      type: "string"
+                    },
+                    current_signal: {
+                      type: "string"
+                    },
+                    best_for: {
+                      type: "array",
+                      items: {
+                        type: "string"
+                      }
+                    },
+                    confidence: {
+                      type: "string",
+                      enum: [
+                        "high",
+                        "medium",
+                        "low"
+                      ]
+                    }
+                  },
+                  required: [
+                    "name",
+                    "kind",
+                    "why_trending",
+                    "current_signal",
+                    "best_for",
+                    "confidence"
+                  ]
+                }
+              }
+            },
+            required: [
+              "province",
+              "researched_at",
+              "trends"
+            ]
+          }
+        }
+      };
+    }
+
     if (responseMode === "planner_json") {
       requestPayload.response_format = {
         type: "json_schema",
