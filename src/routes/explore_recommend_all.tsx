@@ -16,6 +16,7 @@ import {
 } from "react";
 import Sidebar from "@/components/Sidebar";
 import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
+import PlaceDetailDrawer, { type PlaceDetailTarget } from "@/components/PlaceDetailDrawer";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { useTravelStore } from "@/store/travelStore";
 import { supabase } from "@/lib/supabase";
@@ -61,6 +62,8 @@ function asTextArray(value: any): string[] {
 function ExploreAll() {
   const [placeToAddTrip, setPlaceToAddTrip] =
     useState<any | null>(null);
+  const [placeDetailTarget, setPlaceDetailTarget] =
+    useState<PlaceDetailTarget | null>(null);
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] =
     useState("all");
@@ -319,8 +322,33 @@ function ExploreAll() {
 
     return (
       <article
+        onClick={() =>
+          setPlaceDetailTarget({
+            type: "attraction",
+            data: place,
+          })
+        }
+        onKeyDown={(event) => {
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
+            event.preventDefault();
+            setPlaceDetailTarget({
+              type: "attraction",
+              data: place,
+            });
+          }
+        }}
+        role="button"
+        tabIndex={0}
         className="
           group
+          cursor-pointer
+          focus:outline-none
+          focus-visible:ring-2
+          focus-visible:ring-[#573d63]
+          focus-visible:ring-offset-2
           overflow-hidden
           rounded-[24px]
           border
@@ -562,6 +590,12 @@ function ExploreAll() {
   }
 
   return (
+    <>
+      <PlaceDetailDrawer
+        open={Boolean(placeDetailTarget)}
+        target={placeDetailTarget}
+        onClose={() => setPlaceDetailTarget(null)}
+      />
     <div className="
       travel-home
       flex
@@ -1061,5 +1095,6 @@ function ExploreAll() {
         </div>
       </main>
     </div>
+    </>
   );
 }
