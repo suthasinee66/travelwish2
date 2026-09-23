@@ -4904,7 +4904,7 @@ mapCenter;
   {/* Full-page accommodation selector */}
   <section
     aria-hidden={!hotelModal}
-    className={\`
+    className={`
       absolute
       inset-0
       z-[95]
@@ -4915,11 +4915,11 @@ mapCenter;
       transition-transform
       duration-500
       ease-[cubic-bezier(0.22,1,0.36,1)]
-      \${hotelModal
+      ${hotelModal
         ? "translate-x-0"
         : "translate-x-full pointer-events-none"
       }
-    \`}
+    `}
   >
     <div className="mx-auto min-h-full w-full max-w-5xl px-1 pb-10">
       <div
@@ -5220,7 +5220,7 @@ mapCenter;
                     onClick={() =>
                       selectHotelForTrip(hotel)
                     }
-                    className={\`
+                    className={`
                       group
                       flex
                       min-w-0
@@ -5234,11 +5234,11 @@ mapCenter;
                       duration-200
                       hover:-translate-y-0.5
                       hover:shadow-[0_10px_26px_rgba(87,61,99,0.08)]
-                      \${isSelected
+                      ${isSelected
                         ? "border-[#8c6694] ring-2 ring-[#8c6694]/10"
                         : "border-[#ece3ed] hover:border-[#cfbdd3]"
                       }
-                    \`}
+                    `}
                   >
                     <div
                       className="
@@ -5377,7 +5377,7 @@ mapCenter;
   </section>
 
   <div
-    className={\`
+    className={`
       flex
       w-full
       flex-col
@@ -5385,11 +5385,11 @@ mapCenter;
       transition-transform
       duration-500
       ease-[cubic-bezier(0.22,1,0.36,1)]
-      \${hotelModal
+      ${hotelModal
         ? "-translate-x-[12%] pointer-events-none"
         : "translate-x-0"
       }
-    \`}
+    `}
   >
 
   {/* MAP */}
