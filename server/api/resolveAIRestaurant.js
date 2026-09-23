@@ -439,19 +439,8 @@ router.post(
           verified.id
         );
 
-      if (existing) {
-        await attachToAttraction(
-          att_id,
-          existing
-        );
-
-        return res.json({
-          success: true,
-          cached: true,
-          restaurant:
-            existing,
-        });
-      }
+      const isNewAIRestaurant =
+        !existing;
 
       const restaurant = {
         place_id:
@@ -462,25 +451,31 @@ router.post(
 
         place_name_th:
           verified.displayName?.text ??
+          existing?.place_name_th ??
           name,
 
         place_name_en:
+          existing?.place_name_en ??
           null,
 
         place_address:
           verified.formattedAddress ??
+          existing?.place_address ??
           null,
 
         place_phone:
           verified.nationalPhoneNumber ??
+          existing?.place_phone ??
           null,
 
         place_website:
           verified.websiteUri ??
+          existing?.place_website ??
           null,
 
         place_type:
           verified.primaryType ??
+          existing?.place_type ??
           "restaurant",
 
         province_name_th:
@@ -488,24 +483,69 @@ router.post(
 
         latitude:
           verified.location?.latitude ??
+          existing?.latitude ??
           null,
 
         longitude:
           verified.location?.longitude ??
+          existing?.longitude ??
           null,
 
         images:
-          googlePhotoUrls(
-            verified
+          (
+            googlePhotoUrls(
+              verified
+            ).length > 0
+              ? googlePhotoUrls(
+                  verified
+                )
+              : (
+                  Array.isArray(
+                    existing?.images
+                  )
+                    ? existing.images
+                    : []
+                )
           ),
 
         rating:
           verified.rating ??
+          existing?.rating ??
           null,
 
         user_ratings_total:
           verified.userRatingCount ??
+          existing?.user_ratings_total ??
           null,
+
+        data_source:
+          isNewAIRestaurant
+            ? "ai_discovered"
+            : (
+                existing?.data_source ??
+                "dataset"
+              ),
+
+        discovered_by_ai:
+          isNewAIRestaurant
+            ? true
+            : (
+                existing?.discovered_by_ai ??
+                false
+              ),
+
+        ai_model:
+          existing?.ai_model ??
+          null,
+
+        ai_discovered_at:
+          isNewAIRestaurant
+            ? new Date()
+                .toISOString()
+            : (
+                existing?.ai_discovered_at ??
+                null
+              ),
 
         updated_at:
           new Date()
