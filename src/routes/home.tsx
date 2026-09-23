@@ -413,13 +413,11 @@ function WhoPicker({
 function BudgetPicker({
   tripInput,
   setTripInput,
-  setTripModal,
-  onComplete,
+  setActiveStep,
 }: {
   tripInput: any;
   setTripInput: any;
-  setTripModal: any;
-  onComplete: () => void;
+  setActiveStep: any;
 }) {
 
   return (
@@ -449,8 +447,7 @@ function BudgetPicker({
 
         onClick={() => {
 
-          setTripModal(false);
-          onComplete();
+          setActiveStep("stay");
 
         }}
 
@@ -480,6 +477,284 @@ ${tripInput.budget
   )
 
 }
+function AccommodationPicker({
+  tripInput,
+  setTripInput,
+  setTripModal,
+  onComplete,
+}: {
+  tripInput: any;
+  setTripInput: any;
+  setTripModal: any;
+  onComplete: () => void;
+}) {
+  const [search, setSearch] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [options, setOptions] =
+    useState<any[]>([]);
+
+  useEffect(() => {
+    const load =
+      async () => {
+        if (
+          !tripInput.province
+        ) {
+          return;
+        }
+
+        setLoading(true);
+
+        const {
+          data,
+          error
+        } = await supabase
+          .from("accommodation")
+          .select(`
+            acc_id,
+            acc_name_th,
+            acc_name_en,
+            province_name_th,
+            acc_address,
+            latitude,
+            longitude,
+            star_level,
+            accom_price_name,
+            images
+          `)
+          .eq(
+            "province_name_th",
+            tripInput.province
+          )
+          .order(
+            "star_level",
+            {
+              ascending: false
+            }
+          )
+          .limit(100);
+
+        if (error) {
+          console.error(
+            "LOAD ACCOMMODATION ERROR:",
+            error
+          );
+        }
+
+        setOptions(
+          data || []
+        );
+
+        setLoading(false);
+      };
+
+    load();
+  }, [
+    tripInput.province
+  ]);
+
+  const filtered =
+    options.filter(
+      hotel => {
+        const keyword =
+          search
+            .trim()
+            .toLowerCase();
+
+        if (!keyword) {
+          return true;
+        }
+
+        return (
+          String(
+            hotel.acc_name_th ??
+              ""
+          )
+            .toLowerCase()
+            .includes(keyword) ||
+          String(
+            hotel.acc_name_en ??
+              ""
+          )
+            .toLowerCase()
+            .includes(keyword)
+        );
+      }
+    );
+
+  const finish = (
+    accommodation:
+      any | null
+  ) => {
+    setTripInput(
+      (previous: any) => ({
+        ...previous,
+
+        accommodation:
+          accommodation
+            ? {
+                id:
+                  String(
+                    accommodation.acc_id
+                  ),
+
+                name:
+                  accommodation.acc_name_th ??
+                  accommodation.acc_name_en ??
+                  "ที่พัก",
+
+                address:
+                  accommodation.acc_address ??
+                  null,
+
+                latitude:
+                  Number(
+                    accommodation.latitude
+                  ),
+
+                longitude:
+                  Number(
+                    accommodation.longitude
+                  ),
+
+                source:
+                  "travelwish",
+              }
+            : null
+      })
+    );
+
+    setTripModal(false);
+    onComplete();
+  };
+
+  return (
+    <div>
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <Hotel
+            size={18}
+            className="text-[#6f456f]"
+          />
+
+          <h2 className="font-semibold">
+            มีที่พักแล้วหรือยัง?
+          </h2>
+        </div>
+
+        <p className="mt-2 text-sm leading-6 text-gray-500">
+          ถ้ามีที่พักอยู่แล้ว เลือกไว้เป็นจุดเริ่ม–จุดกลับของแต่ละวัน
+          เพื่อให้ AI และ Route Optimizer จัดแผนได้เหมาะกับทำเลมากขึ้น
+        </p>
+      </div>
+
+      <input
+        value={search}
+        onChange={event =>
+          setSearch(
+            event.target.value
+          )
+        }
+        placeholder="ค้นหาที่พัก..."
+        className="w-full rounded-xl border px-4 py-3 outline-none"
+      />
+
+      <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
+        {loading ? (
+          <div className="py-6 text-center text-sm text-gray-500">
+            กำลังโหลดที่พัก...
+          </div>
+        ) : (
+          filtered.map(
+            hotel => (
+              <button
+                key={
+                  hotel.acc_id
+                }
+                type="button"
+                onClick={() =>
+                  finish(hotel)
+                }
+                className="flex w-full gap-3 rounded-xl border p-3 text-left transition hover:border-[#b89bcb] hover:bg-[#f8f3f9]"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gray-100">
+                  {Array.isArray(
+                    hotel.images
+                  ) &&
+                  hotel.images[0] ? (
+                    <img
+                      src={
+                        hotel.images[0]
+                      }
+                      alt={
+                        hotel.acc_name_th ??
+                        ""
+                      }
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Hotel
+                      size={20}
+                      className="text-gray-400"
+                    />
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">
+                    {hotel.acc_name_th ??
+                      hotel.acc_name_en}
+                  </div>
+
+                  <div className="mt-1 truncate text-xs text-gray-500">
+                    {hotel.acc_address ??
+                      hotel.province_name_th}
+                  </div>
+
+                  <div className="mt-1 text-xs text-gray-400">
+                    ⭐{" "}
+                    {hotel.star_level ??
+                      "-"}
+                    {hotel.accom_price_name
+                      ? ` · ${hotel.accom_price_name}`
+                      : ""}
+                  </div>
+                </div>
+              </button>
+            )
+          )
+        )}
+      </div>
+
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() =>
+            finish(null)
+          }
+          className="rounded-xl border px-4 py-3 text-sm font-semibold text-gray-600"
+        >
+          ยังไม่มี / ข้าม
+        </button>
+
+        {tripInput.accommodation && (
+          <div className="max-w-[220px] truncate text-xs text-[#6f456f]">
+            เลือกไว้แล้ว:{" "}
+            {
+              tripInput
+                .accommodation
+                .name
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MapUpdater({
   center
 }: {
@@ -1617,6 +1892,7 @@ export function TripPlanPanel({
   existingTripTitle,
   onExistingTripSaved,
   onRouteChange,
+  onAccommodationChange,
 }: {
   plannerJson: any;
   plan: string;
@@ -1636,6 +1912,9 @@ export function TripPlanPanel({
   onRouteChange?: (
     routesByDay: Record<number, any[]>
   ) => void;
+  onAccommodationChange?: (
+    hotel: any | null
+  ) => void;
 }) {
   console.log("🔥 TripPlanPanel RENDER");
 
@@ -1649,7 +1928,22 @@ const [showAllDays, setShowAllDays] = useState(false);
 const [hotelSearch, setHotelSearch] = useState("");
 const [hotels, setHotels] = useState<any[]>([]);
 const [hotelLoading, setHotelLoading] = useState(false);
-const [selectedHotel, setSelectedHotel] = useState<any | null>(null);
+const [selectedHotel, setSelectedHotel] = useState<any | null>(
+  tripInput?.accommodation
+    ? {
+        acc_id:
+          tripInput.accommodation.id,
+        acc_name_th:
+          tripInput.accommodation.name,
+        acc_address:
+          tripInput.accommodation.address,
+        latitude:
+          tripInput.accommodation.latitude,
+        longitude:
+          tripInput.accommodation.longitude,
+      }
+    : null
+);
 const [routeMode, setRouteMode] = useState<ItineraryRouteMode>("ai_balanced");
 const [showSaveTripModal, setShowSaveTripModal] = useState(false);
 const [tripTitle, setTripTitle] = useState("");
@@ -4178,6 +4472,11 @@ onClick={() => {
   setSelectedHotel(
     hotel
   );
+
+  onAccommodationChange?.(
+    hotel
+  );
+
   setHotelModal(false);
 
   applyRouteMode(
@@ -5340,7 +5639,8 @@ function Home() {
       "days" |
       "who" |
       "preference" |
-      "budget"
+      "budget" |
+      "stay"
     >("where");
 type TripInput = {
   province: string;
@@ -5350,6 +5650,14 @@ type TripInput = {
   travelType: string[];
   activities: string[];
   atmosphere: string[];
+  accommodation?: {
+    id: string | null;
+    name: string;
+    address?: string | null;
+    latitude: number;
+    longitude: number;
+    source?: "user" | "travelwish" | "ai_verified";
+  } | null;
 };
 const [tripInput, setTripInput] = useState<TripInput>({
   province: "",
@@ -5359,7 +5667,8 @@ const [tripInput, setTripInput] = useState<TripInput>({
 
   travelType: [],
   activities: [],
-  atmosphere: []
+  atmosphere: [],
+  accommodation: null
 });
   const [mapCenter, setMapCenter] = useState({
     lat: 13.7563,
@@ -7509,9 +7818,7 @@ text-xl
                 <BudgetPicker
                   tripInput={tripInput}
                   setTripInput={setTripInput}
-                  setTripModal={setTripModal}
-                  onComplete={handleTripComplete}
-
+                  setActiveStep={setActiveStep}
                 />
               }
 
@@ -7521,6 +7828,16 @@ text-xl
                   tripInput={tripInput}
                   setTripInput={setTripInput}
                   setActiveStep={setActiveStep}
+                />
+              }
+
+              {
+                activeStep === "stay" &&
+                <AccommodationPicker
+                  tripInput={tripInput}
+                  setTripInput={setTripInput}
+                  setTripModal={setTripModal}
+                  onComplete={handleTripComplete}
                 />
               }
 
@@ -7630,6 +7947,21 @@ text-xl
     {tripInput.budget
       ? `${tripInput.budget.toLocaleString()} บาท`
       : "Add budget"}
+  </span>
+</button>
+
+<button
+  onClick={() => {
+    setActiveStep("stay");
+    setTripModal(true);
+  }}
+  className="transition-colors hover:text-purple-600"
+>
+  Stay
+  <br />
+  <span className="text-xs text-gray-400">
+    {tripInput.accommodation?.name ||
+      "Optional"}
   </span>
 </button>
 
@@ -8771,6 +9103,43 @@ focus:ring-black/20
     restaurants={restaurants}
     mapCenter={mapCenter}
     chatId={currentChatId}
+    onAccommodationChange={(hotel) => {
+      setTripInput(prev => ({
+        ...prev,
+
+        accommodation:
+          hotel
+            ? {
+                id:
+                  String(
+                    hotel.acc_id
+                  ),
+
+                name:
+                  hotel.acc_name_th ??
+                  hotel.acc_name_en ??
+                  "ที่พัก",
+
+                address:
+                  hotel.acc_address ??
+                  null,
+
+                latitude:
+                  Number(
+                    hotel.latitude
+                  ),
+
+                longitude:
+                  Number(
+                    hotel.longitude
+                  ),
+
+                source:
+                  "travelwish",
+              }
+            : null
+      }));
+    }}
   />
 )}
 
