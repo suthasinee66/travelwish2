@@ -4642,6 +4642,9 @@ mapCenter;
   }}
   className="
     travel-hotel-modal
+    !bg-[#fffdfb]
+    opacity-100
+    isolate
     absolute
     right-0
     top-full
@@ -7949,7 +7952,9 @@ max-w-[calc(100vw-2rem)]
 max-h-[calc(100dvh-2rem)]
 overflow-y-auto
 min-h-[260px]
-bg-white
+!bg-[#fffdfb]
+opacity-100
+isolate
 rounded-3xl
 shadow-2xl
 p-6
@@ -8109,9 +8114,8 @@ text-xl
             onClick={() => setExploreOpen(false)}
           />
         )}
-        <header className="travel-header travel-chat-header flex items-center px-6">
-          <h1>Your trip</h1>
-          <div className="flex-1 flex justify-center">
+        <header className="travel-header travel-chat-header flex items-center justify-center px-6">
+          <div className="flex w-full justify-center">
             <div className="flex items-center gap-6 text-sm">
               <button
   onClick={() => {
