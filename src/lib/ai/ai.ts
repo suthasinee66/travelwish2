@@ -64,7 +64,10 @@ export async function generateWithSelectedModel(
     }
 
     if (
-        options?.responseMode === "planner_json" &&
+        (
+            options?.responseMode === "planner_json" ||
+            options?.responseMode === "trend_context"
+        ) &&
         data.finish_reason &&
         !["stop", "tool_calls"].includes(
             String(data.finish_reason)
