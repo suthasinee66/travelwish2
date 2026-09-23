@@ -13,8 +13,6 @@ import {
   Wallet,
   CalendarDays,
   Check,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { THAI_REGIONS } from "@/lib/travel/thaiRegions";
@@ -24,178 +22,598 @@ export const Route = createFileRoute("/personal-survey")({
 });
 
 
-type PersonalityGroup = {
-  title: string;
-  description: string;
-  tags: string[];
+type DeepSurveyOption = {
+  label: string;
+  value: string;
 };
 
-const PERSONALITY_PREVIEW = [
-  "🌿 สายธรรมชาติ",
-  "📸 สายถ่ายรูป",
-  "☕ สายคาเฟ่",
-  "🍜 สายกิน",
-  "💪 สายสุขภาพ",
-  "📱 สายโซเชียล",
-  "✨ สายคอนเทนต์",
-  "🎉 สายปาร์ตี้",
-  "🧘 สายชิล",
-  "🧗 สายลุย",
-  "🛍️ สายช้อป",
-  "🏛️ สายวัฒนธรรม",
-];
+type DeepSurveyQuestion = {
+  id: string;
+  question: string;
+  description?: string;
+  multiple?: boolean;
+  options: DeepSurveyOption[];
+};
 
-const PERSONALITY_GROUPS: PersonalityGroup[] = [
+type DeepSurveyDimension = {
+  title: string;
+  description: string;
+  questions: DeepSurveyQuestion[];
+};
+
+const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
   {
-    title: "📸 รูปภาพ Social และ Content",
-    description: "สไตล์การถ่ายรูป การแชร์ และคอนเทนต์ที่คุณชอบเวลาเดินทาง",
-    tags: [
-      "📸 สายถ่ายรูป",
-      "🤳 ชอบถ่ายรูปตัวเอง",
-      "🌄 ชอบถ่ายวิว",
-      "🍰 ชอบถ่ายอาหาร",
-      "✨ ชอบมุม Instagrammable",
-      "🎬 สายคอนเทนต์",
-      "🔥 ชอบสถานที่กำลังไวรัล",
-      "🙅 ไม่สนใจว่าที่ไหนกำลังดัง",
+    title: "🍜 ด้านอาหารและการกิน",
+    description:
+      "รสนิยมอาหาร รูปแบบร้าน การลองเมนูใหม่ และความสำคัญของอาหารในทริป",
+    questions: [
+      {
+        id: "food_taste",
+        question: "รสชาติแบบไหนที่คุณชอบมากที่สุด?",
+        options: [
+          {
+            label: "🍋 เปรี้ยว–หวาน",
+            value: "อาหาร: ชอบรสเปรี้ยว-หวาน",
+          },
+          {
+            label: "🧂 เค็ม–มัน",
+            value: "อาหาร: ชอบรสเค็ม-มัน",
+          },
+          {
+            label: "🌶️ เผ็ด–ร้อน",
+            value: "อาหาร: ชอบรสเผ็ด-ร้อน",
+          },
+          {
+            label: "😌 รสกลาง ๆ",
+            value: "อาหาร: ชอบรสกลาง ไม่จัดมาก",
+          },
+        ],
+      },
+      {
+        id: "food_texture",
+        question: "เนื้อสัมผัสแบบไหนทำให้อาหารน่ากินสำหรับคุณ?",
+        options: [
+          {
+            label: "🥨 กรอบ / กรุบ",
+            value: "อาหาร: ชอบเนื้อสัมผัสกรอบกรุบ",
+          },
+          {
+            label: "🍮 นุ่ม / ละมุน",
+            value: "อาหาร: ชอบเนื้อสัมผัสนุ่มละมุน",
+          },
+          {
+            label: "🥩 หนึบ / เคี้ยวสนุก",
+            value: "อาหาร: ชอบเนื้อสัมผัสหนึบเคี้ยวสนุก",
+          },
+          {
+            label: "🤍 ไม่ซีเรียสเรื่อง Texture",
+            value: "อาหาร: ไม่ซีเรียสเรื่องเนื้อสัมผัส",
+          },
+        ],
+      },
+      {
+        id: "food_style",
+        question: "ระหว่างเที่ยว คุณอยากกินอาหารแบบไหนมากกว่า?",
+        description: "เลือกได้หลายข้อ",
+        multiple: true,
+        options: [
+          {
+            label: "🥘 Local ดั้งเดิม",
+            value: "อาหาร: เน้นอาหารท้องถิ่นดั้งเดิม",
+          },
+          {
+            label: "🍢 Street Food",
+            value: "อาหาร: ชอบ Street Food",
+          },
+          {
+            label: "💎 ร้านลับ",
+            value: "อาหาร: ชอบร้านลับ Hidden Gem",
+          },
+          {
+            label: "🔥 ร้านดัง / Viral",
+            value: "อาหาร: ชอบร้านดังหรือกำลังเป็นกระแส",
+          },
+          {
+            label: "🍽️ Fine Dining",
+            value: "อาหาร: ชอบ Fine Dining",
+          },
+          {
+            label: "🧪 Fusion / Creative",
+            value: "อาหาร: ชอบอาหารฟิวชันและเมนูสร้างสรรค์",
+          },
+        ],
+      },
+      {
+        id: "food_behavior",
+        question: "เวลาสั่งอาหาร คุณเป็นแบบไหน?",
+        options: [
+          {
+            label: "✅ เมนูคุ้นเคย อร่อยชัวร์",
+            value: "อาหาร: ชอบเมนูคุ้นเคยและความแน่นอน",
+          },
+          {
+            label: "🎲 ชอบลองเมนูใหม่",
+            value: "อาหาร: ชอบลองเมนูใหม่ที่ไม่เคยกิน",
+          },
+          {
+            label: "⚖️ แล้วแต่อารมณ์",
+            value: "อาหาร: สลับระหว่างเมนูคุ้นเคยและลองของใหม่",
+          },
+        ],
+      },
+      {
+        id: "food_priority",
+        question: "อาหารสำคัญกับทริปของคุณแค่ไหน?",
+        options: [
+          {
+            label: "🍜 อาหารคือจุดหมาย",
+            value: "อาหาร: อาหารคือจุดหมายหลักของทริป",
+          },
+          {
+            label: "🍴 ยอมอ้อมเพื่อร้านอร่อย",
+            value: "อาหาร: ยอมเดินทางไกลเพื่อร้านอร่อย",
+          },
+          {
+            label: "🥪 สะดวกไว้ก่อน",
+            value: "อาหาร: กินอะไรก็ได้ ขอเที่ยวก่อน",
+          },
+        ],
+      },
+      {
+        id: "food_health",
+        question: "เรื่องสุขภาพกับอาหาร คุณให้ความสำคัญแบบไหน?",
+        options: [
+          {
+            label: "🥗 เน้น Healthy",
+            value: "อาหาร: เน้นอาหารสุขภาพ",
+          },
+          {
+            label: "😋 ความอร่อยมาก่อน",
+            value: "อาหาร: ให้ความสำคัญกับรสชาติมากกว่าสุขภาพ",
+          },
+          {
+            label: "⚖️ ขอสมดุล",
+            value: "อาหาร: ต้องการสมดุลระหว่างสุขภาพและความอร่อย",
+          },
+        ],
+      },
     ],
   },
   {
-    title: "☕ Café Personality",
-    description: "คาเฟ่แบบไหนที่คุณอยากให้เป็นส่วนหนึ่งของทริป",
-    tags: [
-      "☕ สายคาเฟ่",
-      "🫘 จริงจังเรื่องกาแฟ",
-      "🍵 ชอบชา/มัทฉะ",
-      "🌿 ชอบคาเฟ่ธรรมชาติ",
-      "🏞️ ชอบคาเฟ่วิวดี",
-      "🤍 ชอบคาเฟ่มินิมอล",
-      "📸 เลือกคาเฟ่จากมุมถ่ายรูป",
-      "🍽️ เลือกคาเฟ่จากรสชาติ",
+    title: "🏨 ด้านที่พักและความสบาย",
+    description:
+      "ประเภทที่พัก ทำเล ความสะดวกสบาย และสิ่งที่คุณยอมจ่ายเพิ่ม",
+    questions: [
+      {
+        id: "stay_type",
+        question: "ที่พักแบบไหนที่รู้สึกว่าเหมาะกับคุณ?",
+        multiple: true,
+        options: [
+          {
+            label: "🏨 โรงแรม",
+            value: "ที่พัก: ชอบโรงแรม",
+          },
+          {
+            label: "🌿 Resort / ธรรมชาติ",
+            value: "ที่พัก: ชอบรีสอร์ตหรือที่พักธรรมชาติ",
+          },
+          {
+            label: "🏡 Homestay",
+            value: "ที่พัก: ชอบ Homestay และ Local stay",
+          },
+          {
+            label: "🎒 Hostel / Backpacker",
+            value: "ที่พัก: ชอบ Hostel หรือ Backpacker",
+          },
+          {
+            label: "✨ Boutique / ดีไซน์สวย",
+            value: "ที่พัก: ชอบ Boutique และที่พักดีไซน์สวย",
+          },
+        ],
+      },
+      {
+        id: "stay_location",
+        question: "ทำเลที่พักแบบไหนสำคัญที่สุด?",
+        options: [
+          {
+            label: "🏙️ ใจกลางเมือง",
+            value: "ที่พัก: ให้ความสำคัญกับทำเลใจกลางเมือง",
+          },
+          {
+            label: "📍 ใกล้สถานที่เที่ยว",
+            value: "ที่พัก: ต้องการอยู่ใกล้สถานที่เที่ยว",
+          },
+          {
+            label: "🌿 เงียบสงบ",
+            value: "ที่พัก: ต้องการทำเลเงียบสงบ",
+          },
+          {
+            label: "🌊 วิวดี / ธรรมชาติ",
+            value: "ที่พัก: ให้ความสำคัญกับวิวและธรรมชาติ",
+          },
+        ],
+      },
+      {
+        id: "stay_comfort",
+        question: "ระดับความสบายที่คุณต้องการ?",
+        options: [
+          {
+            label: "💸 ขอสะอาดและประหยัด",
+            value: "ที่พัก: เน้นสะอาดและประหยัด",
+          },
+          {
+            label: "💰 คุ้มค่าและสบาย",
+            value: "ที่พัก: เน้นความคุ้มค่าและความสบาย",
+          },
+          {
+            label: "🛏️ Comfort สำคัญ",
+            value: "ที่พัก: ให้ความสำคัญกับความสบายสูง",
+          },
+          {
+            label: "✨ ยอมจ่ายเพื่อประสบการณ์",
+            value: "ที่พัก: ยอมจ่ายเพิ่มเพื่อประสบการณ์และบริการ",
+          },
+        ],
+      },
+      {
+        id: "stay_facility",
+        question: "อะไรในที่พักที่เพิ่มความสุขให้ทริปคุณ?",
+        multiple: true,
+        options: [
+          {
+            label: "🍳 อาหารเช้า",
+            value: "ที่พัก: ให้ความสำคัญกับอาหารเช้า",
+          },
+          {
+            label: "🏊 สระว่ายน้ำ",
+            value: "ที่พัก: ชอบที่พักมีสระว่ายน้ำ",
+          },
+          {
+            label: "💆 Spa / Wellness",
+            value: "ที่พัก: ชอบที่พักมี Spa หรือ Wellness",
+          },
+          {
+            label: "💻 Workspace / Wi-Fi ดี",
+            value: "ที่พัก: ต้องการ Workspace และอินเทอร์เน็ตดี",
+          },
+          {
+            label: "📸 ถ่ายรูปสวย",
+            value: "ที่พัก: ให้ความสำคัญกับมุมถ่ายรูปสวย",
+          },
+        ],
+      },
     ],
   },
   {
-    title: "🍜 Food Personality",
-    description: "รสนิยมด้านอาหารและความสำคัญของมื้ออาหารในทริป",
-    tags: [
-      "🍜 สายกิน",
-      "🥘 ชอบอาหารท้องถิ่น",
-      "🍢 ชอบ Street Food",
-      "🔥 ชอบร้านดัง",
-      "💎 ชอบร้านลับ",
-      "🍽️ ชอบ Fine Dining",
-      "🥗 สาย Healthy Food",
-      "🍴 ยอมเดินทางไกลเพื่อร้านอร่อย",
-      "🍜 อาหารคือจุดหมายหลักของทริป",
-      "🥪 กินอะไรก็ได้ ขอเที่ยวก่อน",
+    title: "🚗 ด้านการเดินทางและการเคลื่อนที่",
+    description:
+      "วิธีเดินทาง ระยะทางที่รับได้ การเดินเท้า และความสำคัญของเส้นทาง",
+    questions: [
+      {
+        id: "mobility_mode",
+        question: "เวลาท่องเที่ยว คุณชอบเดินทางแบบไหน?",
+        multiple: true,
+        options: [
+          {
+            label: "🚗 รถส่วนตัว / เช่ารถ",
+            value: "การเดินทาง: ชอบใช้รถส่วนตัวหรือเช่ารถ",
+          },
+          {
+            label: "🚕 Taxi / Ride-hailing",
+            value: "การเดินทาง: ชอบใช้ Taxi หรือ Ride-hailing",
+          },
+          {
+            label: "🚌 ขนส่งสาธารณะ",
+            value: "การเดินทาง: ชอบใช้ขนส่งสาธารณะ",
+          },
+          {
+            label: "🚶 เดินเที่ยว",
+            value: "การเดินทาง: ชอบเดินเที่ยว",
+          },
+          {
+            label: "🏍️ มอเตอร์ไซค์",
+            value: "การเดินทาง: ชอบใช้มอเตอร์ไซค์",
+          },
+        ],
+      },
+      {
+        id: "mobility_distance",
+        question: "ระยะเวลาเดินทางระหว่างจุดที่คุณรับได้?",
+        options: [
+          {
+            label: "⏱️ ไม่เกิน 30 นาที",
+            value: "การเดินทาง: ไม่อยากนั่งรถเกิน 30 นาทีต่อช่วง",
+          },
+          {
+            label: "🕐 30–60 นาทีได้",
+            value: "การเดินทาง: รับการเดินทาง 30-60 นาทีต่อช่วงได้",
+          },
+          {
+            label: "🛣️ 1–2 ชม. ถ้าคุ้ม",
+            value: "การเดินทาง: ยอมเดินทาง 1-2 ชั่วโมงถ้าสถานที่คุ้ม",
+          },
+          {
+            label: "🌄 ระยะทางไม่ใช่ปัญหา",
+            value: "การเดินทาง: ระยะทางไม่ใช่ข้อจำกัดสำคัญ",
+          },
+        ],
+      },
+      {
+        id: "mobility_walk",
+        question: "คุณโอเคกับการเดินมากแค่ไหน?",
+        options: [
+          {
+            label: "🛋️ เดินน้อย",
+            value: "การเดินทาง: ไม่อยากเดินเยอะ",
+          },
+          {
+            label: "🚶 เดินพอประมาณ",
+            value: "การเดินทาง: เดินระยะปานกลางได้",
+          },
+          {
+            label: "🥾 เดินเยอะได้",
+            value: "การเดินทาง: เดินเยอะได้",
+          },
+        ],
+      },
+      {
+        id: "mobility_route",
+        question: "ถ้าต้องเลือก คุณให้ความสำคัญกับอะไร?",
+        options: [
+          {
+            label: "⚡ เส้นทางสั้นและเร็ว",
+            value: "การเดินทาง: เน้นเส้นทางสั้นและประหยัดเวลา",
+          },
+          {
+            label: "🌄 ทางสวย / แวะระหว่างทาง",
+            value: "การเดินทาง: ชอบเส้นทางสวยและจุดแวะระหว่างทาง",
+          },
+          {
+            label: "🎯 ยอมอ้อมเพื่อจุดที่ใช่",
+            value: "การเดินทาง: ยอมอ้อมเส้นทางเพื่อสถานที่ที่ตรงความชอบ",
+          },
+        ],
+      },
     ],
   },
   {
-    title: "💪 สุขภาพ Wellness และร่างกาย",
-    description: "ระดับกิจกรรม การพักผ่อน และไลฟ์สไตล์สุขภาพของคุณ",
-    tags: [
-      "💪 สายสุขภาพ",
-      "🧘 ชอบ Yoga",
-      "💆 ชอบ Spa",
-      "🚶 ชอบเดิน",
-      "🥾 เดินเยอะได้",
-      "🛋️ ไม่อยากเดินเยอะ",
-      "🌿 ชอบธรรมชาติบำบัด",
-      "😴 ให้ความสำคัญกับการพักผ่อน",
+    title: "🧗 ด้านกิจกรรมและจังหวะการเที่ยว",
+    description:
+      "ความแน่นของแผน ระดับพลังงาน ความลุย และช่วงเวลาที่คุณเที่ยวได้ดีที่สุด",
+    questions: [
+      {
+        id: "pace",
+        question: "จังหวะทริปที่ใช่สำหรับคุณ?",
+        options: [
+          {
+            label: "🐢 Slow Travel",
+            value: "จังหวะทริป: Slow Travel",
+          },
+          {
+            label: "⚖️ สมดุล",
+            value: "จังหวะทริป: สมดุล ไม่แน่นหรือชิลเกินไป",
+          },
+          {
+            label: "⚡ เที่ยวแน่น",
+            value: "จังหวะทริป: ชอบเที่ยวแน่นหลายจุด",
+          },
+        ],
+      },
+      {
+        id: "activity_intensity",
+        question: "ระดับกิจกรรมที่คุณชอบ?",
+        options: [
+          {
+            label: "😌 เบา ๆ พักผ่อน",
+            value: "กิจกรรม: ชอบกิจกรรมเบาและพักผ่อน",
+          },
+          {
+            label: "🚶 เดินเที่ยว / สำรวจ",
+            value: "กิจกรรม: ชอบเดินเที่ยวและสำรวจ",
+          },
+          {
+            label: "🥾 Active",
+            value: "กิจกรรม: ชอบกิจกรรมใช้พลังงาน",
+          },
+          {
+            label: "🧗 Adventure",
+            value: "กิจกรรม: ชอบกิจกรรม Adventure และความท้าทาย",
+          },
+        ],
+      },
+      {
+        id: "activity_time",
+        question: "ช่วงเวลาไหนที่คุณมีพลังเที่ยวที่สุด?",
+        options: [
+          {
+            label: "🌅 เช้า",
+            value: "จังหวะทริป: ชอบเริ่มเที่ยวแต่เช้า",
+          },
+          {
+            label: "☀️ กลางวัน",
+            value: "จังหวะทริป: ชอบเที่ยวช่วงกลางวัน",
+          },
+          {
+            label: "🌇 เย็น",
+            value: "จังหวะทริป: ชอบเที่ยวช่วงเย็น",
+          },
+          {
+            label: "🌙 กลางคืน",
+            value: "จังหวะทริป: เป็นสายกลางคืน",
+          },
+        ],
+      },
+      {
+        id: "activity_plan",
+        question: "คุณชอบแผนแบบไหน?",
+        options: [
+          {
+            label: "📋 วางแผนละเอียด",
+            value: "จังหวะทริป: ชอบแผนละเอียดและมีเวลาชัดเจน",
+          },
+          {
+            label: "🧭 มีโครงแต่ยืดหยุ่น",
+            value: "จังหวะทริป: ชอบมีโครงแผนแต่ยืดหยุ่นได้",
+          },
+          {
+            label: "🎲 หน้างานค่อยเลือก",
+            value: "จังหวะทริป: ชอบความ spontaneous และตัดสินใจหน้างาน",
+          },
+        ],
+      },
     ],
   },
   {
-    title: "🧗 Adventure & Activity",
-    description: "ระดับความลุยและกิจกรรมที่อยากมีอยู่ในทริป",
-    tags: [
-      "🧗 สายลุย",
-      "🥾 ชอบ Hiking",
-      "🧗‍♀️ ชอบปีนเขา",
-      "🚣 ชอบล่องแก่ง",
-      "🤿 ชอบดำน้ำ",
-      "🏍️ ชอบ ATV",
-      "🔥 ชอบลองอะไรใหม่ ๆ",
-      "😌 ไม่ชอบกิจกรรมเสี่ยง",
+    title: "🎉 ด้านบรรยากาศ สังคม และ Nightlife",
+    description:
+      "ระดับความคึกคัก ผู้คน ความเป็นส่วนตัว และกิจกรรมช่วงค่ำ",
+    questions: [
+      {
+        id: "social_crowd",
+        question: "สถานที่แบบไหนทำให้คุณรู้สึกสบายใจ?",
+        options: [
+          {
+            label: "🌿 คนน้อย เงียบสงบ",
+            value: "สังคม: ชอบสถานที่คนน้อยและเงียบสงบ",
+          },
+          {
+            label: "🙂 มีคนบ้าง ไม่วุ่นวาย",
+            value: "สังคม: ชอบบรรยากาศมีคนพอประมาณ",
+          },
+          {
+            label: "👥 คึกคัก คนเยอะ",
+            value: "สังคม: ชอบสถานที่คึกคักและคนเยอะ",
+          },
+        ],
+      },
+      {
+        id: "social_interaction",
+        question: "เวลาเที่ยว คุณชอบบรรยากาศทางสังคมแบบไหน?",
+        options: [
+          {
+            label: "🙋‍♀️ มีพื้นที่ส่วนตัว",
+            value: "สังคม: ให้ความสำคัญกับพื้นที่ส่วนตัว",
+          },
+          {
+            label: "🤝 ชอบเจอคนใหม่",
+            value: "สังคม: ชอบพบปะและทำความรู้จักคนใหม่",
+          },
+          {
+            label: "👨‍👩‍👧 เน้นเวลากับคนที่ไปด้วย",
+            value: "สังคม: เน้นใช้เวลากับผู้ร่วมทริป",
+          },
+        ],
+      },
+      {
+        id: "nightlife",
+        question: "กลางคืนของทริปควรเป็นแบบไหน?",
+        multiple: true,
+        options: [
+          {
+            label: "🌙 กลับพักเร็ว",
+            value: "Nightlife: ชอบกลับที่พักเร็วและพักผ่อน",
+          },
+          {
+            label: "🧺 Night Market",
+            value: "Nightlife: ชอบ Night Market",
+          },
+          {
+            label: "🎶 Live Music",
+            value: "Nightlife: ชอบ Live Music",
+          },
+          {
+            label: "🍸 Bar / Cocktail",
+            value: "Nightlife: ชอบ Bar และ Cocktail",
+          },
+          {
+            label: "🎉 Party",
+            value: "Nightlife: ชอบ Party และสถานที่คึกคัก",
+          },
+        ],
+      },
     ],
   },
   {
-    title: "😌 Pace & Energy",
-    description: "จังหวะการเที่ยวที่ทำให้คุณรู้สึกว่าแผนกำลังพอดี",
-    tags: [
-      "🧘 สายชิล",
-      "⚡ สายเที่ยวแน่น",
-      "🐢 Slow Travel",
-      "📍 ชอบแวะหลายจุด",
-      "🚗 ไม่ชอบอยู่บนรถนาน",
-      "🛣️ ขับไกลได้ถ้าที่นั้นคุ้ม",
-      "🌅 เริ่มเที่ยวแต่เช้า",
-      "🌙 สายกลางคืน",
-    ],
-  },
-  {
-    title: "🎉 Social & Nightlife",
-    description: "บรรยากาศทางสังคมและชีวิตยามค่ำคืนที่เหมาะกับคุณ",
-    tags: [
-      "🎉 สายปาร์ตี้",
-      "🍸 ชอบ Bar",
-      "🎶 ชอบ Live Music",
-      "🌃 ชอบ Nightlife",
-      "👥 ชอบสถานที่คนเยอะ",
-      "🤝 ชอบเจอคนใหม่",
-      "🌿 ชอบสถานที่คนน้อย",
-      "🙈 ยิ่งคนเยอะยิ่งเลี่ยง",
-    ],
-  },
-  {
-    title: "🛍️ Shopping & Urban",
-    description: "รูปแบบการช้อป ตลาด และประสบการณ์ในเมืองที่คุณสนใจ",
-    tags: [
-      "🛍️ สายช้อป",
-      "👗 ชอบแฟชั่น",
-      "👜 ชอบสินค้า Local Brand",
-      "🎁 ชอบซื้อของฝาก",
-      "🧺 ชอบตลาดท้องถิ่น",
-      "🌙 ชอบ Night Market",
-    ],
-  },
-  {
-    title: "🏛️ Culture & Local Experience",
-    description: "ความสนใจวัฒนธรรม ประวัติศาสตร์ และประสบการณ์ท้องถิ่น",
-    tags: [
-      "🏛️ สายวัฒนธรรม",
-      "🙏 สายวัด",
-      "🔮 สายมู",
-      "🏺 ชอบประวัติศาสตร์",
-      "🖼️ ชอบพิพิธภัณฑ์",
-      "🏘️ ชอบชุมชนเก่า",
-      "🗺️ ชอบสถานที่ Unseen",
-      "💎 ชอบ Hidden Gem",
-    ],
-  },
-  {
-    title: "💰 Spending Behavior",
-    description: "สิ่งที่คุณให้ความสำคัญเมื่อใช้เงินระหว่างทริป",
-    tags: [
-      "💸 สายประหยัด",
-      "💰 จ่ายได้ถ้าคุ้ม",
-      "✨ สายหรู",
-      "🏨 ยอมจ่ายกับที่พัก",
-      "🍽️ ยอมจ่ายกับอาหาร",
-      "🎢 ยอมจ่ายกับกิจกรรม",
-    ],
-  },
-  {
-    title: "🏨 Comfort & Accommodation Lifestyle",
-    description: "สไตล์ที่พักและระดับความสะดวกสบายที่คุณให้ความสำคัญ",
-    tags: [
-      "🛏️ เน้นความสบาย",
-      "🎒 Backpacker",
-      "🏨 ชอบโรงแรม",
-      "🏡 ชอบ Homestay",
-      "🌿 ชอบที่พักธรรมชาติ",
-      "🏙️ ชอบพักใจกลางเมือง",
-      "🌊 ชอบที่พักติดทะเล",
-      "📸 ชอบที่พักถ่ายรูปสวย",
+    title: "📸 ด้านวัฒนธรรม คอนเทนต์ และการค้นพบ",
+    description:
+      "สิ่งที่ทำให้สถานที่หนึ่งน่าไปสำหรับคุณ ตั้งแต่วัฒนธรรมจนถึงเทรนด์และมุมถ่ายรูป",
+    questions: [
+      {
+        id: "content_priority",
+        question: "เรื่องรูปและคอนเทนต์สำคัญกับทริปคุณแค่ไหน?",
+        options: [
+          {
+            label: "📸 ต้องถ่ายรูปสวย",
+            value: "คอนเทนต์: ให้ความสำคัญกับมุมถ่ายรูปสวย",
+          },
+          {
+            label: "🔥 ชอบที่กำลัง Viral",
+            value: "คอนเทนต์: สนใจสถานที่กำลังเป็นกระแสหรือ Viral",
+          },
+          {
+            label: "🎬 ชอบทำ Content",
+            value: "คอนเทนต์: ชอบทำคอนเทนต์ระหว่างเที่ยว",
+          },
+          {
+            label: "🙅 ไม่สนว่าในโซเชียลดังไหม",
+            value: "คอนเทนต์: ไม่ให้ความสำคัญกับกระแสโซเชียล",
+          },
+        ],
+      },
+      {
+        id: "culture_style",
+        question: "ประสบการณ์แบบไหนดึงดูดคุณ?",
+        multiple: true,
+        options: [
+          {
+            label: "🙏 วัด / ความเชื่อ",
+            value: "วัฒนธรรม: สนใจวัดและความเชื่อ",
+          },
+          {
+            label: "🏺 ประวัติศาสตร์",
+            value: "วัฒนธรรม: สนใจประวัติศาสตร์",
+          },
+          {
+            label: "🏘️ ชุมชน / Local",
+            value: "วัฒนธรรม: ชอบชุมชนและ Local Experience",
+          },
+          {
+            label: "🎨 Workshop / Craft",
+            value: "วัฒนธรรม: ชอบ Workshop งานคราฟต์และกิจกรรมลงมือทำ",
+          },
+          {
+            label: "🗺️ Unseen / Hidden Gem",
+            value: "วัฒนธรรม: ชอบ Unseen และ Hidden Gem",
+          },
+        ],
+      },
+      {
+        id: "shopping_style",
+        question: "ถ้ามีเวลาช้อป คุณสนใจอะไร?",
+        multiple: true,
+        options: [
+          {
+            label: "👜 Local Brand",
+            value: "ช้อปปิ้ง: ชอบ Local Brand",
+          },
+          {
+            label: "🧺 ตลาดท้องถิ่น",
+            value: "ช้อปปิ้ง: ชอบตลาดท้องถิ่น",
+          },
+          {
+            label: "🎁 ของฝาก",
+            value: "ช้อปปิ้ง: ชอบซื้อของฝาก",
+          },
+          {
+            label: "👗 แฟชั่น",
+            value: "ช้อปปิ้ง: สนใจแฟชั่น",
+          },
+          {
+            label: "🙅 ไม่เน้นช้อป",
+            value: "ช้อปปิ้ง: ไม่ให้ความสำคัญกับการช้อป",
+          },
+        ],
+      },
     ],
   },
 ];
@@ -207,7 +625,7 @@ function PersonalSurvey() {
   const [activities, setActivities] = useState<string[]>([]);
   const [preferredRegion, setPreferredRegion] = useState<string[]>([]);
   const [personalityTags, setPersonalityTags] = useState<string[]>([]);
-  const [showPersonalityDetails, setShowPersonalityDetails] = useState(false);
+  const [foodRestrictions, setFoodRestrictions] = useState("");
 
   const [atmosphere, setAtmosphere] = useState("");
   const [travelCompanion, setTravelCompanion] = useState("");
@@ -226,6 +644,50 @@ function PersonalSurvey() {
     } else {
       setList([...list, value]);
     }
+  };
+
+  const selectDeepAnswer = (
+    question: DeepSurveyQuestion,
+    optionValue: string
+  ) => {
+    setPersonalityTags((current) => {
+      const optionValues =
+        question.options.map(
+          option => option.value
+        );
+
+      const alreadySelected =
+        current.includes(
+          optionValue
+        );
+
+      if (question.multiple) {
+        return alreadySelected
+          ? current.filter(
+              value =>
+                value !== optionValue
+            )
+          : [
+              ...current,
+              optionValue
+            ];
+      }
+
+      const withoutThisQuestion =
+        current.filter(
+          value =>
+            !optionValues.includes(
+              value
+            )
+        );
+
+      return alreadySelected
+        ? withoutThisQuestion
+        : [
+            ...withoutThisQuestion,
+            optionValue
+          ];
+    });
   };
 
   const handleSubmit = async () => {
@@ -268,7 +730,16 @@ function PersonalSurvey() {
           travel_time: travelTime,
           preferred_region: preferredRegion,
           travel_goal: travelGoal,
-          personality_tags: personalityTags,
+          personality_tags: [
+            ...personalityTags,
+            ...(
+              foodRestrictions.trim()
+                ? [
+                    `ข้อจำกัดอาหาร: ${foodRestrictions.trim()}`
+                  ]
+                : []
+            ),
+          ],
         },
         {
           onConflict: "profile_id",
@@ -781,7 +1252,7 @@ function PersonalSurvey() {
 
 
           {/* ==================================================
-              Deep Personalization
+              Deep Personalization — 6 dimensions
               ================================================== */}
           <section className="survey-card">
 
@@ -793,126 +1264,137 @@ function PersonalSurvey() {
 
               <div className="min-w-0 flex-1">
                 <h3 className="survey-section-title">
-                  อยากให้แผนตรงกับคุณมากยิ่งขึ้นไหม?
+                  เจาะลึกสไตล์การเดินทางของคุณ
                 </h3>
 
                 <p className="survey-section-description">
-                  เลือกพฤติกรรมและสไตล์ที่ตรงกับคุณได้หลายข้อ ส่วนนี้ไม่บังคับ
-                  และจะช่วยให้ AI จัดจังหวะทริป ร้านอาหาร และบรรยากาศให้เป็นคุณมากขึ้น
+                  6 ด้านสำคัญที่จะช่วยให้ AI เข้าใจทั้งการกิน ที่พัก การเดินทาง
+                  จังหวะทริป บรรยากาศ และสิ่งที่คุณให้ความสำคัญจริง ๆ
+                  ส่วนนี้ไม่บังคับ แต่ยิ่งตอบละเอียด แผนจะยิ่งเป็นคุณมากขึ้น
                 </p>
               </div>
 
             </div>
 
-            {!showPersonalityDetails && (
-              <>
-                <div className="flex flex-wrap gap-3">
-                  {PERSONALITY_PREVIEW.map((tag) => {
-                    const selected = personalityTags.includes(tag);
-
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() =>
-                          toggleItem(
-                            tag,
-                            personalityTags,
-                            setPersonalityTags
-                          )
-                        }
-                        className={`survey-chip ${
-                          selected ? "survey-chip-selected" : ""
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {personalityTags.length > 0 && (
-                  <p className="mt-4 text-xs font-medium text-[#8b7894]">
-                    เลือกแล้ว {personalityTags.length} รายการ
-                  </p>
-                )}
-              </>
-            )}
-
-            <button
-              type="button"
-              onClick={() =>
-                setShowPersonalityDetails((current) => !current)
-              }
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-[#decfdf] bg-white/65 px-4 py-3 text-sm font-bold text-[#6f456f] transition hover:bg-white"
-            >
-              {showPersonalityDetails ? (
-                <>
-                  ซ่อนตัวเลือกเพิ่มเติม
-                  <ChevronUp className="h-4 w-4" />
-                </>
-              ) : (
-                <>
-                  ดูเพิ่มเติมและเลือกให้ละเอียดขึ้น
-                  <ChevronDown className="h-4 w-4" />
-                </>
-              )}
-            </button>
-
-            {showPersonalityDetails && (
-              <div className="mt-6 space-y-7">
-                <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/55 px-4 py-3">
-                  <p className="text-xs leading-5 text-[#71697d]">
-                    เลือกได้มากเท่าที่ตรงกับคุณ ไม่จำเป็นต้องเลือกทุกหมวด
-                  </p>
-
-                  <span className="shrink-0 rounded-full bg-[#6f456f]/10 px-3 py-1 text-xs font-bold text-[#6f456f]">
-                    {personalityTags.length} เลือกแล้ว
-                  </span>
-                </div>
-
-                {PERSONALITY_GROUPS.map((group) => (
+            <div className="space-y-6">
+              {DEEP_SURVEY_DIMENSIONS.map(
+                (dimension, dimensionIndex) => (
                   <div
-                    key={group.title}
-                    className="rounded-[22px] border border-white/70 bg-white/35 p-4 sm:p-5"
+                    key={dimension.title}
+                    className="rounded-[24px] border border-white/75 bg-white/38 p-4 sm:p-5"
                   >
-                    <div className="mb-4">
-                      <h4 className="text-sm font-extrabold text-[#40364b] sm:text-base">
-                        {group.title}
-                      </h4>
-                      <p className="mt-1 text-xs leading-5 text-[#81778b]">
-                        {group.description}
-                      </p>
+                    <div className="mb-5 flex items-start gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#6f456f]/10 text-xs font-extrabold text-[#6f456f]">
+                        {dimensionIndex + 1}
+                      </span>
+
+                      <div>
+                        <h4 className="text-base font-extrabold text-[#40364b]">
+                          {dimension.title}
+                        </h4>
+
+                        <p className="mt-1 text-xs leading-5 text-[#81778b]">
+                          {dimension.description}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2.5">
-                      {group.tags.map((tag) => {
-                        const selected = personalityTags.includes(tag);
+                    <div className="space-y-5">
+                      {dimension.questions.map(
+                        (question) => (
+                          <div
+                            key={question.id}
+                            className="rounded-[20px] border border-[#ece3ed] bg-white/58 p-4"
+                          >
+                            <div className="mb-3">
+                              <p className="text-sm font-bold leading-6 text-[#51475a]">
+                                {question.question}
+                              </p>
 
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() =>
-                              toggleItem(
-                                tag,
-                                personalityTags,
-                                setPersonalityTags
+                              {question.description && (
+                                <p className="mt-1 text-[11px] font-medium text-[#978c9d]">
+                                  {question.description}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap gap-2.5">
+                              {question.options.map(
+                                (option) => {
+                                  const selected =
+                                    personalityTags.includes(
+                                      option.value
+                                    );
+
+                                  return (
+                                    <button
+                                      key={option.value}
+                                      type="button"
+                                      onClick={() =>
+                                        selectDeepAnswer(
+                                          question,
+                                          option.value
+                                        )
+                                      }
+                                      className={`survey-chip ${
+                                        selected
+                                          ? "survey-chip-selected"
+                                          : ""
+                                      }`}
+                                    >
+                                      {option.label}
+                                    </button>
+                                  );
+                                }
+                              )}
+                            </div>
+                          </div>
+                        )
+                      )}
+
+                      {dimensionIndex === 0 && (
+                        <div className="rounded-[20px] border border-[#ece3ed] bg-white/58 p-4">
+                          <label
+                            htmlFor="food-restrictions"
+                            className="text-sm font-bold leading-6 text-[#51475a]"
+                          >
+                            มีอาหารที่แพ้ ไม่กิน หรือวัตถุดิบที่อยากหลีกเลี่ยงไหม?
+                          </label>
+
+                          <p className="mt-1 text-[11px] leading-5 text-[#978c9d]">
+                            เช่น แพ้กุ้ง, ไม่กินเนื้อวัว, มังสวิรัติ, ไม่กินเผ็ด
+                            — เว้นว่างได้ถ้าไม่มี
+                          </p>
+
+                          <input
+                            id="food-restrictions"
+                            type="text"
+                            value={foodRestrictions}
+                            onChange={(event) =>
+                              setFoodRestrictions(
+                                event.target.value
                               )
                             }
-                            className={`survey-chip ${
-                              selected ? "survey-chip-selected" : ""
-                            }`}
-                          >
-                            {tag}
-                          </button>
-                        );
-                      })}
+                            placeholder="พิมพ์ข้อจำกัดด้านอาหาร..."
+                            className="mt-3 w-full rounded-2xl border border-[#dfd3e1] bg-white/80 px-4 py-3 text-sm text-[#40364b] outline-none transition placeholder:text-[#aaa0ae] focus:border-[#b89bcb] focus:ring-4 focus:ring-[#c8a9d8]/20"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                )
+              )}
+            </div>
+
+            <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-white/55 px-4 py-3">
+              <p className="text-xs leading-5 text-[#71697d]">
+                คำตอบส่วนนี้จะถูกใช้เป็นบริบทเสริมสำหรับ Recommendation และ AI Planner
+              </p>
+
+              <span className="shrink-0 rounded-full bg-[#6f456f]/10 px-3 py-1 text-xs font-bold text-[#6f456f]">
+                {personalityTags.length} คำตอบ
+              </span>
+            </div>
 
           </section>
 
