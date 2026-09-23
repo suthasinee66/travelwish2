@@ -1566,6 +1566,26 @@ function HotelItineraryCard({
               {hotel.acc_address}
             </div>
           )}
+
+          {hotel?.rating != null && (
+            <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-[#6f456f]">
+              <Star
+                size={12}
+                fill="currentColor"
+                strokeWidth={1.6}
+              />
+              {Number(
+                hotel.rating
+              ).toFixed(1)}
+              {hotel?.user_ratings_total != null && (
+                <span className="font-normal text-[#9a8da0]">
+                  ({Number(
+                    hotel.user_ratings_total
+                  ).toLocaleString()} รีวิว)
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -2287,10 +2307,15 @@ function AccommodationThumbnail({
         "ที่พัก"
       }
       onLoad={async () => {
+        const needsMetadataRefresh =
+          !existingImage ||
+          !hotel?.acc_address ||
+          hotel?.rating == null;
+
         if (
           synced ||
-          existingImage ||
-          !hotel?.acc_id
+          !hotel?.acc_id ||
+          !needsMetadataRefresh
         ) {
           return;
         }
@@ -2579,6 +2604,8 @@ const filteredHotels = useMemo(() => {
       latitude,
       longitude,
       star_level,
+      rating,
+      user_ratings_total,
       images,
       source_url,
       booking_provider,
@@ -5631,11 +5658,31 @@ mapCenter;
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#8a7d8f]">
                         {hotel.star_level != null && (
                           <span className="flex items-center gap-1">
-                            <Star
+                            <Hotel
                               size={12}
                               strokeWidth={1.8}
                             />
-                            {hotel.star_level}
+                            {hotel.star_level} ดาว
+                          </span>
+                        )}
+
+                        {hotel.rating != null && (
+                          <span className="flex items-center gap-1 font-semibold text-[#6f456f]">
+                            <Star
+                              size={12}
+                              fill="currentColor"
+                              strokeWidth={1.6}
+                            />
+                            {Number(
+                              hotel.rating
+                            ).toFixed(1)}
+                            {hotel.user_ratings_total != null && (
+                              <span className="font-normal text-[#9a8da0]">
+                                ({Number(
+                                  hotel.user_ratings_total
+                                ).toLocaleString()} รีวิว)
+                              </span>
+                            )}
                           </span>
                         )}
 
@@ -5904,6 +5951,26 @@ mapCenter;
             {selectedHotel.acc_address ??
               "ใช้เป็นจุดเริ่มและจุดกลับของแต่ละวัน"}
           </div>
+
+          {selectedHotel.rating != null && (
+            <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-[#6f456f]">
+              <Star
+                size={12}
+                fill="currentColor"
+                strokeWidth={1.6}
+              />
+              {Number(
+                selectedHotel.rating
+              ).toFixed(1)}
+              {selectedHotel.user_ratings_total != null && (
+                <span className="font-normal text-[#9a8da0]">
+                  ({Number(
+                    selectedHotel.user_ratings_total
+                  ).toLocaleString()} รีวิว)
+                </span>
+              )}
+            </div>
+          )}
 
         </div>
       </div>
