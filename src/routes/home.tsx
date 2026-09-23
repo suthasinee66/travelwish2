@@ -66,6 +66,7 @@ import { loadPlaceImages } from "@/lib/recommend/loadPlaceImages";
 import Sidebar from "@/components/Sidebar";
 import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
 import GuestPreferenceModal from "@/components/GuestPreferenceModal";
+import PlaceDetailDrawer, { type PlaceDetailTarget } from "@/components/PlaceDetailDrawer";
 import {
   getGuestPreferences,
   isGuestUser,
@@ -1514,9 +1515,11 @@ function DistanceBetweenItems({
 function HotelItineraryCard({
   hotel,
   phase,
+  onOpenDetail,
 }: {
   hotel: any;
   phase: "start" | "return";
+  onOpenDetail?: (target: PlaceDetailTarget) => void;
 }) {
   const name =
     hotel?.acc_name_th ??
@@ -1525,13 +1528,37 @@ function HotelItineraryCard({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() =>
+        onOpenDetail?.({
+          type: "accommodation",
+          data: hotel,
+        })
+      }
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpenDetail?.({
+            type: "accommodation",
+            data: hotel,
+          });
+        }
+      }}
       className="
+        cursor-pointer
         rounded-2xl
         border
         border-[#dfd2e2]
         bg-[#fbf6fc]
         p-3
         shadow-sm
+        transition
+        hover:border-[#cdb8d2]
+        hover:shadow-md
+        focus:outline-none
+        focus:ring-2
+        focus:ring-[#b89bcb]/40
       "
     >
       <div className="flex items-center gap-3">
@@ -1665,6 +1692,7 @@ function SortablePlaceItem({
   sortableIdOverride,
   sortableDayIndex,
   numberColor,
+  onOpenDetail,
 }: any) {
 
   const sortableId =
@@ -1720,12 +1748,67 @@ function SortablePlaceItem({
     <div
       ref={setNodeRef}
       style={style}
+      role="button"
+      tabIndex={0}
+      onClick={() => {
+        if (item.type === "restaurant") {
+          onOpenDetail?.({
+            type: "restaurant",
+            data:
+              findRestaurant(item.restaurant_id) ??
+              item.location ??
+              item,
+          });
+          return;
+        }
+
+        onOpenDetail?.({
+          type: "attraction",
+          data:
+            findPlace(item.place_id) ??
+            item.location ??
+            item,
+        });
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (item.type === "restaurant") {
+          onOpenDetail?.({
+            type: "restaurant",
+            data:
+              findRestaurant(item.restaurant_id) ??
+              item.location ??
+              item,
+          });
+          return;
+        }
+
+        onOpenDetail?.({
+          type: "attraction",
+          data:
+            findPlace(item.place_id) ??
+            item.location ??
+            item,
+        });
+      }}
       className="
+        cursor-pointer
         border
         rounded-2xl
         p-3
         bg-white
         shadow-sm
+        transition
+        hover:border-[#d6c4da]
+        hover:shadow-md
+        focus:outline-none
+        focus:ring-2
+        focus:ring-[#b89bcb]/35
       "
     >
 
@@ -2022,7 +2105,27 @@ function SortablePlaceItem({
 
               <div
                 key={restaurant.place_id}
+                role="button"
+                tabIndex={0}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenDetail?.({
+                    type: "restaurant",
+                    data: restaurant,
+                  });
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onOpenDetail?.({
+                      type: "restaurant",
+                      data: restaurant,
+                    });
+                  }
+                }}
                 className="
+                  cursor-pointer
                   min-w-[240px]
                   w-[240px]
                   shrink-0
@@ -2425,6 +2528,7 @@ export function TripPlanPanel({
   onRouteChange,
   onAccommodationChange,
   onReplanForAccommodation,
+  onOpenPlaceDetail,
 }: {
   plannerJson: any;
   plan: string;
@@ -2450,6 +2554,9 @@ export function TripPlanPanel({
   onReplanForAccommodation?: (
     hotel: any
   ) => Promise<void> | void;
+  onOpenPlaceDetail?: (
+    target: PlaceDetailTarget
+  ) => void;
 }) {
   console.log("🔥 TripPlanPanel RENDER");
 
@@ -6635,6 +6742,7 @@ mapCenter;
                 <HotelItineraryCard
                   hotel={selectedHotel}
                   phase="start"
+                  onOpenDetail={onOpenPlaceDetail}
                 />
 
                 {dayData.items[0] &&
@@ -6728,6 +6836,7 @@ mapCenter;
                       removeRestaurantFromPlan={
                         removeRestaurantFromPlan
                       }
+                      onOpenDetail={onOpenPlaceDetail}
                     />
 
                     {index <
@@ -6766,6 +6875,7 @@ mapCenter;
                 <HotelItineraryCard
                   hotel={selectedHotel}
                   phase="return"
+                  onOpenDetail={onOpenPlaceDetail}
                 />
               </>
             )}
@@ -6790,6 +6900,7 @@ mapCenter;
           <HotelItineraryCard
             hotel={selectedHotel}
             phase="start"
+            onOpenDetail={onOpenPlaceDetail}
           />
 
           {routePlaces[0] &&
@@ -6864,6 +6975,7 @@ mapCenter;
               removeRestaurantFromPlan={
                 removeRestaurantFromPlan
               }
+              onOpenDetail={onOpenPlaceDetail}
             />
 
             {index <
@@ -6902,6 +7014,7 @@ mapCenter;
           <HotelItineraryCard
             hotel={selectedHotel}
             phase="return"
+            onOpenDetail={onOpenPlaceDetail}
           />
         </>
       )}
@@ -7486,6 +7599,8 @@ function Home() {
   const [hasChatStarted, setHasChatStarted] = useState(false);
   const [tripPlaces, setTripPlaces] = useState<any[]>([]);
   const [exploreOpen, setExploreOpen] = useState(false);
+  const [placeDetailTarget, setPlaceDetailTarget] =
+    useState<PlaceDetailTarget | null>(null);
   const [exploreLoading, setExploreLoading] = useState(false);
   const [recommendLoading, setRecommendLoading] = useState(true);
   const [recommendError, setRecommendError] = useState<string | null>(null);
@@ -9741,6 +9856,12 @@ const handleSend = async () => {
         }
       />
 
+      <PlaceDetailDrawer
+        open={Boolean(placeDetailTarget)}
+        target={placeDetailTarget}
+        onClose={() => setPlaceDetailTarget(null)}
+      />
+
       {/* Sidebar */}
       <Sidebar
         user={user}
@@ -11160,6 +11281,9 @@ focus:ring-black/20
     restaurants={restaurants}
     mapCenter={mapCenter}
     chatId={currentChatId}
+    onOpenPlaceDetail={(target) =>
+      setPlaceDetailTarget(target)
+    }
     onAccommodationChange={(hotel) => {
       const nextTrip: TripInput = {
         ...tripInput,
