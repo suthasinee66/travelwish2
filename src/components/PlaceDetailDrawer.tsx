@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Building2,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   ExternalLink,
   Globe2,
@@ -12,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useImageSwipe } from "@/hooks/useImageSwipe";
 
 export type PlaceDetailTargetType =
   | "attraction"
@@ -379,6 +382,8 @@ export default function PlaceDetailDrawer({
   const [descriptionExpanded, setDescriptionExpanded] =
     useState(false);
 
+  const swipeProps = useImageSwipe();
+
   useEffect(() => {
     let active = true;
 
@@ -641,18 +646,6 @@ export default function PlaceDetailDrawer({
       )
     ];
 
-  const galleryThumbs =
-    images
-      .map((src, index) => ({
-        src,
-        index,
-      }))
-      .filter(
-        ({ index }) =>
-          index !== mainImageIndex
-      )
-      .slice(0, 4);
-
   const tabs: Array<{
     id: DetailTab;
     label: string;
@@ -670,6 +663,29 @@ export default function PlaceDetailDrawer({
       label: "Location",
     },
   ];
+
+  const changeImage = (
+    direction: "next" | "prev"
+  ) => {
+    if (images.length <= 1) {
+      return;
+    }
+
+    setMainImageIndex((current) => {
+      if (direction === "next") {
+        return (
+          (current + 1) %
+          images.length
+        );
+      }
+
+      return (
+        current -
+        1 +
+        images.length
+      ) % images.length;
+    });
+  };
 
   const longDescription =
     String(description).length > 430;
@@ -818,117 +834,111 @@ export default function PlaceDetailDrawer({
 
           <section className="mt-7">
             {selectedImage ? (
-              <>
-                <div className="hidden h-[390px] grid-cols-12 grid-rows-2 gap-2.5 sm:grid">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setMainImageIndex(
-                        mainImageIndex
-                      )
-                    }
-                    className="col-span-7 row-span-2 overflow-hidden rounded-l-[24px] rounded-r-xl bg-[#f1edf2]"
-                  >
-                    <img
-                      src={selectedImage}
-                      alt={title}
-                      className="h-full w-full object-cover transition duration-300 hover:scale-[1.01]"
-                    />
-                  </button>
-
-                  {galleryThumbs.length >
-                  0 ? (
-                    galleryThumbs.map(
-                      (
-                        image,
-                        thumbIndex
-                      ) => (
-                        <button
-                          key={`${image.src}-${image.index}`}
-                          type="button"
-                          onClick={() =>
-                            setMainImageIndex(
-                              image.index
-                            )
-                          }
-                          className={`
-                            col-span-5 overflow-hidden bg-[#f1edf2]
-                            ${thumbIndex === 0
-                              ? "rounded-tr-[24px]"
-                              : ""}
-                            ${thumbIndex ===
-                            galleryThumbs.length -
-                              1
-                              ? "rounded-br-[24px]"
-                              : ""}
-                          `}
-                        >
-                          <img
-                            src={image.src}
-                            alt=""
-                            className="h-full w-full object-cover transition duration-300 hover:scale-[1.02]"
-                          />
-                        </button>
-                      )
-                    )
-                  ) : (
-                    <div className="col-span-5 row-span-2 flex items-center justify-center rounded-r-[24px] bg-[#f4f0f4] text-[#a092a4]">
-                      <TypeIcon
-                        size={34}
-                        strokeWidth={1.4}
-                      />
-                    </div>
+              <div>
+                <div
+                  {...swipeProps(
+                    changeImage,
+                    images.length > 1
                   )}
-                </div>
-
-                <div className="sm:hidden">
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] bg-[#f1edf2]">
+                  className="group relative overflow-hidden rounded-[24px] bg-[#f1edf2] touch-pan-y"
+                >
+                  <div className="aspect-[16/10] w-full sm:aspect-[16/9]">
                     <img
                       src={selectedImage}
                       alt={title}
-                      className="h-full w-full object-cover"
+                      draggable={false}
+                      className="h-full w-full select-none object-cover"
                     />
-
-                    {images.length > 1 && (
-                      <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white">
-                        {mainImageIndex + 1} /{" "}
-                        {images.length}
-                      </div>
-                    )}
                   </div>
 
                   {images.length > 1 && (
-                    <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
-                      {images.map(
-                        (src, index) => (
-                          <button
-                            key={`${src}-${index}`}
-                            type="button"
-                            onClick={() =>
-                              setMainImageIndex(
-                                index
-                              )
-                            }
-                            className={`
-                              h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2
-                              ${index ===
-                              mainImageIndex
-                                ? "border-[#6f456f]"
-                                : "border-transparent"}
-                            `}
-                          >
-                            <img
-                              src={src}
-                              alt=""
-                              className="h-full w-full object-cover"
-                            />
-                          </button>
-                        )
-                      )}
-                    </div>
+                    <>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          changeImage("prev");
+                        }}
+                        className="
+                          absolute left-3 top-1/2 hidden
+                          h-10 w-10 -translate-y-1/2
+                          items-center justify-center
+                          rounded-full border border-black/5
+                          bg-white/95 text-[#3f3545]
+                          shadow-[0_8px_24px_rgba(35,25,39,0.18)]
+                          opacity-0 transition
+                          hover:bg-white
+                          group-hover:opacity-100
+                          sm:flex
+                        "
+                        aria-label="รูปก่อนหน้า"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          changeImage("next");
+                        }}
+                        className="
+                          absolute right-3 top-1/2 hidden
+                          h-10 w-10 -translate-y-1/2
+                          items-center justify-center
+                          rounded-full border border-black/5
+                          bg-white/95 text-[#3f3545]
+                          shadow-[0_8px_24px_rgba(35,25,39,0.18)]
+                          opacity-0 transition
+                          hover:bg-white
+                          group-hover:opacity-100
+                          sm:flex
+                        "
+                        aria-label="รูปถัดไป"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+
+                      <div className="absolute bottom-3 right-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                        {mainImageIndex + 1} / {images.length}
+                      </div>
+                    </>
                   )}
                 </div>
-              </>
+
+                {images.length > 1 && (
+                  <div className="mt-3 flex items-center justify-center gap-1.5">
+                    {images.slice(0, 8).map((_, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() =>
+                          setMainImageIndex(index)
+                        }
+                        aria-label={`ดูรูปที่ ${index + 1}`}
+                        className={`
+                          rounded-full transition-all
+                          ${index === mainImageIndex
+                            ? "h-2 w-5 bg-[#573d63]"
+                            : "h-2 w-2 bg-[#d9cfdc] hover:bg-[#b9aabe]"}
+                        `}
+                      />
+                    ))}
+
+                    {images.length > 8 && (
+                      <span className="ml-1 text-[11px] text-[#9a8da0]">
+                        +{images.length - 8}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {images.length > 1 && (
+                  <div className="mt-2 text-center text-[11px] text-[#a093a4] sm:hidden">
+                    ปัดซ้าย–ขวาเพื่อดูรูป
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex aspect-[16/7] max-h-[320px] items-center justify-center rounded-[24px] bg-[#f4f0f4] text-[#9c8fa0]">
                 <TypeIcon
