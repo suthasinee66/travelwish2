@@ -296,9 +296,11 @@ app.post("/api/ai", async (req, res) => {
           content:
             responseMode === "planner_json"
               ? "You are a travel planning assistant. Follow the provided JSON schema exactly. Return no prose outside the schema."
-              : responseMode === "markdown"
-                ? "You are a travel planning assistant. Return only the final Markdown itinerary text requested by the user."
-                : "You are a helpful travel planning assistant. Return valid JSON only.",
+              : responseMode === "trend_context"
+                ? "You are a travel trend researcher. Use live web search and return a concise JSON object containing only current, evidence-based travel trends and viral places relevant to the requested province."
+                : responseMode === "markdown"
+                  ? "You are a travel planning assistant. Return only the final Markdown itinerary text requested by the user."
+                  : "You are a helpful travel planning assistant. Return valid JSON only.",
         },
         {
           role: "user",
@@ -309,12 +311,16 @@ app.post("/api/ai", async (req, res) => {
       temperature:
         responseMode === "planner_json"
           ? 0.1
-          : 0.3,
+          : responseMode === "trend_context"
+            ? 0.15
+            : 0.3,
 
       max_tokens:
         responseMode === "planner_json"
           ? 8000
-          : 12000,
+          : responseMode === "trend_context"
+            ? 4000
+            : 12000,
     };
 
     if (responseMode === "planner_json") {
@@ -323,7 +329,10 @@ app.post("/api/ai", async (req, res) => {
       };
     }
 
-    if (responseMode === "markdown") {
+    if (
+      responseMode === "trend_context" ||
+      responseMode === "markdown"
+    ) {
       requestPayload.tools = [
         {
           type:
@@ -332,9 +341,13 @@ app.post("/api/ai", async (req, res) => {
             engine:
               "auto",
             max_results:
-              5,
+              responseMode === "trend_context"
+                ? 8
+                : 5,
             max_total_results:
-              10,
+              responseMode === "trend_context"
+                ? 16
+                : 10,
             search_context_size:
               "medium"
           }
@@ -342,7 +355,9 @@ app.post("/api/ai", async (req, res) => {
       ];
 
       requestPayload.max_tool_calls =
-        3;
+        responseMode === "trend_context"
+          ? 5
+          : 3;
     }
 
     if (responseMode === "planner_json") {
