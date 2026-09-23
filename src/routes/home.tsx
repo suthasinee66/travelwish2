@@ -497,6 +497,18 @@ function AccommodationPicker({
   const [options, setOptions] =
     useState<any[]>([]);
 
+  const [linkUrl, setLinkUrl] =
+    useState("");
+
+  const [linkLoading, setLinkLoading] =
+    useState(false);
+
+  const [linkError, setLinkError] =
+    useState("");
+
+  const [resolvedLinkHotel, setResolvedLinkHotel] =
+    useState<any | null>(null);
+
   useEffect(() => {
     const load =
       async () => {
@@ -555,6 +567,91 @@ function AccommodationPicker({
   }, [
     tripInput.province
   ]);
+
+  const resolveAccommodationLink =
+    async () => {
+      const url =
+        linkUrl.trim();
+
+      if (!url) {
+        setLinkError(
+          "กรุณาวางลิงก์ที่พัก"
+        );
+        return;
+      }
+
+      const API_URL =
+        (
+          import.meta.env.VITE_API_URL ||
+          (
+            import.meta.env.DEV
+              ? "http://localhost:5000"
+              : ""
+          )
+        ).replace(/\/$/, "");
+
+      if (!API_URL) {
+        setLinkError(
+          "ยังไม่ได้ตั้งค่า VITE_API_URL"
+        );
+        return;
+      }
+
+      setLinkLoading(true);
+      setLinkError("");
+      setResolvedLinkHotel(null);
+
+      try {
+        const response =
+          await fetch(
+            `${API_URL}/api/resolve-accommodation-link`,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  url,
+                  province:
+                    tripInput.province,
+                }),
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (
+          !response.ok ||
+          !data?.accommodation
+        ) {
+          throw new Error(
+            data?.error ||
+            "ไม่สามารถอ่านข้อมูลที่พักจากลิงก์ได้"
+          );
+        }
+
+        setResolvedLinkHotel(
+          data.accommodation
+        );
+      } catch (error: any) {
+        console.error(
+          "RESOLVE ACCOMMODATION LINK ERROR:",
+          error
+        );
+
+        setLinkError(
+          error?.message ||
+          "ไม่สามารถอ่านลิงก์ที่พักได้"
+        );
+      } finally {
+        setLinkLoading(false);
+      }
+    };
 
   const filtered =
     options.filter(
@@ -621,7 +718,16 @@ function AccommodationPicker({
                   ),
 
                 source:
+                  accommodation.source ??
                   "travelwish",
+
+                source_url:
+                  accommodation.source_url ??
+                  null,
+
+                booking_provider:
+                  accommodation.booking_provider ??
+                  null,
               }
             : null
       })
@@ -649,6 +755,121 @@ function AccommodationPicker({
           ถ้ามีที่พักอยู่แล้ว เลือกไว้เป็นจุดเริ่ม–จุดกลับของแต่ละวัน
           เพื่อให้ AI และ Route Optimizer จัดแผนได้เหมาะกับทำเลมากขึ้น
         </p>
+      </div>
+
+      <div className="mb-5 rounded-2xl border border-[#eadfeb] bg-[#fbf7fc] p-4">
+        <div className="text-sm font-bold text-[#51475a]">
+          🔗 เพิ่มจากลิงก์
+        </div>
+
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          รองรับ Google Maps และลิงก์จาก Booking.com, Agoda, Expedia, Trip.com,
+          Hotels.com, Traveloka, Airbnb หรือเว็บโรงแรมโดยตรง
+        </p>
+
+        <div className="mt-3 flex gap-2">
+          <input
+            value={linkUrl}
+            onChange={event => {
+              setLinkUrl(
+                event.target.value
+              );
+              setLinkError("");
+              setResolvedLinkHotel(null);
+            }}
+            placeholder="วางลิงก์ Google Maps หรือเว็บจองที่พัก..."
+            className="min-w-0 flex-1 rounded-xl border bg-white px-4 py-3 text-sm outline-none focus:border-[#b89bcb]"
+          />
+
+          <button
+            type="button"
+            onClick={
+              resolveAccommodationLink
+            }
+            disabled={
+              linkLoading ||
+              !linkUrl.trim()
+            }
+            className="shrink-0 rounded-xl bg-[#6f456f] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {linkLoading
+              ? "กำลังตรวจ..."
+              : "ตรวจสอบ"}
+          </button>
+        </div>
+
+        {linkError && (
+          <div className="mt-2 text-xs font-medium text-red-500">
+            {linkError}
+          </div>
+        )}
+
+        {resolvedLinkHotel && (
+          <div className="mt-3 rounded-xl border border-[#d9c6dd] bg-white p-3">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#f1e8f3]">
+                {Array.isArray(
+                  resolvedLinkHotel.images
+                ) &&
+                resolvedLinkHotel.images[0] ? (
+                  <img
+                    src={
+                      resolvedLinkHotel.images[0]
+                    }
+                    alt={
+                      resolvedLinkHotel.acc_name_th ??
+                      "ที่พัก"
+                    }
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Hotel
+                    size={19}
+                    className="text-[#6f456f]"
+                  />
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-bold text-[#40364b]">
+                  {resolvedLinkHotel.acc_name_th}
+                </div>
+
+                <div className="mt-1 line-clamp-2 text-xs text-gray-500">
+                  {resolvedLinkHotel.acc_address}
+                </div>
+
+                <div className="mt-1 text-[11px] text-[#8f7a96]">
+                  {resolvedLinkHotel.booking_provider ??
+                    (
+                      resolvedLinkHotel.source === "google_maps"
+                        ? "Google Maps"
+                        : "External booking"
+                    )}
+                  {resolvedLinkHotel.rating
+                    ? ` · ⭐ ${resolvedLinkHotel.rating}`
+                    : ""}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  finish(
+                    resolvedLinkHotel
+                  )
+                }
+                className="shrink-0 rounded-lg bg-[#6f456f] px-3 py-2 text-xs font-bold text-white"
+              >
+                ใช้ที่พักนี้
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-[#9a8da0]">
+        หรือค้นจาก TravelWish
       </div>
 
       <input
@@ -5656,7 +5877,9 @@ type TripInput = {
     address?: string | null;
     latitude: number;
     longitude: number;
-    source?: "user" | "travelwish" | "ai_verified";
+    source?: "user" | "travelwish" | "google_maps" | "booking_link" | "ai_verified";
+    source_url?: string | null;
+    booking_provider?: string | null;
   } | null;
 };
 const [tripInput, setTripInput] = useState<TripInput>({
@@ -9135,7 +9358,16 @@ focus:ring-black/20
                   ),
 
                 source:
+                  hotel.source ??
                   "travelwish",
+
+                source_url:
+                  hotel.source_url ??
+                  null,
+
+                booking_provider:
+                  hotel.booking_provider ??
+                  null,
               }
             : null
       }));
