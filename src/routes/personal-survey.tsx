@@ -270,6 +270,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "stay_location",
         question: "ทำเลที่พักแบบไหนสำคัญที่สุด?",
+        description: "เลือก 1 ข้อที่สำคัญกับคุณมากที่สุด",
         options: [
           {
             label: "🏙️ ใจกลางเมือง",
@@ -292,6 +293,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "stay_comfort",
         question: "ระดับความสบายที่คุณต้องการ?",
+        description: "เลือก 1 ระดับที่ใกล้กับสไตล์ของคุณที่สุด",
         options: [
           {
             label: "💸 ขอสะอาดและประหยัด",
@@ -375,6 +377,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "mobility_distance",
         question: "ระยะเวลาเดินทางระหว่างจุดที่คุณรับได้?",
+        description: "เลือกช่วงเวลาสูงสุดที่คุณรู้สึกว่าโอเค",
         options: [
           {
             label: "⏱️ ไม่เกิน 30 นาที",
@@ -397,6 +400,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "mobility_walk",
         question: "คุณโอเคกับการเดินมากแค่ไหน?",
+        description: "เลือก 1 ระดับที่ตรงกับคุณมากที่สุด",
         options: [
           {
             label: "🛋️ เดินน้อย",
@@ -415,6 +419,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "mobility_route",
         question: "ถ้าต้องเลือก คุณให้ความสำคัญกับอะไร?",
+        description: "เลือก 1 อย่างที่สำคัญที่สุด",
         options: [
           {
             label: "⚡ เส้นทางสั้นและเร็ว",
@@ -440,6 +445,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "pace",
         question: "จังหวะทริปที่ใช่สำหรับคุณ?",
+        description: "เลือก 1 รูปแบบหลัก",
         options: [
           {
             label: "🐢 Slow Travel",
@@ -458,6 +464,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "activity_intensity",
         question: "ระดับกิจกรรมที่คุณชอบ?",
+        description: "เลือก 1 ระดับหลัก",
         options: [
           {
             label: "😌 เบา ๆ พักผ่อน",
@@ -480,6 +487,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "activity_time",
         question: "ช่วงเวลาไหนที่คุณมีพลังเที่ยวที่สุด?",
+        description: "เลือก 1 ช่วงเวลาหลัก",
         options: [
           {
             label: "🌅 เช้า",
@@ -502,6 +510,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "activity_plan",
         question: "คุณชอบแผนแบบไหน?",
+        description: "เลือก 1 รูปแบบที่ใกล้กับคุณที่สุด",
         options: [
           {
             label: "📋 วางแผนละเอียด",
@@ -527,6 +536,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "social_crowd",
         question: "สถานที่แบบไหนทำให้คุณรู้สึกสบายใจ?",
+        description: "เลือก 1 บรรยากาศหลัก",
         options: [
           {
             label: "🌿 คนน้อย เงียบสงบ",
@@ -545,6 +555,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "social_interaction",
         question: "เวลาเที่ยว คุณชอบบรรยากาศทางสังคมแบบไหน?",
+        description: "เลือก 1 แบบที่ตรงกับคุณที่สุด",
         options: [
           {
             label: "🙋‍♀️ มีพื้นที่ส่วนตัว",
@@ -597,6 +608,7 @@ const DEEP_SURVEY_DIMENSIONS: DeepSurveyDimension[] = [
       {
         id: "content_priority",
         question: "เรื่องรูปและคอนเทนต์สำคัญกับทริปคุณแค่ไหน?",
+        description: "เลือก 1 แนวคิดหลักที่ตรงกับคุณที่สุด",
         options: [
           {
             label: "📸 ต้องถ่ายรูปสวย",
@@ -704,7 +716,7 @@ function PersonalSurvey() {
   };
 
   const selectDeepAnswer = (
-    _question: DeepSurveyQuestion,
+    question: DeepSurveyQuestion,
     optionValue: string
   ) => {
     setPersonalityTags((current) => {
@@ -713,13 +725,35 @@ function PersonalSurvey() {
           optionValue
         );
 
+      if (question.multiple) {
+        return alreadySelected
+          ? current.filter(
+              value =>
+                value !== optionValue
+            )
+          : [
+              ...current,
+              optionValue
+            ];
+      }
+
+      const optionValues =
+        question.options.map(
+          option => option.value
+        );
+
+      const withoutThisQuestion =
+        current.filter(
+          value =>
+            !optionValues.includes(
+              value
+            )
+        );
+
       return alreadySelected
-        ? current.filter(
-            value =>
-              value !== optionValue
-          )
+        ? withoutThisQuestion
         : [
-            ...current,
+            ...withoutThisQuestion,
             optionValue
           ];
     });
@@ -1376,7 +1410,12 @@ function PersonalSurvey() {
                               </p>
 
                               <p className="mt-1 text-[11px] font-medium text-[#978c9d]">
-                                {question.description || "เลือกได้หลายคำตอบ"}
+                                {question.description ||
+                                  (
+                                    question.multiple
+                                      ? "เลือกได้หลายคำตอบ"
+                                      : "เลือกคำตอบที่ตรงกับคุณมากที่สุด 1 ข้อ"
+                                  )}
                               </p>
                             </div>
 
