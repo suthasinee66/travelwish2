@@ -1504,15 +1504,6 @@ function HotelItineraryCard({
     hotel?.acc_name_en ??
     "ที่พัก";
 
-  const image =
-    Array.isArray(hotel?.images)
-      ? hotel.images[0]
-      : (
-          typeof hotel?.images === "string"
-            ? hotel.images
-            : null
-        );
-
   return (
     <div
       className="
@@ -1541,37 +1532,23 @@ function HotelItineraryCard({
           <Hotel size={16} />
         </div>
 
-        {image ? (
-          <img
-            src={image}
-            alt={name}
-            className="
-              h-16
-              w-20
-              shrink-0
-              rounded-xl
-              object-cover
-            "
+        <div
+          className="
+            flex
+            h-16
+            w-20
+            shrink-0
+            items-center
+            justify-center
+            overflow-hidden
+            rounded-xl
+            bg-[#f0e7f2]
+          "
+        >
+          <AccommodationThumbnail
+            hotel={hotel}
           />
-        ) : (
-          <div
-            className="
-              flex
-              h-16
-              w-20
-              shrink-0
-              items-center
-              justify-center
-              rounded-xl
-              bg-[#f0e7f2]
-            "
-          >
-            <Hotel
-              size={22}
-              className="text-[#6f456f]"
-            />
-          </div>
-        )}
+        </div>
 
         <div className="min-w-0 flex-1">
           <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9a819f]">
@@ -5776,19 +5753,19 @@ mapCenter;
         <div
           className="
             flex
-            h-10
-            w-10
+            h-12
+            w-14
             shrink-0
             items-center
             justify-center
+            overflow-hidden
             rounded-xl
             bg-[#f2e9f4]
             text-[#6f456f]
           "
         >
-          <Hotel
-            size={18}
-            strokeWidth={1.9}
+          <AccommodationThumbnail
+            hotel={selectedHotel}
           />
         </div>
 
