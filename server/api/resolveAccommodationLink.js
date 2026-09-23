@@ -1541,4 +1541,358 @@ router.post(
   }
 );
 
+
+router.get(
+  "/accommodation-image",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const accId =
+        String(
+          req.query
+            ?.acc_id ??
+          ""
+        )
+          .trim();
+
+      if (!accId) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "acc_id is required",
+          });
+      }
+
+      if (
+        !GOOGLE_PLACES_API_KEY
+      ) {
+        return res
+          .status(503)
+          .json({
+            error:
+              "Google Places API is not configured",
+          });
+      }
+
+      const {
+        data:
+          accommodation,
+        error:
+          accommodationError,
+      } =
+        await supabase
+          .from(
+            "accommodation"
+          )
+          .select(
+            [
+              "acc_id",
+              "acc_name_th",
+              "acc_name_en",
+              "province_name_th",
+              "google_place_id",
+              "images",
+            ].join(",")
+          )
+          .eq(
+            "acc_id",
+            accId
+          )
+          .maybeSingle();
+
+      if (
+        accommodationError
+      ) {
+        throw accommodationError;
+      }
+
+      if (!accommodation) {
+        return res
+          .status(404)
+          .json({
+            error:
+              "Accommodation not found",
+          });
+      }
+
+      const existingImage =
+        Array.isArray(
+          accommodation.images
+        )
+          ? accommodation.images
+              .find(
+                image =>
+                  typeof image ===
+                    "string" &&
+                  image.length > 0
+              )
+          : null;
+
+      if (existingImage) {
+        res.set(
+          "Cache-Control",
+          "public, max-age=86400"
+        );
+
+        return res.redirect(
+          302,
+          existingImage
+        );
+      }
+
+      let googlePlace = null;
+
+      if (
+        accommodation
+          .google_place_id
+      ) {
+        const detailsResponse =
+          await fetch(
+            `https://places.googleapis.com/v1/places/${encodeURIComponent(
+              accommodation
+                .google_place_id
+            )}`,
+            {
+              headers: {
+                "X-Goog-Api-Key":
+                  GOOGLE_PLACES_API_KEY,
+
+                "X-Goog-FieldMask":
+                  "id,photos",
+              },
+            }
+          );
+
+        if (
+          detailsResponse.ok
+        ) {
+          googlePlace =
+            await detailsResponse
+              .json();
+        } else {
+          console.warn(
+            "⚠️ ACCOMMODATION PHOTO PLACE DETAILS FAILED:",
+            detailsResponse
+              .status,
+            await detailsResponse
+              .text()
+          );
+        }
+      }
+
+      if (
+        !googlePlace ||
+        !Array.isArray(
+          googlePlace.photos
+        ) ||
+        googlePlace
+          .photos
+          .length === 0
+      ) {
+        const name =
+          accommodation
+            .acc_name_th ??
+          accommodation
+            .acc_name_en;
+
+        if (!name) {
+          return res
+            .status(404)
+            .end();
+        }
+
+        const searchResponse =
+          await fetch(
+            "https://places.googleapis.com/v1/places:searchText",
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                "X-Goog-Api-Key":
+                  GOOGLE_PLACES_API_KEY,
+
+                "X-Goog-FieldMask":
+                  "places.id,places.photos",
+              },
+
+              body:
+                JSON.stringify({
+                  textQuery:
+                    [
+                      name,
+                      accommodation
+                        .province_name_th,
+                      "Thailand hotel",
+                    ]
+                      .filter(
+                        Boolean
+                      )
+                      .join(
+                        " "
+                      ),
+
+                  languageCode:
+                    "th",
+
+                  regionCode:
+                    "TH",
+
+                  maxResultCount:
+                    1,
+                }),
+            }
+          );
+
+        if (
+          !searchResponse.ok
+        ) {
+          console.warn(
+            "⚠️ ACCOMMODATION PHOTO SEARCH FAILED:",
+            searchResponse
+              .status,
+            await searchResponse
+              .text()
+          );
+
+          return res
+            .status(404)
+            .end();
+        }
+
+        const searchData =
+          await searchResponse
+            .json();
+
+        googlePlace =
+          Array.isArray(
+            searchData.places
+          )
+            ? (
+                searchData
+                  .places[0] ??
+                null
+              )
+            : null;
+
+        if (
+          googlePlace?.id &&
+          googlePlace.id !==
+            accommodation
+              .google_place_id
+        ) {
+          const {
+            error:
+              updateGoogleIdError,
+          } =
+            await supabase
+              .from(
+                "accommodation"
+              )
+              .update({
+                google_place_id:
+                  googlePlace.id,
+              })
+              .eq(
+                "acc_id",
+                accId
+              );
+
+          if (
+            updateGoogleIdError
+          ) {
+            console.warn(
+              "⚠️ SAVE ACCOMMODATION GOOGLE PLACE ID FAILED:",
+              updateGoogleIdError
+            );
+          }
+        }
+      }
+
+      const photoName =
+        Array.isArray(
+          googlePlace?.photos
+        )
+          ? googlePlace
+              .photos[0]
+              ?.name
+          : null;
+
+      if (
+        !photoName ||
+        !String(
+          photoName
+        ).startsWith(
+          "places/"
+        )
+      ) {
+        return res
+          .status(404)
+          .end();
+      }
+
+      const mediaResponse =
+        await fetch(
+          `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=480&skipHttpRedirect=true&key=${encodeURIComponent(
+            GOOGLE_PLACES_API_KEY
+          )}`
+        );
+
+      if (
+        !mediaResponse.ok
+      ) {
+        console.warn(
+          "⚠️ ACCOMMODATION PHOTO MEDIA FAILED:",
+          mediaResponse
+            .status,
+          await mediaResponse
+            .text()
+        );
+
+        return res
+          .status(404)
+          .end();
+      }
+
+      const mediaData =
+        await mediaResponse
+          .json();
+
+      if (
+        !mediaData
+          ?.photoUri
+      ) {
+        return res
+          .status(404)
+          .end();
+      }
+
+      res.set(
+        "Cache-Control",
+        "public, max-age=86400"
+      );
+
+      return res.redirect(
+        302,
+        mediaData.photoUri
+      );
+    } catch (error) {
+      console.error(
+        "❌ ACCOMMODATION IMAGE ERROR:",
+        error
+      );
+
+      return res
+        .status(500)
+        .end();
+    }
+  }
+);
+
 export default router;
