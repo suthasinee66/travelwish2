@@ -1,6 +1,7 @@
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -10,6 +11,18 @@ const router =
 const GOOGLE_PLACES_API_KEY =
   process.env
     .GOOGLE_PLACES_API_KEY;
+
+const SUPABASE_URL =
+  process.env.SUPABASE_URL;
+
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabase =
+  createClient(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY
+  );
 
 function cleanText(
   value
@@ -745,6 +758,67 @@ function googlePhotoUrls(
     .filter(Boolean);
 }
 
+async function findExistingAccommodation(
+  googlePlaceId,
+  name,
+  province
+) {
+  if (googlePlaceId) {
+    const byGoogle =
+      await supabase
+        .from("accommodation")
+        .select("*")
+        .eq(
+          "google_place_id",
+          googlePlaceId
+        )
+        .limit(1)
+        .maybeSingle();
+
+    if (byGoogle.data) {
+      return byGoogle.data;
+    }
+  }
+
+  if (name) {
+    const byName =
+      await supabase
+        .from("accommodation")
+        .select("*")
+        .eq(
+          "province_name_th",
+          province
+        )
+        .ilike(
+          "acc_name_th",
+          name
+        )
+        .limit(1)
+        .maybeSingle();
+
+    if (byName.data) {
+      return byName.data;
+    }
+  }
+
+  return null;
+}
+
+function externalAccommodationId(
+  googlePlaceId,
+  finalUrl
+) {
+  if (googlePlaceId) {
+    return googlePlaceId;
+  }
+
+  return `external:${Buffer.from(
+    finalUrl
+  )
+    .toString("base64url")
+    .slice(0, 28)}`;
+}
+
 router.post(
   "/resolve-accommodation-link",
   async (
@@ -935,93 +1009,185 @@ router.post(
           });
       }
 
+      const googlePlaceId =
+        googlePlace?.id ??
+        null;
+
+      const existing =
+        await findExistingAccommodation(
+          googlePlaceId,
+          finalName,
+          province
+        );
+
+      const images =
+        googlePhotoUrls(
+          googlePlace
+        );
+
+      const payload = {
+        acc_id:
+          existing?.acc_id ??
+          externalAccommodationId(
+            googlePlaceId,
+            finalUrl
+          ),
+
+        acc_name_th:
+          finalName,
+
+        acc_name_en:
+          existing?.acc_name_en ??
+          null,
+
+        acc_address:
+          googlePlace
+            ?.formattedAddress ??
+          getMeta(
+            html,
+            "og:description"
+          ) ??
+          existing?.acc_address ??
+          null,
+
+        province_name_th:
+          province ??
+          existing?.province_name_th ??
+          null,
+
+        latitude,
+        longitude,
+
+        star_level:
+          existing?.star_level ??
+          null,
+
+        accom_price_name:
+          existing?.accom_price_name ??
+          null,
+
+        images:
+          images.length > 0
+            ? images
+            : (
+                Array.isArray(
+                  existing?.images
+                )
+                  ? existing.images
+                  : []
+              ),
+
+        google_place_id:
+          googlePlaceId ??
+          existing?.google_place_id ??
+          null,
+
+        acc_website:
+          googlePlace
+            ?.websiteUri ??
+          existing?.acc_website ??
+          null,
+
+        rating:
+          googlePlace
+            ?.rating ??
+          existing?.rating ??
+          null,
+
+        user_ratings_total:
+          googlePlace
+            ?.userRatingCount ??
+          existing?.user_ratings_total ??
+          null,
+
+        data_source:
+          provider ===
+            "google_maps"
+            ? "google_maps"
+            : "booking_link",
+
+        source_url:
+          parsed.toString(),
+
+        booking_provider:
+          provider,
+
+        discovered_by_ai:
+          existing?.discovered_by_ai ??
+          false,
+
+        ai_model:
+          existing?.ai_model ??
+          null,
+
+        ai_discovered_at:
+          existing?.ai_discovered_at ??
+          null,
+
+        acc_updated_date:
+          new Date()
+            .toISOString(),
+      };
+
+      const {
+        data: saved,
+        error: saveError,
+      } =
+        await supabase
+          .from("accommodation")
+          .upsert(
+            payload,
+            {
+              onConflict:
+                "acc_id",
+            }
+          )
+          .select("*")
+          .single();
+
+      if (saveError) {
+        console.error(
+          "❌ SAVE ACCOMMODATION ERROR:",
+          saveError
+        );
+
+        return res
+          .status(500)
+          .json({
+            error:
+              "บันทึกข้อมูลที่พักลง Supabase ไม่สำเร็จ",
+            details:
+              saveError.message,
+          });
+      }
+
       return res.json({
         success:
           true,
 
         accommodation: {
-          acc_id:
-            googlePlace
-              ?.id ??
-            `external:${Buffer.from(
-              finalUrl
-            )
-              .toString(
-                "base64url"
-              )
-              .slice(
-                0,
-                28
-              )}`,
-
-          acc_name_th:
-            finalName,
-
-          acc_name_en:
-            null,
-
-          acc_address:
-            googlePlace
-              ?.formattedAddress ??
-            getMeta(
-              html,
-              "og:description"
-            ) ??
-            null,
-
-          province_name_th:
-            province ??
-            null,
-
-          latitude,
-
-          longitude,
-
-          star_level:
-            null,
-
-          accom_price_name:
-            null,
-
-          images:
-            googlePhotoUrls(
-              googlePlace
-            ),
-
-          google_place_id:
-            googlePlace
-              ?.id ??
-            null,
-
-          website:
-            googlePlace
-              ?.websiteUri ??
-            null,
-
-          rating:
-            googlePlace
-              ?.rating ??
-            null,
-
-          user_ratings_total:
-            googlePlace
-              ?.userRatingCount ??
-            null,
+          ...saved,
 
           source:
-            provider ===
+            saved.data_source ===
               "google_maps"
               ? "google_maps"
               : "booking_link",
 
           source_url:
+            saved.source_url ??
             parsed.toString(),
 
           resolved_url:
             finalUrl,
 
           booking_provider:
+            saved.booking_provider ??
             provider,
+
+          website:
+            saved.acc_website ??
+            null,
         },
       });
     } catch (error) {
