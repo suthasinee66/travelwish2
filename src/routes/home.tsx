@@ -8116,17 +8116,17 @@ text-xl
         )}
         <header className="travel-header travel-chat-header flex items-center justify-center px-6">
           <div className="flex w-full justify-center">
-            <div className="flex items-center gap-6 text-sm">
+            <div className="grid w-full max-w-3xl grid-cols-5 items-center gap-2 text-sm">
               <button
   onClick={() => {
     setActiveStep("where");
     setTripModal(true);
   }}
-  className="transition-colors hover:text-purple-600"
+  className="min-w-0 px-2 text-center transition-colors hover:text-purple-600"
 >
   Where
   <br />
-  <span className="text-xs text-gray-400">
+  <span className="block truncate text-xs text-gray-400">
     {tripInput.province || "Add location"}
   </span>
 </button>
@@ -8136,11 +8136,11 @@ text-xl
     setActiveStep("days");
     setTripModal(true);
   }}
-  className="transition-colors hover:text-purple-600"
+  className="min-w-0 px-2 text-center transition-colors hover:text-purple-600"
 >
   Days
   <br />
-  <span className="text-xs text-gray-400">
+  <span className="block truncate text-xs text-gray-400">
     {tripInput.days
       ? `${tripInput.days} วัน`
       : "Add dates"}
@@ -8152,11 +8152,11 @@ text-xl
     setActiveStep("who");
     setTripModal(true);
   }}
-  className="transition-colors hover:text-purple-600"
+  className="min-w-0 px-2 text-center transition-colors hover:text-purple-600"
 >
   Who
   <br />
-  <span className="text-xs text-gray-400">
+  <span className="block truncate text-xs text-gray-400">
     {tripInput.companion || "Add people"}
   </span>
 </button>
@@ -8166,11 +8166,11 @@ text-xl
     setActiveStep("budget");
     setTripModal(true);
   }}
-  className="transition-colors hover:text-purple-600"
+  className="min-w-0 px-2 text-center transition-colors hover:text-purple-600"
 >
   Budget
   <br />
-  <span className="text-xs text-gray-400">
+  <span className="block truncate text-xs text-gray-400">
     {tripInput.budget
       ? `${tripInput.budget.toLocaleString()} บาท`
       : "Add budget"}
@@ -8182,11 +8182,11 @@ text-xl
     setActiveStep("stay");
     setTripModal(true);
   }}
-  className="transition-colors hover:text-purple-600"
+  className="min-w-0 px-2 text-center transition-colors hover:text-purple-600"
 >
   Stay
   <br />
-  <span className="text-xs text-gray-400">
+  <span className="block truncate text-xs text-gray-400">
     {tripInput.accommodation?.name ||
       "Optional"}
   </span>
