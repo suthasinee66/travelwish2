@@ -676,11 +676,17 @@
   white-space: nowrap;
 }
 
-.travel-chat-header { flex-wrap: wrap; }
-.travel-chat-header > div { flex: 1 1 360px; }
+.travel-chat-header {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.travel-chat-header > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .travel-chat-header > div > div {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0;
   width: 100%;
   max-width: 620px;
@@ -1263,7 +1269,7 @@
 
   .travel-home main:has(.travel-composer) > .travel-header > div > div {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0;
     width: 100%;
   }
