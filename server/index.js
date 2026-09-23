@@ -326,7 +326,7 @@ app.post("/api/ai", async (req, res) => {
         responseMode === "planner_json"
           ? 8000
           : responseMode === "trend_context"
-            ? 4000
+            ? 7000
             : 12000,
     };
 
@@ -349,11 +349,11 @@ app.post("/api/ai", async (req, res) => {
               "auto",
             max_results:
               responseMode === "trend_context"
-                ? 10
+                ? 30
                 : 5,
             max_total_results:
               responseMode === "trend_context"
-                ? 20
+                ? 40
                 : 10,
             search_context_size:
               "medium"
@@ -385,8 +385,8 @@ app.post("/api/ai", async (req, res) => {
               },
               trends: {
                 type: "array",
-                minItems: 10,
-                maxItems: 10,
+                minItems: 30,
+                maxItems: 30,
                 items: {
                   type: "object",
                   additionalProperties: false,
