@@ -832,8 +832,11 @@ const trendResearchPrompt = `
 วันที่อ้างอิงปัจจุบัน:
 ${new Date().toISOString().slice(0, 10)}
 
-USER PERSONALIZATION
-${JSON.stringify(userContext.preferences, null, 2)}
+USER PROFILE + PERSONALIZATION
+${JSON.stringify(userContext, null, 2)}
+
+CURRENT TRIP
+${JSON.stringify(tripData, null, 2)}
 
 กติกา:
 - เน้นข้อมูลล่าสุด โดยเฉพาะช่วงประมาณ 30-90 วันที่ผ่านมาเมื่อมีข้อมูล
@@ -1311,10 +1314,10 @@ ${JSON.stringify(combinedCandidatePool)}
 4. PERSONALIZATION RULES
 ==================================================
 
-- ranking ของ TDMC เป็น prior หลัก แต่ไม่ต้องเรียงตาม rank แบบตายตัว
-- ให้ rerank ภายใน Top 30 ตามความเข้ากันกับผู้ใช้ทั้งคน
-- ยิ่ง rank สูง ยิ่งต้องมีเหตุผลที่ชัดเจนกว่าจะข้ามไปเลือก rank ที่ต่ำกว่าหรือสถานที่ภายนอก
-- เลือกสถานที่จากความเข้ากันกับผู้ใช้โดยรักษาสัญญาณจาก algorithm ไว้
+- TDMC rank เป็นหนึ่งในสัญญาณประกอบ ไม่ใช่กฎตายตัวของ Final Selection
+- AI Discovery rank เป็นหนึ่งในสัญญาณประกอบเช่นกัน
+- ให้เปรียบเทียบ candidate ทั้งสองแหล่งด้วย personalization, freshness, route, budget, pace และ companion
+- หาก TDMC candidate และ AI Discovery candidate เหมาะใกล้เคียงกัน สามารถใช้ rank/current signal ช่วยตัดสินได้
 - หากเป็นสายชิล / Slow Travel อย่าอัดสถานที่
 - หากเป็นสายเที่ยวแน่น สามารถมีหลายจุดได้
 - หากไม่อยากเดินเยอะ ให้หลีกเลี่ยงกิจกรรมเดินหนักต่อเนื่อง
