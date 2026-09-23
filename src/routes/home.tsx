@@ -728,6 +728,13 @@ function AccommodationPicker({
                 booking_provider:
                   accommodation.booking_provider ??
                   null,
+
+                images:
+                  Array.isArray(
+                    accommodation.images
+                  )
+                    ? accommodation.images
+                    : [],
               }
             : null
       })
@@ -1514,8 +1521,8 @@ function HotelItineraryCard({
             src={image}
             alt={name}
             className="
-              h-14
-              w-14
+              h-16
+              w-20
               shrink-0
               rounded-xl
               object-cover
@@ -1525,8 +1532,8 @@ function HotelItineraryCard({
           <div
             className="
               flex
-              h-14
-              w-14
+              h-16
+              w-20
               shrink-0
               items-center
               justify-center
@@ -2265,6 +2272,12 @@ const [selectedHotel, setSelectedHotel] = useState<any | null>(
           tripInput.accommodation.latitude,
         longitude:
           tripInput.accommodation.longitude,
+        images:
+          Array.isArray(
+            tripInput.accommodation.images
+          )
+            ? tripInput.accommodation.images
+            : [],
       }
     : null
 );
@@ -6145,6 +6158,7 @@ type TripInput = {
     source?: "user" | "travelwish" | "google_maps" | "booking_link" | "ai_verified";
     source_url?: string | null;
     booking_provider?: string | null;
+    images?: string[] | null;
   } | null;
 };
 const [tripInput, setTripInput] = useState<TripInput>({
@@ -9634,6 +9648,13 @@ focus:ring-black/20
                 booking_provider:
                   hotel.booking_provider ??
                   null,
+
+                images:
+                  Array.isArray(
+                    hotel.images
+                  )
+                    ? hotel.images
+                    : [],
               }
             : null
       }));
