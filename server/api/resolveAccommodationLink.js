@@ -576,8 +576,16 @@ async function searchAccommodationWithGoogle(
             "places.types",
             "places.primaryType",
             "places.websiteUri",
+            "places.googleMapsUri",
+            "places.nationalPhoneNumber",
+            "places.internationalPhoneNumber",
             "places.rating",
             "places.userRatingCount",
+            "places.priceLevel",
+            "places.businessStatus",
+            "places.regularOpeningHours",
+            "places.addressComponents",
+            "places.editorialSummary",
             "places.photos",
           ].join(","),
         },
@@ -756,6 +764,86 @@ function googlePhotoUrls(
         : null
     )
     .filter(Boolean);
+}
+
+function googlePlaceMetadata(
+  place
+) {
+  if (!place) {
+    return {
+      google_maps_uri: null,
+      google_primary_type: null,
+      google_types: [],
+      google_business_status: null,
+      google_opening_hours: null,
+      google_address_components: null,
+      google_price_level: null,
+      google_editorial_summary: null,
+      google_photo_names: [],
+      google_place_data: null,
+      google_last_synced_at: null,
+    };
+  }
+
+  return {
+    google_maps_uri:
+      place.googleMapsUri ??
+      null,
+
+    google_primary_type:
+      place.primaryType ??
+      null,
+
+    google_types:
+      Array.isArray(
+        place.types
+      )
+        ? place.types
+        : [],
+
+    google_business_status:
+      place.businessStatus ??
+      null,
+
+    google_opening_hours:
+      place.regularOpeningHours ??
+      null,
+
+    google_address_components:
+      Array.isArray(
+        place.addressComponents
+      )
+        ? place.addressComponents
+        : null,
+
+    google_price_level:
+      place.priceLevel ??
+      null,
+
+    google_editorial_summary:
+      place.editorialSummary?.text ??
+      null,
+
+    google_photo_names:
+      Array.isArray(
+        place.photos
+      )
+        ? place.photos
+            .map(
+              photo =>
+                photo?.name ??
+                null
+            )
+            .filter(Boolean)
+        : [],
+
+    google_place_data:
+      place,
+
+    google_last_synced_at:
+      new Date()
+        .toISOString(),
+  };
 }
 
 async function findExistingAccommodation(
@@ -1088,6 +1176,18 @@ router.post(
           existing?.acc_website ??
           null,
 
+        acc_tel:
+          googlePlace
+            ?.nationalPhoneNumber ??
+          googlePlace
+            ?.internationalPhoneNumber ??
+          existing?.acc_tel ??
+          null,
+
+        ...googlePlaceMetadata(
+          googlePlace
+        ),
+
         rating:
           googlePlace
             ?.rating ??
@@ -1202,6 +1302,240 @@ router.post(
           error:
             error.message ??
             "ไม่สามารถอ่านลิงก์ที่พักได้",
+        });
+    }
+  }
+);
+
+router.post(
+  "/resolve-ai-accommodation",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const {
+        accommodation_id,
+        name,
+        province,
+        ai_model,
+      } =
+        req.body ?? {};
+
+      if (
+        !name ||
+        !province
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "name และ province จำเป็นต้องระบุ",
+          });
+      }
+
+      const googlePlace =
+        await searchAccommodationWithGoogle(
+          name,
+          province
+        );
+
+      let existing =
+        null;
+
+      if (accommodation_id) {
+        const {
+          data
+        } =
+          await supabase
+            .from(
+              "accommodation"
+            )
+            .select("*")
+            .eq(
+              "acc_id",
+              String(
+                accommodation_id
+              )
+            )
+            .maybeSingle();
+
+        existing =
+          data ??
+          null;
+      }
+
+      if (!existing) {
+        existing =
+          await findExistingAccommodation(
+            googlePlace?.id ??
+              null,
+            googlePlace
+              ?.displayName
+              ?.text ??
+              name,
+            province
+          );
+      }
+
+      if (!existing) {
+        return res
+          .status(404)
+          .json({
+            error:
+              "ไม่พบที่พักในฐานข้อมูลสำหรับการ enrich",
+          });
+      }
+
+      if (!googlePlace) {
+        return res.json({
+          success: true,
+          enriched: false,
+          accommodation:
+            existing,
+        });
+      }
+
+      const freshImages =
+        googlePhotoUrls(
+          googlePlace
+        );
+
+      const payload = {
+        ...existing,
+
+        acc_name_th:
+          googlePlace
+            ?.displayName
+            ?.text ??
+          existing.acc_name_th,
+
+        acc_address:
+          googlePlace
+            ?.formattedAddress ??
+          existing.acc_address,
+
+        latitude:
+          googlePlace
+            ?.location
+            ?.latitude ??
+          existing.latitude,
+
+        longitude:
+          googlePlace
+            ?.location
+            ?.longitude ??
+          existing.longitude,
+
+        acc_tel:
+          googlePlace
+            ?.nationalPhoneNumber ??
+          googlePlace
+            ?.internationalPhoneNumber ??
+          existing.acc_tel ??
+          null,
+
+        acc_website:
+          googlePlace
+            ?.websiteUri ??
+          existing.acc_website ??
+          null,
+
+        images:
+          freshImages.length > 0
+            ? freshImages
+            : (
+                Array.isArray(
+                  existing.images
+                )
+                  ? existing.images
+                  : []
+              ),
+
+        google_place_id:
+          googlePlace.id ??
+          existing.google_place_id ??
+          null,
+
+        rating:
+          googlePlace.rating ??
+          existing.rating ??
+          null,
+
+        user_ratings_total:
+          googlePlace
+            .userRatingCount ??
+          existing
+            .user_ratings_total ??
+          null,
+
+        ...googlePlaceMetadata(
+          googlePlace
+        ),
+
+        data_source:
+          existing.data_source ??
+          "dataset",
+
+        discovered_by_ai:
+          true,
+
+        ai_model:
+          ai_model ??
+          existing.ai_model ??
+          null,
+
+        ai_discovered_at:
+          existing
+            .ai_discovered_at ??
+          new Date()
+            .toISOString(),
+
+        acc_updated_date:
+          new Date()
+            .toISOString(),
+      };
+
+      const {
+        data: saved,
+        error
+      } =
+        await supabase
+          .from(
+            "accommodation"
+          )
+          .upsert(
+            payload,
+            {
+              onConflict:
+                "acc_id",
+            }
+          )
+          .select("*")
+          .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return res.json({
+        success: true,
+        enriched: true,
+        accommodation:
+          saved,
+      });
+    } catch (error) {
+      console.error(
+        "❌ resolve-ai-accommodation error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          error:
+            error?.message ??
+            "Accommodation enrichment failed",
         });
     }
   }
