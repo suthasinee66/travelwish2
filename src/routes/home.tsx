@@ -745,6 +745,9 @@ function AccommodationPicker({
               )
                 ? accommodation.images
                 : [],
+
+            locked:
+              true,
           }
         : null;
 
@@ -2299,6 +2302,17 @@ const [selectedHotel, setSelectedHotel] = useState<any | null>(
           )
             ? tripInput.accommodation.images
             : [],
+
+        source:
+          tripInput.accommodation.source ??
+          "travelwish",
+
+        locked:
+          tripInput.accommodation.locked ??
+          (
+            tripInput.accommodation.source !==
+            "ai_verified"
+          ),
       }
     : null
 );
@@ -4606,19 +4620,35 @@ const applyRouteMode = (
 const selectHotelForTrip = (
   hotel: any
 ) => {
+  const userHotel = {
+    ...hotel,
+
+    source:
+      hotel.source ===
+      "booking_link"
+        ? "booking_link"
+        : hotel.source ===
+            "google_maps"
+          ? "google_maps"
+          : "user",
+
+    locked:
+      true,
+  };
+
   setSelectedHotel(
-    hotel
+    userHotel
   );
 
   onAccommodationChange?.(
-    hotel
+    userHotel
   );
 
   setHotelModal(false);
 
   applyRouteMode(
     routeMode,
-    hotel
+    userHotel
   );
 };
 
@@ -5096,7 +5126,12 @@ justify-center
               text-[#9a8da0]
             "
           >
-            ที่พักหลัก
+            {selectedHotel.locked
+              ? "ที่พักที่ยืนยันแล้ว"
+              : selectedHotel.source ===
+                  "ai_verified"
+                ? "AI แนะนำ"
+                : "ที่พักหลัก"}
           </div>
 
           <div className="mt-0.5 truncate text-sm font-bold text-[#40364b]">
@@ -5107,6 +5142,12 @@ justify-center
           <div className="mt-0.5 truncate text-xs text-[#85798a]">
             {selectedHotel.acc_address ??
               "ใช้เป็นจุดเริ่มและจุดกลับของแต่ละวัน"}
+          </div>
+
+          <div className="mt-1 text-[11px] font-medium text-[#6f456f]">
+            {selectedHotel.locked
+              ? "ใช้เป็นจุดอ้างอิงของทริป และ AI จะไม่เปลี่ยนที่พักนี้"
+              : "เป็นคำแนะนำชั่วคราว เปลี่ยนได้เมื่อคุณมีที่พักจริง"}
           </div>
         </div>
       </div>
@@ -6412,6 +6453,7 @@ type TripInput = {
     source_url?: string | null;
     booking_provider?: string | null;
     images?: string[] | null;
+    locked?: boolean;
   } | null;
 };
 const [tripInput, setTripInput] = useState<TripInput>({
@@ -10053,6 +10095,9 @@ focus:ring-black/20
                   )
                     ? hotel.images
                     : [],
+
+                locked:
+                  true,
               }
             : null
       };
