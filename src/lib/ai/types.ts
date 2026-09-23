@@ -4,7 +4,9 @@ export interface TripAccommodation {
   address?: string | null;
   latitude: number;
   longitude: number;
-  source?: "user" | "travelwish" | "ai_verified";
+  source?: "user" | "travelwish" | "google_maps" | "booking_link" | "ai_verified";
+  source_url?: string | null;
+  booking_provider?: string | null;
 }
 
 export interface TripPlanInput {
