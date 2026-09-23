@@ -2234,6 +2234,92 @@ function SortablePlaceItem({
   );
 }
 
+function AccommodationThumbnail({
+  hotel,
+}: {
+  hotel: any;
+}) {
+  const [failed, setFailed] =
+    useState(false);
+
+  const existingImage =
+    Array.isArray(
+      hotel?.images
+    )
+      ? hotel.images.find(
+          (
+            image: unknown
+          ) =>
+            typeof image ===
+              "string" &&
+            image.length > 0
+        )
+      : null;
+
+  const apiUrl =
+    (
+      import.meta.env.VITE_API_URL ||
+      (
+        import.meta.env.DEV
+          ? "http://localhost:5000"
+          : ""
+      )
+    ).replace(
+      /\/$/,
+      ""
+    );
+
+  const imageUrl =
+    existingImage ||
+    (
+      apiUrl &&
+      hotel?.acc_id
+        ? `${apiUrl}/api/accommodation-image?acc_id=${encodeURIComponent(
+            String(
+              hotel.acc_id
+            )
+          )}`
+        : null
+    );
+
+  if (
+    !imageUrl ||
+    failed
+  ) {
+    return (
+      <Hotel
+        size={24}
+        className="text-[#9b869f]"
+        strokeWidth={1.7}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      loading="lazy"
+      decoding="async"
+      alt={
+        hotel.acc_name_th ??
+        hotel.acc_name_en ??
+        "ที่พัก"
+      }
+      onError={() =>
+        setFailed(true)
+      }
+      className="
+        h-full
+        w-full
+        object-cover
+        transition
+        duration-300
+        group-hover:scale-[1.03]
+      "
+    />
+  );
+}
+
 export function TripPlanPanel({
   plannerJson,
   plan,
@@ -5389,11 +5475,6 @@ mapCenter;
           ) : filteredHotels.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {filteredHotels.map(hotel => {
-                const hotelImage =
-                  Array.isArray(hotel.images)
-                    ? hotel.images[0]
-                    : null;
-
                 const isSelected =
                   selectedHotel?.acc_id ===
                   hotel.acc_id;
@@ -5438,30 +5519,9 @@ mapCenter;
                         bg-[#f1ebf2]
                       "
                     >
-                      {hotelImage ? (
-                        <img
-                          src={hotelImage}
-                          alt={
-                            hotel.acc_name_th ??
-                            hotel.acc_name_en ??
-                            "ที่พัก"
-                          }
-                          className="
-                            h-full
-                            w-full
-                            object-cover
-                            transition
-                            duration-300
-                            group-hover:scale-[1.03]
-                          "
-                        />
-                      ) : (
-                        <Hotel
-                          size={24}
-                          className="text-[#9b869f]"
-                          strokeWidth={1.7}
-                        />
-                      )}
+                      <AccommodationThumbnail
+                        hotel={hotel}
+                      />
                     </div>
 
                     <div className="min-w-0 flex-1 py-0.5">
