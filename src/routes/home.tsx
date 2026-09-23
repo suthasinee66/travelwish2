@@ -138,6 +138,44 @@ const navItems = [
   { icon: Plus, label: "Create" },
 ];
 
+type ItineraryRouteMode =
+  | "ai_balanced"
+  | "near_to_far"
+  | "far_to_near"
+  | "shortest"
+  | "loop"
+  | "time_aware";
+
+const ITINERARY_ROUTE_MODES: Array<{
+  value: ItineraryRouteMode;
+  label: string;
+}> = [
+  {
+    value: "ai_balanced",
+    label: "✨ AI แนะนำ",
+  },
+  {
+    value: "near_to_far",
+    label: "🏨 ใกล้ที่พัก → ไกล",
+  },
+  {
+    value: "far_to_near",
+    label: "🌄 ไกลจากที่พัก → ใกล้",
+  },
+  {
+    value: "shortest",
+    label: "🚗 ระยะทางสั้นที่สุด",
+  },
+  {
+    value: "loop",
+    label: "🔄 Loop กลับที่พัก",
+  },
+  {
+    value: "time_aware",
+    label: "⏰ ตามช่วงเวลา",
+  },
+];
+
 
 const forYou = [
   { title: "Temple of the Emerald Buddha (Wat Phra Kaew)", tag: "🏛 Attraction", img: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=800&q=80" },
@@ -516,6 +554,349 @@ function getDistanceMeters(
       Math.sqrt(a),
       Math.sqrt(1 - a)
     )
+  );
+}
+
+function getDistanceFromHotelMeters(
+  item: any,
+  hotel: any
+) {
+  if (
+    !hotel ||
+    !item?.location
+  ) {
+    return null;
+  }
+
+  return getDistanceMeters(
+    {
+      location: {
+        latitude:
+          hotel.latitude,
+        longitude:
+          hotel.longitude,
+      },
+    },
+    item
+  );
+}
+
+function nearestNeighborRoute(
+  items: any[],
+  hotel?: any | null
+) {
+  if (items.length <= 1) {
+    return [...items];
+  }
+
+  const remaining =
+    [...items];
+
+  let currentIndex = 0;
+
+  if (hotel) {
+    let best =
+      Number.POSITIVE_INFINITY;
+
+    remaining.forEach(
+      (item, index) => {
+        const distance =
+          getDistanceFromHotelMeters(
+            item,
+            hotel
+          );
+
+        if (
+          distance != null &&
+          distance < best
+        ) {
+          best =
+            distance;
+          currentIndex =
+            index;
+        }
+      }
+    );
+  }
+
+  const route = [
+    remaining.splice(
+      currentIndex,
+      1
+    )[0],
+  ];
+
+  while (
+    remaining.length > 0
+  ) {
+    const last =
+      route[
+        route.length - 1
+      ];
+
+    let nextIndex = 0;
+    let nextDistance =
+      Number.POSITIVE_INFINITY;
+
+    remaining.forEach(
+      (candidate, index) => {
+        const distance =
+          getDistanceMeters(
+            last,
+            candidate
+          );
+
+        if (
+          distance != null &&
+          distance < nextDistance
+        ) {
+          nextDistance =
+            distance;
+          nextIndex =
+            index;
+        }
+      }
+    );
+
+    route.push(
+      remaining.splice(
+        nextIndex,
+        1
+      )[0]
+    );
+  }
+
+  return route;
+}
+
+function routeTotalMeters(
+  items: any[],
+  hotel?: any | null,
+  returnToHotel = true
+) {
+  if (items.length === 0) {
+    return 0;
+  }
+
+  let total = 0;
+
+  if (hotel) {
+    total +=
+      getDistanceFromHotelMeters(
+        items[0],
+        hotel
+      ) ?? 0;
+  }
+
+  for (
+    let index = 1;
+    index < items.length;
+    index += 1
+  ) {
+    total +=
+      getDistanceMeters(
+        items[
+          index - 1
+        ],
+        items[index]
+      ) ?? 0;
+  }
+
+  if (
+    hotel &&
+    returnToHotel
+  ) {
+    total +=
+      getDistanceFromHotelMeters(
+        items[
+          items.length - 1
+        ],
+        hotel
+      ) ?? 0;
+  }
+
+  return total;
+}
+
+function twoOptRoute(
+  items: any[],
+  hotel?: any | null
+) {
+  if (items.length < 3) {
+    return [...items];
+  }
+
+  let best =
+    [...items];
+
+  let bestDistance =
+    routeTotalMeters(
+      best,
+      hotel,
+      true
+    );
+
+  let improved = true;
+  let loops = 0;
+
+  while (
+    improved &&
+    loops < 15
+  ) {
+    improved = false;
+    loops += 1;
+
+    for (
+      let start = 0;
+      start <
+      best.length - 1;
+      start += 1
+    ) {
+      for (
+        let end =
+          start + 1;
+        end <
+        best.length;
+        end += 1
+      ) {
+        const candidate = [
+          ...best.slice(
+            0,
+            start
+          ),
+          ...best
+            .slice(
+              start,
+              end + 1
+            )
+            .reverse(),
+          ...best.slice(
+            end + 1
+          ),
+        ];
+
+        const distance =
+          routeTotalMeters(
+            candidate,
+            hotel,
+            true
+          );
+
+        if (
+          distance <
+          bestDistance - 1
+        ) {
+          best =
+            candidate;
+          bestDistance =
+            distance;
+          improved =
+            true;
+        }
+      }
+    }
+  }
+
+  return best;
+}
+
+function reorderItineraryStops(
+  items: any[],
+  mode: ItineraryRouteMode,
+  hotel?: any | null
+) {
+  if (
+    mode === "ai_balanced"
+  ) {
+    return [...items];
+  }
+
+  if (
+    mode === "near_to_far"
+  ) {
+    return [...items].sort(
+      (a, b) =>
+        (
+          getDistanceFromHotelMeters(
+            a,
+            hotel
+          ) ??
+          Number.POSITIVE_INFINITY
+        ) -
+        (
+          getDistanceFromHotelMeters(
+            b,
+            hotel
+          ) ??
+          Number.POSITIVE_INFINITY
+        )
+    );
+  }
+
+  if (
+    mode === "far_to_near"
+  ) {
+    return [...items].sort(
+      (a, b) =>
+        (
+          getDistanceFromHotelMeters(
+            b,
+            hotel
+          ) ??
+          -1
+        ) -
+        (
+          getDistanceFromHotelMeters(
+            a,
+            hotel
+          ) ??
+          -1
+        )
+    );
+  }
+
+  if (
+    mode === "time_aware"
+  ) {
+    const periodOrder:
+      Record<string, number> = {
+        Morning: 0,
+        Breakfast: 0,
+        Lunch: 1,
+        Afternoon: 2,
+        Evening: 3,
+        Dinner: 4,
+        Night: 5,
+      };
+
+    return [...items].sort(
+      (a, b) =>
+        (
+          periodOrder[
+            String(
+              a.period ?? ""
+            )
+          ] ?? 99
+        ) -
+        (
+          periodOrder[
+            String(
+              b.period ?? ""
+            )
+          ] ?? 99
+        )
+    );
+  }
+
+  const nearest =
+    nearestNeighborRoute(
+      items,
+      hotel
+    );
+
+  return twoOptRoute(
+    nearest,
+    hotel
   );
 }
 
@@ -1268,6 +1649,8 @@ const [showAllDays, setShowAllDays] = useState(false);
 const [hotelSearch, setHotelSearch] = useState("");
 const [hotels, setHotels] = useState<any[]>([]);
 const [hotelLoading, setHotelLoading] = useState(false);
+const [selectedHotel, setSelectedHotel] = useState<any | null>(null);
+const [routeMode, setRouteMode] = useState<ItineraryRouteMode>("ai_balanced");
 const [showSaveTripModal, setShowSaveTripModal] = useState(false);
 const [tripTitle, setTripTitle] = useState("");
 const [appAlert, setAppAlert] = useState<{
@@ -3462,6 +3845,54 @@ const buildRoutePlaces = (items: any[]) => {
   );
 };
 
+const applyRouteMode = (
+  mode: ItineraryRouteMode,
+  hotel = selectedHotel
+) => {
+  const nextByDay:
+    Record<number, any[]> = {};
+
+  days.forEach(
+    (
+      dayData,
+      dayIndex
+    ) => {
+      const original =
+        buildRoutePlaces(
+          dayData.items ?? []
+        );
+
+      nextByDay[
+        dayIndex
+      ] =
+        reorderItineraryStops(
+          original,
+          mode,
+          hotel
+        );
+    }
+  );
+
+  setRouteMode(mode);
+  setRoutePlacesByDay(
+    nextByDay
+  );
+
+  if (
+    nextByDay[selectedDay]
+  ) {
+    setRoutePlaces([
+      ...nextByDay[
+        selectedDay
+      ],
+    ]);
+  }
+
+  onRouteChange?.(
+    nextByDay
+  );
+};
+
 const mapPlaces = useMemo(() => {
 
   return buildRoutePlaces(
@@ -3676,7 +4107,13 @@ mapCenter;
   "
 >
   <Hotel size={16} />
-  เพิ่มที่พัก
+  {selectedHotel
+    ? (
+        selectedHotel.acc_name_th ??
+        selectedHotel.acc_name_en ??
+        "ที่พัก"
+      )
+    : "เพิ่มที่พัก"}
 </button>
 
   {hotelModal && (
@@ -3736,7 +4173,19 @@ filteredHotels.map(hotel => (
 
 <button
 key={hotel.acc_id}
-className="
+type="button"
+onClick={() => {
+  setSelectedHotel(
+    hotel
+  );
+  setHotelModal(false);
+
+  applyRouteMode(
+    routeMode,
+    hotel
+  );
+}}
+className={`
 w-full
 flex
 gap-3
@@ -3744,8 +4193,13 @@ text-left
 border
 rounded-xl
 p-3
+transition
 hover:bg-gray-100
-"
+${selectedHotel?.acc_id === hotel.acc_id
+  ? " border-[#6f456f] bg-[#f6eef7]"
+  : ""
+}
+`}
 >
 
 {/* รูปโรงแรม */}
@@ -3822,6 +4276,82 @@ justify-center
 </div>
 
   </div>
+
+<div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+  <div
+    className="
+      rounded-2xl
+      border
+      border-[#eadfeb]
+      bg-white/70
+      px-4
+      py-3
+    "
+  >
+    {selectedHotel ? (
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f1e8f3] text-[#6f456f]">
+          <Hotel size={17} />
+        </div>
+
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a8da0]">
+            Route anchor
+          </div>
+
+          <div className="truncate text-sm font-bold text-[#40364b]">
+            {selectedHotel.acc_name_th ??
+              selectedHotel.acc_name_en}
+          </div>
+
+          <div className="truncate text-xs text-gray-500">
+            {selectedHotel.acc_address ??
+              "ใช้เป็นจุดเริ่มและจุดกลับของแต่ละวัน"}
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div className="text-sm text-[#766c7b]">
+        🏨 ยังไม่ได้เลือกที่พัก — สามารถจัดเส้นทางได้ แต่โหมดที่อิงที่พักจะทำงานได้แม่นขึ้นเมื่อเลือกที่พัก
+      </div>
+    )}
+  </div>
+
+  <select
+    value={routeMode}
+    onChange={(event) => {
+      applyRouteMode(
+        event.target.value as ItineraryRouteMode
+      );
+    }}
+    className="
+      h-12
+      min-w-[210px]
+      rounded-2xl
+      border
+      border-[#dfd4e1]
+      bg-white
+      px-4
+      text-sm
+      font-semibold
+      text-[#51475a]
+      outline-none
+      transition
+      focus:border-[#9b7aa7]
+    "
+  >
+    {ITINERARY_ROUTE_MODES.map(
+      option => (
+        <option
+          key={option.value}
+          value={option.value}
+        >
+          {option.label}
+        </option>
+      )
+    )}
+  </select>
+</div>
 
 {/* TABS */}
 <div className="travel-day-tabs flex gap-2 mt-4">
