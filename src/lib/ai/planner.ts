@@ -15,6 +15,9 @@ import {
     generateWithSelectedModel,
     type AIModel
 } from "./ai";
+import {
+    optimizeSelectedRoute
+} from "./routeOptimizer";
 
 
 const API_URL =
@@ -1880,6 +1883,28 @@ const selectedAttractionDetails =
 const selectedRestaurantDetails =
     selectedRestaurantResult.data ?? [];
 
+const routeOptimization =
+    optimizeSelectedRoute(
+        selectedPlaces,
+        selectedAttractionDetails,
+        {
+            weights: {
+                distance: 0.55,
+                aiOrder: 0.25,
+                period: 0.10,
+                anchors: 0.10
+            }
+        }
+    );
+
+const routeOptimizedPlaces =
+    routeOptimization.items;
+
+console.log(
+    "🧭 ROUTE OPTIMIZATION SUMMARY:",
+    routeOptimization.summary
+);
+
 const markdownPrompt = `
 คุณคือ TravelWish AI Travel Planner
 
@@ -1894,8 +1919,11 @@ ${JSON.stringify(userContext, null, 2)}
 CURRENT TRIP
 ${JSON.stringify(tripData, null, 2)}
 
-VERIFIED ITINERARY ITEMS
-${JSON.stringify(selectedPlaces, null, 2)}
+ROUTE-OPTIMIZED ITINERARY ITEMS
+${JSON.stringify(routeOptimizedPlaces, null, 2)}
+
+ROUTE OPTIMIZATION SUMMARY
+${JSON.stringify(routeOptimization.summary, null, 2)}
 
 VERIFIED ATTRACTION DETAILS
 ${JSON.stringify(selectedAttractionDetails, null, 2)}
@@ -1928,8 +1956,15 @@ markdown คือเนื้อหาแผนเที่ยวที่ผ�
 - Bold / Italic
 - หรือการผสมผสานรูปแบบ Markdown
 
-คุณสามารถเลือกวิธีการจัดลำดับและนำเสนอข้อมูลเอง
+คุณสามารถเลือกวิธีการนำเสนอข้อมูลเอง
 โดยคำนึงถึงความอ่านง่าย ความชัดเจน และประสบการณ์ของผู้ใช้
+
+แต่ลำดับการเดินทางถูกจัดโดย Route Optimization Algorithm แล้ว
+ต้องยึด day, route_order, period และลำดับของ ROUTE-OPTIMIZED ITINERARY ITEMS
+ห้ามสลับสถานที่ข้ามลำดับ ห้ามย้ายวัน และห้ามเปลี่ยน period เอง
+
+สามารถอธิบายระยะทางระหว่างจุดจาก route_from_previous_km ได้
+และสามารถสรุประยะทางรวมของแต่ละวันจาก ROUTE OPTIMIZATION SUMMARY ได้
 
 หากแผนมีหลายวันหรือหลายช่วงเวลา
 และการจัดเป็นตารางช่วยให้ผู้ใช้เปรียบเทียบ วัน / เวลา / สถานที่ / ร้านอาหาร / กิจกรรม ได้ง่ายขึ้น
@@ -1986,7 +2021,7 @@ VERIFIED ITINERARY ITEMS ว่าในช่วงนี้มีอะไร�
 
 ห้ามสร้างข้อมูลสถานที่หรือร้านอาหารที่ไม่มีอยู่ใน VERIFIED ITINERARY ITEMS
 
-เนื้อหาต้องสอดคล้องกับ day, period, place_name และ restaurant_name
+เนื้อหาต้องสอดคล้องกับ day, route_order, period, place_name และ restaurant_name
 ถ้า restaurant_name เป็น null ห้ามแต่งร้านอาหารขึ้นมา
 ให้สะท้อน personality, food lifestyle, pace, budget, companion และ travel goal ของผู้ใช้
 ไม่ต้องอธิบาย TDMC, ranking, database, verification หรือ source
@@ -2027,7 +2062,7 @@ if (!isGuest) {
             user_id: userId,
             role: "ai",
             content: aiMessage,
-            planner_json: selectedPlaces
+            planner_json: routeOptimizedPlaces
         })
         .select();
 
@@ -2055,7 +2090,7 @@ console.log("==================================================");
 
 return {
     markdown: aiMessage,
-    planner_json: selectedPlaces
+    planner_json: routeOptimizedPlaces
 };
 }
 
