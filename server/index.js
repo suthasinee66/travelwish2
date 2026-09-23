@@ -342,11 +342,11 @@ app.post("/api/ai", async (req, res) => {
               "auto",
             max_results:
               responseMode === "trend_context"
-                ? 8
+                ? 10
                 : 5,
             max_total_results:
               responseMode === "trend_context"
-                ? 16
+                ? 20
                 : 10,
             search_context_size:
               "medium"
@@ -378,7 +378,8 @@ app.post("/api/ai", async (req, res) => {
               },
               trends: {
                 type: "array",
-                maxItems: 8,
+                minItems: 10,
+                maxItems: 10,
                 items: {
                   type: "object",
                   additionalProperties: false,
