@@ -1278,6 +1278,12 @@ ${JSON.stringify(userContext, null, 2)}
 
 ${JSON.stringify(tripData, null, 2)}
 
+หาก CURRENT TRIP มี accommodation:
+- ถือที่พักเป็น route anchor ของทุกวัน
+- ให้พิจารณาความเหมาะสมของสถานที่กับทำเลที่พักด้วย
+- หลีกเลี่ยงการเลือกจุดที่ทำให้ต้องย้อนเส้นทางโดยไม่มีเหตุผล
+- ยังไม่ต้องจัด route สุดท้ายเอง เพราะ Route Optimization Algorithm จะทำหลังจากคุณเลือกสถานที่
+
 ==================================================
 3. COMBINED CANDIDATE POOL — AI 10 + TDMC 30
 ==================================================
@@ -1893,7 +1899,34 @@ const routeOptimization =
                 aiOrder: 0.25,
                 period: 0.10,
                 anchors: 0.10
-            }
+            },
+
+            mode:
+                "ai_balanced",
+
+            accommodation:
+                tripData.accommodation
+                    ? {
+                        id:
+                            tripData.accommodation.id ?? null,
+
+                        name:
+                            tripData.accommodation.name ?? null,
+
+                        latitude:
+                            Number(
+                                tripData.accommodation.latitude
+                            ),
+
+                        longitude:
+                            Number(
+                                tripData.accommodation.longitude
+                            )
+                    }
+                    : null,
+
+            returnToAccommodation:
+                true
         }
     );
 
