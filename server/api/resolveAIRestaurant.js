@@ -133,8 +133,14 @@ async function searchRestaurant(
             "places.types",
             "places.nationalPhoneNumber",
             "places.websiteUri",
+            "places.googleMapsUri",
             "places.rating",
             "places.userRatingCount",
+            "places.priceLevel",
+            "places.businessStatus",
+            "places.regularOpeningHours",
+            "places.addressComponents",
+            "places.editorialSummary",
             "places.photos",
           ].join(","),
         },
@@ -518,6 +524,85 @@ router.post(
           verified.userRatingCount ??
           existing?.user_ratings_total ??
           null,
+
+        google_maps_uri:
+          verified.googleMapsUri ??
+          existing?.google_maps_uri ??
+          null,
+
+        google_primary_type:
+          verified.primaryType ??
+          existing?.google_primary_type ??
+          null,
+
+        google_types:
+          Array.isArray(
+            verified.types
+          )
+            ? verified.types
+            : (
+                Array.isArray(
+                  existing?.google_types
+                )
+                  ? existing.google_types
+                  : []
+              ),
+
+        google_business_status:
+          verified.businessStatus ??
+          existing?.google_business_status ??
+          null,
+
+        google_opening_hours:
+          verified.regularOpeningHours ??
+          existing?.google_opening_hours ??
+          null,
+
+        google_address_components:
+          Array.isArray(
+            verified.addressComponents
+          )
+            ? verified.addressComponents
+            : (
+                existing?.google_address_components ??
+                null
+              ),
+
+        google_price_level:
+          verified.priceLevel ??
+          existing?.google_price_level ??
+          null,
+
+        google_editorial_summary:
+          verified.editorialSummary?.text ??
+          existing?.google_editorial_summary ??
+          null,
+
+        google_photo_names:
+          Array.isArray(
+            verified.photos
+          )
+            ? verified.photos
+                .map(
+                  photo =>
+                    photo?.name ??
+                    null
+                )
+                .filter(Boolean)
+            : (
+                Array.isArray(
+                  existing?.google_photo_names
+                )
+                  ? existing.google_photo_names
+                  : []
+              ),
+
+        google_place_data:
+          verified,
+
+        google_last_synced_at:
+          new Date()
+            .toISOString(),
 
         data_source:
           isNewAIRestaurant
