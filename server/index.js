@@ -14,6 +14,8 @@ import resolveAIAttractionRouter
   from "./api/resolveAIAttraction.js";
 import resolveAIRestaurantRouter
   from "./api/resolveAIRestaurant.js";
+import resolveAccommodationLinkRouter
+  from "./api/resolveAccommodationLink.js";
 
 
 const app = express();
@@ -45,6 +47,11 @@ app.use(
 app.use(
   "/api",
   resolveAIRestaurantRouter
+);
+
+app.use(
+  "/api",
+  resolveAccommodationLinkRouter
 );
 
 // ============================================
