@@ -1460,6 +1460,109 @@ function DistanceBetweenItems({
   );
 }
 
+function HotelItineraryCard({
+  hotel,
+  phase,
+}: {
+  hotel: any;
+  phase: "start" | "return";
+}) {
+  const name =
+    hotel?.acc_name_th ??
+    hotel?.acc_name_en ??
+    "ที่พัก";
+
+  const image =
+    Array.isArray(hotel?.images)
+      ? hotel.images[0]
+      : (
+          typeof hotel?.images === "string"
+            ? hotel.images
+            : null
+        );
+
+  return (
+    <div
+      className="
+        rounded-2xl
+        border
+        border-[#dfd2e2]
+        bg-[#fbf6fc]
+        p-3
+        shadow-sm
+      "
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className="
+            flex
+            h-8
+            w-8
+            shrink-0
+            items-center
+            justify-center
+            rounded-full
+            bg-[#6f456f]
+            text-white
+          "
+        >
+          <Hotel size={16} />
+        </div>
+
+        {image ? (
+          <img
+            src={image}
+            alt={name}
+            className="
+              h-14
+              w-14
+              shrink-0
+              rounded-xl
+              object-cover
+            "
+          />
+        ) : (
+          <div
+            className="
+              flex
+              h-14
+              w-14
+              shrink-0
+              items-center
+              justify-center
+              rounded-xl
+              bg-[#f0e7f2]
+            "
+          >
+            <Hotel
+              size={22}
+              className="text-[#6f456f]"
+            />
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9a819f]">
+            {phase === "start"
+              ? "เริ่มต้นจากที่พัก"
+              : "กลับที่พัก"}
+          </div>
+
+          <div className="mt-0.5 truncate text-sm font-bold text-[#493c50]">
+            {name}
+          </div>
+
+          {hotel?.acc_address && (
+            <div className="mt-1 truncate text-xs text-gray-500">
+              {hotel.acc_address}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AllDaysDropZone({
   dayIndex,
   children,
@@ -2165,6 +2268,41 @@ const [selectedHotel, setSelectedHotel] = useState<any | null>(
       }
     : null
 );
+
+const selectedHotelRouteStop =
+  selectedHotel &&
+  Number.isFinite(
+    Number(
+      selectedHotel.latitude
+    )
+  ) &&
+  Number.isFinite(
+    Number(
+      selectedHotel.longitude
+    )
+  )
+    ? {
+        type:
+          "hotel",
+        hotel_id:
+          selectedHotel.acc_id ??
+          "selected-hotel",
+        name:
+          selectedHotel.acc_name_th ??
+          selectedHotel.acc_name_en ??
+          "ที่พัก",
+        location: {
+          latitude:
+            Number(
+              selectedHotel.latitude
+            ),
+          longitude:
+            Number(
+              selectedHotel.longitude
+            ),
+        },
+      }
+    : null;
 const [routeMode, setRouteMode] = useState<ItineraryRouteMode>("ai_balanced");
 const [showSaveTripModal, setShowSaveTripModal] = useState(false);
 const [tripTitle, setTripTitle] = useState("");
@@ -3485,6 +3623,12 @@ const saveEditedPlan = async () => {
 const openGoogleMaps = (items: any[]) => {
   const locations: string[] = [];
 
+  if (selectedHotelRouteStop) {
+    locations.push(
+      `${selectedHotelRouteStop.location.latitude},${selectedHotelRouteStop.location.longitude}`
+    );
+  }
+
   items.forEach((item) => {
 
     // =========================
@@ -3547,6 +3691,12 @@ const openGoogleMaps = (items: any[]) => {
       }
     }
   });
+
+  if (selectedHotelRouteStop) {
+    locations.push(
+      `${selectedHotelRouteStop.location.latitude},${selectedHotelRouteStop.location.longitude}`
+    );
+  }
 
   console.log(
     "🗺️ GOOGLE MAP LOCATIONS:",
@@ -4501,6 +4651,13 @@ console.log(
   }))
 );
   const markerCenter =
+selectedHotelRouteStop
+?
+{
+ lat:Number(selectedHotelRouteStop.location.latitude),
+ lng:Number(selectedHotelRouteStop.location.longitude)
+}
+:
 mapPlaces.length
 ?
 {
@@ -4537,6 +4694,33 @@ mapCenter;
           disableDefaultUI={false}
         >
           <MapUpdater center={markerCenter} />
+
+          {selectedHotelRouteStop && (
+            <Marker
+              key="selected-hotel-marker"
+              position={{
+                lat: Number(
+                  selectedHotelRouteStop.location.latitude
+                ),
+                lng: Number(
+                  selectedHotelRouteStop.location.longitude
+                ),
+              }}
+              icon={{
+                url:
+                  "data:image/svg+xml;charset=UTF-8," +
+                  encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">' +
+                    '<rect x="3" y="3" width="30" height="30" rx="10" fill="#6f456f" stroke="#ffffff" stroke-width="2"/>' +
+                    '<text x="18" y="23" text-anchor="middle" font-family="Arial" font-size="16" font-weight="700" fill="#ffffff">H</text>' +
+                    "</svg>"
+                  ),
+              }}
+              title={
+                selectedHotelRouteStop.name
+              }
+            />
+          )}
 
           {routePlaces
             .filter(
@@ -5050,6 +5234,23 @@ justify-center
             </div>
 
             {/* DAY ITEMS */}
+            {selectedHotel && (
+              <>
+                <HotelItineraryCard
+                  hotel={selectedHotel}
+                  phase="start"
+                />
+
+                {dayData.items[0] &&
+                  selectedHotelRouteStop && (
+                    <DistanceBetweenItems
+                      from={selectedHotelRouteStop}
+                      to={dayData.items[0]}
+                    />
+                  )}
+              </>
+            )}
+
             <SortableContext
               items={dayData.items.map(
                 (item) =>
@@ -5151,6 +5352,27 @@ justify-center
 
             </SortableContext>
 
+            {selectedHotel && (
+              <>
+                {dayData.items.length > 0 &&
+                  selectedHotelRouteStop && (
+                    <DistanceBetweenItems
+                      from={
+                        dayData.items[
+                          dayData.items.length - 1
+                        ]
+                      }
+                      to={selectedHotelRouteStop}
+                    />
+                  )}
+
+                <HotelItineraryCard
+                  hotel={selectedHotel}
+                  phase="return"
+                />
+              </>
+            )}
+
           </AllDaysDropZone>
         );
 
@@ -5164,6 +5386,24 @@ justify-center
     /* =====================================
        SINGLE DAY
     ===================================== */
+
+    <>
+      {selectedHotel && (
+        <>
+          <HotelItineraryCard
+            hotel={selectedHotel}
+            phase="start"
+          />
+
+          {routePlaces[0] &&
+            selectedHotelRouteStop && (
+              <DistanceBetweenItems
+                from={selectedHotelRouteStop}
+                to={routePlaces[0]}
+              />
+            )}
+        </>
+      )}
 
     <SortableContext
       items={routePlaces.map((item) =>
@@ -5247,6 +5487,28 @@ justify-center
       )}
 
     </SortableContext>
+
+      {selectedHotel && (
+        <>
+          {routePlaces.length > 0 &&
+            selectedHotelRouteStop && (
+              <DistanceBetweenItems
+                from={
+                  routePlaces[
+                    routePlaces.length - 1
+                  ]
+                }
+                to={selectedHotelRouteStop}
+              />
+            )}
+
+          <HotelItineraryCard
+            hotel={selectedHotel}
+            phase="return"
+          />
+        </>
+      )}
+    </>
 
   )}
 
