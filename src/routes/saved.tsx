@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import PlaceDetailDrawer, { type PlaceDetailTarget } from "@/components/PlaceDetailDrawer";
 import { supabase } from "@/lib/supabase";
 import { useTravelStore } from "@/store/travelStore";
 
@@ -54,6 +55,8 @@ const {
 } = useTravelStore();
 
   const [loading,setLoading] = useState(true);
+  const [placeDetailTarget, setPlaceDetailTarget] =
+    useState<PlaceDetailTarget | null>(null);
 
   const {
   savedItems,
@@ -139,7 +142,20 @@ async function loadSaved(){
   attraction(
     att_id,
     name_th,
+    name_en,
+    detail_th,
+    detail_en,
     province,
+    district,
+    subdistrict,
+    latitude,
+    longitude,
+    category,
+    type,
+    suitable_duration,
+    tel,
+    website,
+    facebook,
     images
   )
 `)
@@ -186,8 +202,15 @@ async function loadSaved(){
              item?.id ??
              `saved-${attraction?.att_id ?? Math.random()}`,
 
+           att_id:
+             attraction?.att_id ?? null,
+
+           raw:
+             attraction ?? null,
+
            title:
              attraction?.name_th ||
+             attraction?.name_en ||
              "Saved place",
 
            place:
@@ -271,6 +294,12 @@ async function loadSaved(){
 }
 
   return (
+    <>
+      <PlaceDetailDrawer
+        open={Boolean(placeDetailTarget)}
+        target={placeDetailTarget}
+        onClose={() => setPlaceDetailTarget(null)}
+      />
     <div className="travel-home flex h-screen text-foreground aurora-canvas">
       <Sidebar user={user}/>
 
@@ -333,7 +362,39 @@ async function loadSaved(){
               {safeSavedItems.map((s) => (
                 <article
                   key={s.id}
-                  className="glass-surface rounded-2xl overflow-hidden cursor-pointer group hover-lift"
+                  onClick={() =>
+                    setPlaceDetailTarget({
+                      type: "attraction",
+                      data:
+                        s.raw ?? {
+                          att_id: s.att_id,
+                          name_th: s.title,
+                          province: s.place,
+                          images: s.img ? [s.img] : [],
+                        },
+                    })
+                  }
+                  onKeyDown={(event) => {
+                    if (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    ) {
+                      event.preventDefault();
+                      setPlaceDetailTarget({
+                        type: "attraction",
+                        data:
+                          s.raw ?? {
+                            att_id: s.att_id,
+                            name_th: s.title,
+                            province: s.place,
+                            images: s.img ? [s.img] : [],
+                          },
+                      });
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  className="glass-surface rounded-2xl overflow-hidden cursor-pointer group hover-lift focus:outline-none focus-visible:ring-2 focus-visible:ring-[#573d63] focus-visible:ring-offset-2"
                 >
                   <div className="relative h-24 overflow-hidden sm:h-32 md:h-36">
                     <img
@@ -346,7 +407,10 @@ async function loadSaved(){
                       }}
                       className="h-full w-full object-cover group-hover:scale-105 transition"
                     />
-                    <button className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 text-rose-500 flex items-center justify-center hover:bg-white">
+                    <button
+                      onClick={(event) => event.stopPropagation()}
+                      className="absolute top-2 right-2 h-7 w-7 rounded-full bg-white/90 text-rose-500 flex items-center justify-center hover:bg-white"
+                    >
                       <Heart className="h-3.5 w-3.5 fill-current" />
                     </button>
                     <span className="absolute bottom-2 left-2 text-[9px] sm:text-[11px] rounded-full bg-black/60 text-white px-2 py-0.5">
@@ -462,5 +526,6 @@ async function loadSaved(){
         </section>
       </aside>
     </div>
+    </>
   );
 }
