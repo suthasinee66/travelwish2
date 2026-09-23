@@ -4,6 +4,9 @@ import {
 } from "./algorithm";
 import type { TripPlanInput } from "./types";
 import {
+    normalizeProvinceInput
+} from "@/lib/travel/normalizeProvince";
+import {
     getGuestPreferences,
     isGuestUser
 } from "@/lib/guest/guestPreferences";
@@ -582,6 +585,41 @@ export async function createPlanner(
     console.log("📋 ข้อมูลทริป");
     console.log(trip);
 
+    const normalizedProvince =
+        normalizeProvinceInput(
+            trip.province
+        ) ??
+        String(
+            trip.province ?? ""
+        ).trim();
+
+    if (!normalizedProvince) {
+        throw new Error(
+            "ไม่พบชื่อจังหวัดสำหรับจัดอันดับสถานที่"
+        );
+    }
+
+    if (
+        normalizedProvince !==
+        trip.province
+    ) {
+        console.log(
+            "🗺️ NORMALIZED PROVINCE:",
+            {
+                input:
+                    trip.province,
+                normalized:
+                    normalizedProvince
+            }
+        );
+    }
+
+    const normalizedTrip = {
+        ...trip,
+        province:
+            normalizedProvince
+    };
+
     const {
         data: plannerAuthData
     } = await supabase.auth.getUser();
@@ -622,19 +660,19 @@ console.log(
 
     // 1. โหลดสถานที่
     console.log("📍 กำลังโหลดสถานที่...");
-    const attractions = await loadAllAttractions(trip.province);
+    const attractions = await loadAllAttractions(normalizedProvince);
     console.log(`✅ โหลดสถานที่สำเร็จ ${attractions.length} แห่ง`);
 
     // 2. โหลดร้านอาหาร
     console.log("🍜 กำลังโหลดร้านอาหาร...");
-    const restaurants = await loadAllRestaurants(trip.province);
+    const restaurants = await loadAllRestaurants(normalizedProvince);
     console.log(`✅ โหลดร้านอาหารสำเร็จ ${restaurants.length} ร้าน`);
 
     // 3. Algorithm
     console.log("🧮 กำลังจัดอันดับสถานที่...");
     const tripData = {
 
-    ...trip,
+    ...normalizedTrip,
 travelType:
  trip.travelType?.length
  ?
