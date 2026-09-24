@@ -868,15 +868,15 @@ export default function PlaceDetailDrawer({
   }> = [
     {
       id: "overview",
-      label: "ภาพรวม",
+      label: "Overview",
     },
     {
       id: "reviews",
-      label: "รีวิว",
+      label: "Reviews",
     },
     {
       id: "location",
-      label: "ตำแหน่ง",
+      label: "Location",
     },
   ];
 
@@ -1019,7 +1019,7 @@ export default function PlaceDetailDrawer({
         aria-label="ปิดรายละเอียด"
         onClick={onClose}
         className={`
-          absolute inset-0 bg-[#241b2a]/35 backdrop-blur-[3px]
+          absolute inset-0 bg-[#302b43]/30
           transition-opacity duration-300
           ${open
             ? "opacity-100"
@@ -1036,9 +1036,9 @@ export default function PlaceDetailDrawer({
           h-[100dvh]
           w-full
           overflow-y-auto
-          border-l border-white/70
-          bg-[radial-gradient(circle_at_86%_8%,rgba(232,218,238,0.72),transparent_26%),radial-gradient(circle_at_10%_42%,rgba(250,231,237,0.55),transparent_24%),#fffdfb]
-          shadow-[-34px_0_90px_rgba(52,35,60,0.24)]
+          border-l border-[#e8e1e9]
+          bg-[#fffdfb]
+          shadow-[-28px_0_80px_rgba(59,43,67,0.20)]
           transition-transform duration-300 ease-out
           sm:w-[min(920px,94vw)]
           lg:w-[min(980px,74vw)]
@@ -1047,12 +1047,12 @@ export default function PlaceDetailDrawer({
             : "translate-x-full"}
         `}
       >
-        <div className="sticky top-0 z-40 flex h-[76px] items-center justify-between border-b border-white/70 bg-[#fffdfb]/82 px-4 shadow-[0_10px_32px_rgba(72,54,80,0.06)] backdrop-blur-2xl sm:px-6">
+        <div className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-[#eee7ef] bg-[#fffdfb]/94 px-4 shadow-[0_8px_26px_rgba(72,54,80,0.04)] backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-white/90 text-[#47374c] shadow-[0_7px_20px_rgba(72,54,80,0.09)] transition duration-200 hover:-translate-y-0.5 hover:bg-white active:scale-95"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e8e0e9] bg-white text-[#3f3545] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#f8f4f8]"
               aria-label="ปิด"
             >
               <X size={20} />
@@ -1060,7 +1060,7 @@ export default function PlaceDetailDrawer({
 
             <div className="hidden sm:block">
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#aa9cad]">
-                TravelWise · Place detail
+                Place detail
               </div>
               <div className="mt-0.5 max-w-[260px] truncate text-sm font-semibold text-[#4c3f50]">
                 {title}
@@ -1117,7 +1117,7 @@ export default function PlaceDetailDrawer({
                 href={mapsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-10 items-center gap-2 rounded-full bg-[#5B3A61] px-4 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(91,58,97,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#68466e] active:scale-[0.98]"
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-[#5B3A61] px-4 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(91,58,97,0.20)] transition hover:-translate-y-0.5 hover:bg-[#68466e]"
               >
                 <MapPin size={16} />
                 <span className="hidden sm:inline">
@@ -1128,54 +1128,66 @@ export default function PlaceDetailDrawer({
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[920px] px-4 pb-40 pt-6 sm:px-7 sm:pt-8 lg:px-8">
-          <section className="relative">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mx-auto w-full max-w-[920px] px-4 pb-36 pt-7 sm:px-7 lg:px-8">
+          <section>
+            <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
               <div className="min-w-0 flex-1">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#eadfeb] bg-white/72 px-3 py-1.5 text-[11px] font-semibold tracking-[0.08em] text-[#765b7c] shadow-sm backdrop-blur-md">
-                  <Sparkles size={13} />
-                  TRAVELWISE DISCOVERY
-                </div>
-
-                <h1 className="max-w-[720px] text-[30px] font-bold leading-[1.16] tracking-[-0.035em] text-[#2c2230] sm:text-[40px]">
+                <h1 className="text-[26px] font-bold leading-[1.22] tracking-[-0.02em] text-[#241f26] sm:text-[34px]">
                   {title}
                 </h1>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[#837587]">
-                  {locationSummary && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-3 py-1.5 shadow-sm backdrop-blur-md">
-                      <MapPin size={14} className="text-[#6f456f]" />
-                      {locationSummary}
-                    </span>
+                <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-[#827883]">
+                  {rating != null && (
+                    <>
+                      <div className="inline-flex items-center gap-1.5 font-semibold text-[#3e3541]">
+                        <Star
+                          size={16}
+                          fill="#d8a536"
+                          className="text-[#d8a536]"
+                        />
+                        {rating.toFixed(1)}
+                      </div>
+
+                      {reviewCount && (
+                        <>
+                          <span>•</span>
+                          <span>
+                            {reviewCount} reviews
+                          </span>
+                        </>
+                      )}
+                    </>
                   )}
 
-                  {rating != null && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fff6dd] px-3 py-1.5 font-semibold text-[#6e531f] shadow-sm">
-                      <Star size={14} fill="currentColor" />
-                      {rating.toFixed(1)}
-                      {reviewCount && (
-                        <span className="font-medium text-[#9a7d45]">
-                          · {reviewCount} รีวิว
-                        </span>
+                  {locationSummary && (
+                    <>
+                      {(rating != null ||
+                        reviewCount) && (
+                        <span>•</span>
                       )}
-                    </span>
+                      <span>
+                        {locationSummary}
+                      </span>
+                    </>
                   )}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#5B3A61] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_7px_18px_rgba(91,58,97,0.18)]">
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f3eef4] px-3 py-1.5 text-xs font-semibold text-[#5d4a62]">
                     <TypeIcon size={13} />
                     {typeLabel}
                   </span>
 
-                  {categoryChips.map((chip) => (
-                    <span
-                      key={chip}
-                      className="rounded-full border border-white/80 bg-white/75 px-3 py-1.5 text-xs font-medium text-[#6d5d71] shadow-sm backdrop-blur-md"
-                    >
-                      {chip}
-                    </span>
-                  ))}
+                  {categoryChips.map(
+                    (chip) => (
+                      <span
+                        key={chip}
+                        className="rounded-full border border-[#ebe4ec] bg-white px-3 py-1.5 text-xs font-medium text-[#766a79]"
+                      >
+                        {chip}
+                      </span>
+                    )
+                  )}
                 </div>
               </div>
             </div>
@@ -1191,10 +1203,10 @@ export default function PlaceDetailDrawer({
                   )}
                   className="
                     group relative isolate overflow-hidden
-                    rounded-[28px] border border-white/75
-                    bg-[#ece5ee]
-                    shadow-[0_26px_70px_rgba(67,46,76,0.18)]
-                    touch-pan-y sm:rounded-[32px]
+                    rounded-[26px] border border-white/70
+                    bg-[#eee8ef]
+                    shadow-[0_18px_50px_rgba(72,54,80,0.12)]
+                    touch-pan-y sm:rounded-[30px]
                   "
                 >
                   <img
@@ -1205,7 +1217,7 @@ export default function PlaceDetailDrawer({
                     className="
                       absolute inset-0 -z-10 h-full w-full
                       scale-110 select-none object-cover
-                      opacity-30 blur-3xl
+                      opacity-30 blur-2xl
                     "
                   />
 
@@ -1216,33 +1228,22 @@ export default function PlaceDetailDrawer({
                       draggable={false}
                       className="
                         h-full w-full select-none object-cover
-                        transition-transform duration-700
-                        sm:group-hover:scale-[1.025]
+                        transition-transform duration-500
+                        sm:group-hover:scale-[1.015]
                       "
                     />
 
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#221827]/70 via-transparent to-black/15" />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#241a29]/85 via-[#241a29]/28 to-transparent" />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 via-black/10 to-transparent" />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/20 to-transparent" />
 
-                    <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4 sm:bottom-5 sm:left-5 sm:right-5">
-                      <div className="min-w-0">
-                        <div className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/15 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur-xl">
-                          <TypeIcon size={12} />
-                          {typeLabel}
-                        </div>
-
-                        {hasValue(data?.highlight) && (
-                          <p className="mt-2 line-clamp-2 max-w-[560px] text-sm font-medium leading-6 text-white/90 sm:text-[15px]">
-                            {String(data.highlight)}
-                          </p>
-                        )}
+                    {images.length > 1 && (
+                      <div className="absolute right-3 top-3 rounded-full border border-white/25 bg-black/35 px-3 py-1.5 text-xs font-semibold text-white shadow-sm backdrop-blur-md sm:right-4 sm:top-4">
+                        {mainImageIndex + 1} / {images.length}
                       </div>
+                    )}
 
-                      {images.length > 1 && (
-                        <div className="shrink-0 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
-                          {mainImageIndex + 1} / {images.length}
-                        </div>
-                      )}
+                    <div className="absolute bottom-3 left-3 rounded-full border border-white/25 bg-black/30 px-3 py-1.5 text-[11px] font-medium text-white/95 backdrop-blur-md sm:bottom-4 sm:left-4">
+                      {typeLabel}
                     </div>
                   </div>
 
@@ -1258,10 +1259,10 @@ export default function PlaceDetailDrawer({
                           absolute left-4 top-1/2 hidden
                           h-11 w-11 -translate-y-1/2
                           items-center justify-center
-                          rounded-full border border-white/75
-                          bg-white/88 text-[#3f3545]
-                          shadow-[0_12px_30px_rgba(35,25,39,0.22)]
-                          opacity-0 backdrop-blur-xl transition-all
+                          rounded-full border border-white/70
+                          bg-white/90 text-[#3f3545]
+                          shadow-[0_10px_28px_rgba(35,25,39,0.22)]
+                          opacity-0 backdrop-blur-md transition-all
                           hover:scale-105 hover:bg-white
                           group-hover:opacity-100
                           sm:flex
@@ -1281,10 +1282,10 @@ export default function PlaceDetailDrawer({
                           absolute right-4 top-1/2 hidden
                           h-11 w-11 -translate-y-1/2
                           items-center justify-center
-                          rounded-full border border-white/75
-                          bg-white/88 text-[#3f3545]
-                          shadow-[0_12px_30px_rgba(35,25,39,0.22)]
-                          opacity-0 backdrop-blur-xl transition-all
+                          rounded-full border border-white/70
+                          bg-white/90 text-[#3f3545]
+                          shadow-[0_10px_28px_rgba(35,25,39,0.22)]
+                          opacity-0 backdrop-blur-md transition-all
                           hover:scale-105 hover:bg-white
                           group-hover:opacity-100
                           sm:flex
@@ -1301,7 +1302,7 @@ export default function PlaceDetailDrawer({
                   <div
                     className="
                       mt-3 flex snap-x snap-mandatory gap-2.5
-                      overflow-x-auto px-1 pb-2 pt-1
+                      overflow-x-auto pb-1
                       [scrollbar-width:none]
                       [&::-webkit-scrollbar]:hidden
                     "
@@ -1323,14 +1324,14 @@ export default function PlaceDetailDrawer({
                             active ? "true" : undefined
                           }
                           className={`
-                            relative h-[66px] w-[90px]
+                            relative h-[68px] w-[92px]
                             shrink-0 snap-start overflow-hidden
                             rounded-[16px] bg-[#eee8ef]
                             transition-all duration-200
-                            sm:h-[78px] sm:w-[112px]
+                            sm:h-[76px] sm:w-[108px]
                             ${active
-                              ? "scale-[1.02] ring-2 ring-[#5B3A61] ring-offset-2 ring-offset-[#fffdfb]"
-                              : "opacity-65 hover:-translate-y-0.5 hover:opacity-100"}
+                              ? "ring-2 ring-[#573d63] ring-offset-2 ring-offset-[#fffdfb]"
+                              : "opacity-70 hover:opacity-100"}
                           `}
                         >
                           <img
@@ -1338,10 +1339,17 @@ export default function PlaceDetailDrawer({
                             alt=""
                             draggable={false}
                             loading="lazy"
-                            className="h-full w-full select-none object-cover"
+                            className={`
+                              h-full w-full select-none object-cover
+                              transition-transform duration-300
+                              ${active
+                                ? "scale-[1.03]"
+                                : "hover:scale-105"}
+                            `}
                           />
+
                           {active && (
-                            <span className="pointer-events-none absolute inset-0 bg-[#5B3A61]/5" />
+                            <span className="pointer-events-none absolute inset-0 bg-[#573d63]/5" />
                           )}
                         </button>
                       );
@@ -1350,18 +1358,21 @@ export default function PlaceDetailDrawer({
                 )}
 
                 {images.length > 1 && (
-                  <div className="mt-1 flex items-center justify-center gap-2 text-[11px] font-medium text-[#aa9cad] sm:hidden">
-                    <span className="h-1 w-7 rounded-full bg-[#ddd1e0]" />
-                    ปัดรูปเพื่อดูเพิ่มเติม
-                    <span className="h-1 w-7 rounded-full bg-[#ddd1e0]" />
+                  <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-[#a093a4] sm:hidden">
+                    <span className="h-1 w-8 rounded-full bg-[#d9cfdc]" />
+                    ปัดรูปใหญ่เพื่อดูภาพถัดไป
+                    <span className="h-1 w-8 rounded-full bg-[#d9cfdc]" />
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex aspect-[16/8] max-h-[360px] items-center justify-center rounded-[30px] border border-white/80 bg-gradient-to-br from-[#f8f2f8] via-[#f3ecf5] to-[#eee6ef] text-[#9c8fa0] shadow-[0_20px_55px_rgba(72,54,80,0.09)]">
+              <div className="flex aspect-[16/8] max-h-[360px] items-center justify-center rounded-[26px] border border-[#ebe4ec] bg-gradient-to-br from-[#f7f2f7] to-[#eee7ef] text-[#9c8fa0] shadow-[0_14px_36px_rgba(72,54,80,0.06)] sm:rounded-[30px]">
                 <div className="flex flex-col items-center gap-3">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-white/80 shadow-[0_10px_26px_rgba(72,54,80,0.08)]">
-                    <TypeIcon size={30} strokeWidth={1.4} />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/75 shadow-sm">
+                    <TypeIcon
+                      size={30}
+                      strokeWidth={1.4}
+                    />
                   </div>
                   <span className="text-xs font-medium text-[#9a8da0]">
                     ยังไม่มีรูปภาพสำหรับสถานที่นี้
@@ -1371,7 +1382,7 @@ export default function PlaceDetailDrawer({
             )}
           </section>
 
-          <nav className="sticky top-[76px] z-30 -mx-4 mt-7 flex gap-2 border-y border-white/75 bg-[#fffdfb]/88 px-4 py-2 shadow-[0_10px_28px_rgba(72,54,80,0.04)] backdrop-blur-2xl sm:-mx-7 sm:px-7 lg:-mx-8 lg:px-8">
+          <nav className="mt-7 flex gap-7 border-b border-[#e8e1e9]">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -1380,24 +1391,24 @@ export default function PlaceDetailDrawer({
                   setActiveTab(tab.id)
                 }
                 className={`
-                  relative rounded-full px-4 py-2.5 text-sm font-semibold transition-all
+                  relative pb-3 text-sm font-medium transition
                   ${activeTab === tab.id
-                    ? "bg-[#5B3A61] text-white shadow-[0_8px_18px_rgba(91,58,97,0.18)]"
-                    : "text-[#8d818f] hover:bg-white hover:text-[#554b58]"}
+                    ? "text-[#271f2a]"
+                    : "text-[#8d818f] hover:text-[#554b58]"}
                 `}
               >
                 {tab.label}
 
                 {activeTab === tab.id && (
-                  <span className="sr-only">แท็บที่กำลังเปิด</span>
+                  <span className="absolute inset-x-0 bottom-[-1px] h-[2px] rounded-full bg-[#573d63]" />
                 )}
               </button>
             ))}
           </nav>
 
           {activeTab === "overview" && (
-            <div className="pt-7">
-              <section className="mb-8 rounded-[28px] border border-white/80 bg-white/62 p-4 shadow-[0_18px_50px_rgba(72,54,80,0.06)] backdrop-blur-xl sm:p-5">
+            <div className="pt-6">
+              <section className="mb-7">
                 <div className="mb-4 flex items-center gap-2">
                   <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#f2eaf3] text-[#5B3A61]">
                     <Sparkles size={17} />
@@ -1448,9 +1459,9 @@ export default function PlaceDetailDrawer({
                   ].map((item) => (
                     <div
                       key={item.label}
-                      className="group rounded-[22px] border border-[#eee5ef] bg-gradient-to-br from-white via-white to-[#f7f1f8] p-4 shadow-[0_10px_30px_rgba(72,54,80,0.055)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_16px_36px_rgba(72,54,80,0.10)]"
+                      className="rounded-[20px] border border-[#eee6ef] bg-gradient-to-br from-white to-[#fbf8fc] p-4 shadow-[0_10px_28px_rgba(72,54,80,0.05)]"
                     >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-[15px] bg-[#efe5f1] text-[#5B3A61] shadow-inner transition group-hover:scale-105">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#f1e9f2] text-[#5B3A61]">
                         {item.icon}
                       </div>
                       <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9c8fa0]">
@@ -1465,10 +1476,7 @@ export default function PlaceDetailDrawer({
               </section>
 
               {hasValue(description) && (
-                <section className="rounded-[26px] border border-white/80 bg-white/58 p-5 shadow-[0_12px_34px_rgba(72,54,80,0.045)] backdrop-blur-lg sm:p-6">
-                  <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.13em] text-[#a092a4]">
-                    ABOUT THIS PLACE
-                  </div>
+                <section>
                   <p
                     className={`
                       whitespace-pre-line text-[15px] leading-7 text-[#564c59]
@@ -1502,7 +1510,7 @@ export default function PlaceDetailDrawer({
               {(address ||
                 website ||
                 phone) && (
-                <section className="mt-6 rounded-[26px] border border-white/80 bg-white/72 p-2 shadow-[0_16px_42px_rgba(72,54,80,0.06)] backdrop-blur-xl">
+                <section className="mt-6 rounded-[24px] border border-[#e9e2ea] bg-white p-2 shadow-[0_10px_30px_rgba(72,54,80,0.04)]">
                   <div className="grid sm:grid-cols-2 sm:divide-x sm:divide-[#eee8ef]">
                     <div className="space-y-1">
                       {address && (
@@ -1571,7 +1579,7 @@ export default function PlaceDetailDrawer({
 
               {type === "attraction" && (
                 <>
-                  <section className="mt-10">
+                  <section className="mt-8">
                     <div className="mb-4 flex items-center justify-between gap-3">
                       <div>
                         <h2 className="text-lg font-bold text-[#302833]">
@@ -1590,15 +1598,15 @@ export default function PlaceDetailDrawer({
                     </div>
 
                     {relatedData.weather ? (
-                      <div className="relative overflow-hidden rounded-[28px] border border-white/80 bg-[radial-gradient(circle_at_90%_20%,rgba(255,215,170,0.48),transparent_28%),radial-gradient(circle_at_10%_80%,rgba(211,196,233,0.60),transparent_30%),linear-gradient(135deg,#faf7fb,#f1ebf5)] p-5 shadow-[0_22px_55px_rgba(91,72,117,0.12)] sm:p-6">
+                      <div className="overflow-hidden rounded-[24px] border border-[#eadfeb] bg-gradient-to-br from-[#f8f3f9] via-[#fbf8fc] to-[#f2eef7] p-5 shadow-[0_14px_36px_rgba(91,72,117,0.08)] sm:p-6">
                         <div className="flex flex-wrap items-center justify-between gap-5">
                           <div className="flex items-center gap-4">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-[22px] border border-white/80 bg-white/84 text-[#5B3A61] shadow-[0_12px_28px_rgba(91,72,117,0.10)] backdrop-blur-xl">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#5B3A61] shadow-sm">
                               <CloudSun size={28} />
                             </div>
 
                             <div>
-                              <div className="text-5xl font-bold tracking-[-0.055em] text-[#49334f]">
+                              <div className="text-4xl font-bold tracking-[-0.04em] text-[#49334f]">
                                 {relatedData.weather.temperature != null
                                   ? `${Math.round(relatedData.weather.temperature)}°C`
                                   : "—"}
@@ -1679,9 +1687,9 @@ export default function PlaceDetailDrawer({
                           return (
                             <article
                               key={place.att_id}
-                              className="group w-[244px] shrink-0 snap-start overflow-hidden rounded-[24px] border border-white/85 bg-white/82 shadow-[0_14px_34px_rgba(72,54,80,0.08)] backdrop-blur-xl transition duration-200 hover:-translate-y-1.5 hover:shadow-[0_22px_44px_rgba(72,54,80,0.14)]"
+                              className="w-[230px] shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#ebe3ed] bg-white shadow-[0_10px_28px_rgba(72,54,80,0.06)]"
                             >
-                              <div className="h-36 overflow-hidden bg-[#f1edf2]">
+                              <div className="h-32 bg-[#f1edf2]">
                                 {image ? (
                                   <img
                                     src={image}
@@ -1691,7 +1699,7 @@ export default function PlaceDetailDrawer({
                                       ""
                                     }
                                     loading="lazy"
-                                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                                    className="h-full w-full object-cover"
                                   />
                                 ) : (
                                   <div className="flex h-full items-center justify-center text-[#a493a8]">
@@ -1774,7 +1782,7 @@ export default function PlaceDetailDrawer({
                                 restaurant.place_id ??
                                 restaurant.google_place_id
                               }
-                              className="group flex gap-3 rounded-[24px] border border-white/85 bg-white/78 p-3 shadow-[0_12px_32px_rgba(72,54,80,0.07)] backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(72,54,80,0.11)]"
+                              className="flex gap-3 rounded-[22px] border border-[#ebe3ed] bg-white p-3 shadow-[0_8px_24px_rgba(72,54,80,0.05)]"
                             >
                               <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[17px] bg-[#f1edf2] sm:h-28 sm:w-28">
                                 {image ? (
@@ -1882,7 +1890,7 @@ export default function PlaceDetailDrawer({
                             return (
                               <article
                                 key={place.att_id}
-                                className="group flex gap-3 rounded-[24px] border border-white/85 bg-white/78 p-3 shadow-[0_12px_32px_rgba(72,54,80,0.07)] backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(72,54,80,0.11)]"
+                                className="flex gap-3 rounded-[22px] border border-[#ebe3ed] bg-white p-3 shadow-[0_8px_24px_rgba(72,54,80,0.05)]"
                               >
                                 <button
                                   type="button"
@@ -1985,7 +1993,7 @@ export default function PlaceDetailDrawer({
           {activeTab === "reviews" && (
             <div className="pt-6">
               {rating != null ? (
-                <section className="rounded-[28px] border border-white/85 bg-white/76 p-5 shadow-[0_18px_44px_rgba(72,54,80,0.07)] backdrop-blur-xl sm:p-6">
+                <section className="rounded-[24px] border border-[#e9e2ea] bg-white p-5 sm:p-6">
                   <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
                     <div className="text-5xl font-bold tracking-[-0.04em] text-[#241f26]">
                       {rating.toFixed(1)}
@@ -2032,7 +2040,7 @@ export default function PlaceDetailDrawer({
           {activeTab === "location" && (
             <div className="pt-6">
               {address || mapsUrl ? (
-                <section className="overflow-hidden rounded-[28px] border border-white/85 bg-white/76 shadow-[0_18px_44px_rgba(72,54,80,0.07)] backdrop-blur-xl">
+                <section className="overflow-hidden rounded-[24px] border border-[#e9e2ea] bg-white">
                   <div className="p-5 sm:p-6">
                     <div className="flex items-start gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f3eef4] text-[#6f456f]">
@@ -2092,9 +2100,8 @@ export default function PlaceDetailDrawer({
             )}
         </div>
 
-        <div className="sticky bottom-0 z-40 border-t border-white/75 bg-[#fffdfb]/86 px-4 pt-3 shadow-[0_-20px_46px_rgba(72,54,80,0.10)] backdrop-blur-2xl sm:px-6"
-             style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
-          <div className="mx-auto flex w-full max-w-[920px] flex-col gap-2.5 sm:flex-row sm:gap-3">
+        <div className="sticky bottom-0 z-30 border-t border-[#e9e1ea] bg-[#fffdfb]/95 px-4 py-3 shadow-[0_-16px_38px_rgba(72,54,80,0.08)] backdrop-blur-xl sm:px-6">
+          <div className="mx-auto flex w-full max-w-[920px] gap-3">
             <button
               type="button"
               disabled={!record || !onAddToTrip}
@@ -2106,7 +2113,7 @@ export default function PlaceDetailDrawer({
                   });
                 }
               }}
-              className="inline-flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-[18px] bg-[#5B3A61] px-5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(91,58,97,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#68466e] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#5B3A61] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(91,58,97,0.22)] transition hover:bg-[#68466e] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Sparkles size={17} />
               เพิ่มสถานที่นี้ลงในทริป
@@ -2117,7 +2124,7 @@ export default function PlaceDetailDrawer({
                 href={mapsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-[18px] border border-[#dfd4e2] bg-white/90 px-5 text-sm font-semibold text-[#5B3A61] shadow-[0_8px_20px_rgba(72,54,80,0.07)] transition duration-200 hover:-translate-y-0.5 hover:bg-white active:scale-[0.99]"
+                className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#ddd1e0] bg-white px-5 text-sm font-semibold text-[#5B3A61] shadow-sm transition hover:bg-[#f7f2f8]"
               >
                 <MapPin size={17} />
                 นำทางด้วย Google Maps
