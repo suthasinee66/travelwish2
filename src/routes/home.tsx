@@ -12049,47 +12049,85 @@ text-white/80
               </section>
             )}
             {!exploreOpen && !showTripPlan && (
-              <section>
-                <h2 className="font-semibold mb-3">
-                  Get inspired for you
-                </h2>
+              <section className="mt-1">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] bg-gradient-to-br from-[#f6e7f7] to-[#eee7fb] text-[#6f456f] shadow-[0_5px_16px_rgba(111,69,111,0.10)]">
+                    <Sparkles className="h-[17px] w-[17px]" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h2 className="text-[16px] font-bold tracking-[-0.01em] text-[#30293f]">
+                      Get inspired for you
+                    </h2>
+
+                    <p className="mt-0.5 text-[11px] leading-4 text-[#8b7d90]">
+                      วิดีโอท่องเที่ยวที่คัดจากสไตล์และความสนใจของคุณ
+                    </p>
+                  </div>
+                </div>
 
                 {inspireLoading ? (
-                  <div className="travel-inspiration-grid grid grid-cols-3 gap-3 w-full">
+                  <div className="flex gap-3 overflow-x-hidden sm:grid sm:grid-cols-3">
                     {Array.from({ length: 3 }).map((_, index) => (
                       <div
                         key={index}
-                        className="aspect-[9/16] animate-pulse rounded-xl bg-muted"
-                      />
+                        className="w-[76%] shrink-0 overflow-hidden rounded-[18px] border border-[#eee6f0] bg-white p-1.5 shadow-[0_7px_22px_rgba(73,53,82,0.07)] sm:w-auto"
+                      >
+                        <div className="aspect-[9/16] animate-pulse rounded-[14px] bg-[#eee9ef]" />
+                        <div className="px-2 pb-2 pt-2.5">
+                          <div className="h-3 w-2/3 animate-pulse rounded-full bg-[#eee9ef]" />
+                          <div className="mt-2 h-3 w-full animate-pulse rounded-full bg-[#f3eff4]" />
+                          <div className="mt-1.5 h-3 w-4/5 animate-pulse rounded-full bg-[#f3eff4]" />
+                        </div>
+                      </div>
                     ))}
                   </div>
                 ) : inspireError ? (
-                  <p className="text-sm text-muted-foreground">
+                  <div className="rounded-[18px] border border-[#eee6f0] bg-white/80 px-4 py-5 text-center text-sm text-[#8a7c8d]">
                     {inspireError}
-                  </p>
+                  </div>
                 ) : inspire.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
+                  <div className="rounded-[18px] border border-dashed border-[#dfd3e2] bg-[#fcf9fc] px-4 py-5 text-center text-sm text-[#8a7c8d]">
                     ยังไม่มีวิดีโอแนะนำสำหรับคุณ
-                  </p>
+                  </div>
                 ) : (
-                  <div className="travel-inspiration-grid grid grid-cols-3 gap-3 w-full">
+                  <div className="travel-inspiration-grid flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:overflow-visible">
                     {inspire.map((v) => (
-                      <div
+                      <article
                         key={v.id}
-                        className="rounded-xl overflow-hidden bg-black"
+                        className="group w-[76%] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[#ece4ee] bg-white p-1.5 shadow-[0_7px_22px_rgba(73,53,82,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-[#dbcce0] hover:shadow-[0_12px_28px_rgba(73,53,82,0.12)] sm:w-auto"
                       >
-                        <iframe
-                          src={v.videoUrl}
-                          title={v.title}
-                          className="w-full aspect-[9/16]"
-                          allowFullScreen
-                          loading="lazy"
-                        />
+                        <div className="relative overflow-hidden rounded-[14px] bg-black">
+                          <iframe
+                            src={v.videoUrl}
+                            title={v.title}
+                            className="aspect-[9/16] w-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                            loading="lazy"
+                          />
 
-                        <div className="p-2 text-white text-sm line-clamp-2">
-                          {v.title}
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
                         </div>
-                      </div>
+
+                        <div className="px-2.5 pb-2.5 pt-2.5">
+                          <div className="mb-1.5 flex items-center gap-1.5">
+                            <span className="inline-flex items-center rounded-full bg-[#f4eaf6] px-2 py-1 text-[9px] font-bold text-[#75457a]">
+                              For you
+                            </span>
+
+                            {v.channelTitle && (
+                              <span className="min-w-0 truncate text-[9px] font-medium text-[#9a8c9d]">
+                                {v.channelTitle}
+                              </span>
+                            )}
+                          </div>
+
+                          <h3 className="line-clamp-2 min-h-[38px] text-[12px] font-bold leading-[19px] text-[#342d41] transition group-hover:text-[#6f456f]">
+                            {v.title}
+                          </h3>
+                        </div>
+                      </article>
                     ))}
                   </div>
                 )}
