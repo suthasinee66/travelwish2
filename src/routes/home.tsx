@@ -12183,12 +12183,10 @@ text-white/80
             {!exploreOpen && !showTripPlan && (
               <section className="mt-1">
                 <div className="mb-3 flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] bg-gradient-to-br from-[#f6e7f7] to-[#eee7fb] text-[#6f456f] shadow-[0_5px_16px_rgba(111,69,111,0.10)]">
-                    <Sparkles className="h-[17px] w-[17px]" />
-                  </div>
+                  
 
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-[16px] font-bold tracking-[-0.01em] text-[#30293f]">
+                    <h2 className="font-semibold">
                       Get inspired for you
                     </h2>
 
