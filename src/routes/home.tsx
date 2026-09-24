@@ -54,10 +54,12 @@ import {
   Link2,
   Pencil,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Search,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { Fragment, useEffect, useState, useMemo } from "react";
+import { Fragment, useEffect, useState, useMemo, useRef } from "react";
 import { getRecommendations } from "@/lib/recommend/getRecommendations";
 import { getRecommendations as getInspireVideos } from "@/lib/inspire/getRecommendations";
 import { Link } from "@tanstack/react-router";
@@ -7610,6 +7612,7 @@ function Home() {
   const [inspireError, setInspireError] = useState<string | null>(null);
   const [selectedInspireVideo, setSelectedInspireVideo] =
     useState<any | null>(null);
+  const inspireScrollRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [selectedModel, setSelectedModel] = useState<"gemini" | "gpt" | "claude">("gemini");
@@ -7852,6 +7855,27 @@ useEffect(() => {
   };
 
 }, [preferences]);
+
+const scrollInspiration = (
+  direction: -1 | 1
+) => {
+  const container =
+    inspireScrollRef.current;
+
+  if (!container) {
+    return;
+  }
+
+  container.scrollBy({
+    left:
+      direction *
+      Math.max(
+        260,
+        container.clientWidth * 0.8
+      ),
+    behavior: "smooth",
+  });
+};
 
 useEffect(() => {
   if (!selectedInspireVideo) {
@@ -12163,7 +12187,7 @@ text-white/80
                     <Sparkles className="h-[17px] w-[17px]" />
                   </div>
 
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h2 className="text-[16px] font-bold tracking-[-0.01em] text-[#30293f]">
                       Get inspired for you
                     </h2>
@@ -12172,6 +12196,33 @@ text-white/80
                       วิดีโอท่องเที่ยวที่คัดจากสไตล์และความสนใจของคุณ
                     </p>
                   </div>
+
+                  {!inspireLoading &&
+                    inspire.length > 0 && (
+                      <div className="hidden shrink-0 items-center gap-2 md:flex">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            scrollInspiration(-1)
+                          }
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#e6dce8] bg-white text-[#6f456f] shadow-sm transition hover:bg-[#f8f1f9] hover:shadow-md"
+                          aria-label="เลื่อนวิดีโอไปทางซ้าย"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            scrollInspiration(1)
+                          }
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#e6dce8] bg-white text-[#6f456f] shadow-sm transition hover:bg-[#f8f1f9] hover:shadow-md"
+                          aria-label="เลื่อนวิดีโอไปทางขวา"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
                 </div>
 
                 {inspireLoading ? (
@@ -12199,7 +12250,10 @@ text-white/80
                     ยังไม่มีวิดีโอแนะนำสำหรับคุณ
                   </div>
                 ) : (
-                  <div className="travel-inspiration-grid flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div
+                    ref={inspireScrollRef}
+                    className="travel-inspiration-grid flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  >
                     {inspire.map((v) => (
                       <article
                         key={v.id}
