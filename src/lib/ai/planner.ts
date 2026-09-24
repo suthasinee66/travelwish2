@@ -30,6 +30,121 @@ const API_URL =
         )
     ).replace(/\/$/, "");
 
+function normalizePhysicalPlaceName(
+    value: unknown
+) {
+    return String(value ?? "")
+        .toLowerCase()
+        .normalize("NFKC")
+        .replace(/\s+/g, "")
+        .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+function distanceKmBetween(
+    lat1: unknown,
+    lon1: unknown,
+    lat2: unknown,
+    lon2: unknown
+) {
+    const aLat = Number(lat1);
+    const aLon = Number(lon1);
+    const bLat = Number(lat2);
+    const bLon = Number(lon2);
+
+    if (
+        !Number.isFinite(aLat) ||
+        !Number.isFinite(aLon) ||
+        !Number.isFinite(bLat) ||
+        !Number.isFinite(bLon)
+    ) {
+        return Number.POSITIVE_INFINITY;
+    }
+
+    const R = 6371;
+    const dLat =
+        ((bLat - aLat) * Math.PI) / 180;
+    const dLon =
+        ((bLon - aLon) * Math.PI) / 180;
+
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(
+            (aLat * Math.PI) / 180
+        ) *
+        Math.cos(
+            (bLat * Math.PI) / 180
+        ) *
+        Math.sin(dLon / 2) ** 2;
+
+    return (
+        R *
+        2 *
+        Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        )
+    );
+}
+
+function isSamePhysicalPlace(
+    attraction: any,
+    restaurant: any
+) {
+    const attractionGoogleId =
+        attraction?.google_place_id ??
+        attraction?.googlePlaceId ??
+        null;
+
+    const restaurantGoogleId =
+        restaurant?.google_place_id ??
+        restaurant?.googlePlaceId ??
+        null;
+
+    if (
+        attractionGoogleId &&
+        restaurantGoogleId &&
+        String(attractionGoogleId) ===
+            String(restaurantGoogleId)
+    ) {
+        return true;
+    }
+
+    const attractionName =
+        normalizePhysicalPlaceName(
+            attraction?.name_th ??
+            attraction?.name_en ??
+            attraction?.place_name ??
+            attraction?.name
+        );
+
+    const restaurantName =
+        normalizePhysicalPlaceName(
+            restaurant?.place_name_th ??
+            restaurant?.restaurant_name_th ??
+            restaurant?.restaurant_name ??
+            restaurant?.place_name_en ??
+            restaurant?.name
+        );
+
+    if (
+        !attractionName ||
+        !restaurantName ||
+        attractionName !==
+            restaurantName
+    ) {
+        return false;
+    }
+
+    return (
+        distanceKmBetween(
+            attraction?.latitude,
+            attraction?.longitude,
+            restaurant?.latitude,
+            restaurant?.longitude
+        ) <= 0.15
+    );
+}
+
 async function resolveAIAttraction(
     proposedPlace: any,
     province: string,
@@ -1410,6 +1525,8 @@ ${JSON.stringify(combinedCandidatePool)}
 - companion มีผลต่อบรรยากาศร้าน เช่น ครอบครัว คู่รัก เพื่อน หรือเที่ยวคนเดียว
 - pace มีผลต่อการเลือกร้าน เช่น Slow Travel อาจเลือกร้านนั่งนาน ส่วนสายเที่ยวแน่นควรลดเวลารอ/อ้อมเส้นทาง
 - ถ้าผู้ใช้ไม่ชอบคนเยอะหรือไม่ชอบต่อคิว อย่าเลือกร้านไวรัล/ยอดนิยมเพียงเพราะ rating สูง
+- ห้ามเลือกร้านอาหารที่เป็นสถานที่เดียวกับ attraction ของ stop นั้น แม้ชื่อเดียวกันจะปรากฏอยู่ในตาราง restaurant
+- ถ้าร้านชื่อเดียวกับ attraction และอยู่พิกัดเดียวกันหรือใกล้กันมาก ให้ถือว่าเป็น physical place เดียวกันและเลือกร้านอื่น
 
 สำหรับร้านจาก nearbyRestaurants:
 - restaurant_source = "database"
@@ -1910,6 +2027,87 @@ const selectedAttractionDetails =
 
 const selectedRestaurantDetails =
     selectedRestaurantResult.data ?? [];
+
+const attractionDetailsById =
+    new Map(
+        selectedAttractionDetails.map(
+            (attraction: any) => [
+                String(
+                    attraction.att_id
+                ),
+                attraction
+            ]
+        )
+    );
+
+const restaurantDetailsById =
+    new Map(
+        selectedRestaurantDetails.map(
+            (restaurant: any) => [
+                String(
+                    restaurant.place_id
+                ),
+                restaurant
+            ]
+        )
+    );
+
+for (
+    const item
+    of selectedPlaces
+) {
+    if (
+        !item?.place_id ||
+        !item?.restaurant_id
+    ) {
+        continue;
+    }
+
+    const attraction =
+        attractionDetailsById.get(
+            String(
+                item.place_id
+            )
+        );
+
+    const restaurant =
+        restaurantDetailsById.get(
+            String(
+                item.restaurant_id
+            )
+        );
+
+    if (
+        attraction &&
+        restaurant &&
+        isSamePhysicalPlace(
+            attraction,
+            restaurant
+        )
+    ) {
+        console.warn(
+            "⚠️ REMOVE DUPLICATE RESTAURANT STOP:",
+            {
+                attraction:
+                    attraction.name_th,
+                restaurant:
+                    restaurant.place_name_th
+            }
+        );
+
+        item.restaurant_source =
+            null;
+
+        item.restaurant_id =
+            null;
+
+        item.restaurant_name =
+            null;
+
+        item.proposed_restaurant_key =
+            null;
+    }
+}
 
 // =========================================================
 // AI ACCOMMODATION RECOMMENDATION
