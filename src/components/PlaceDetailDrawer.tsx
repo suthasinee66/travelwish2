@@ -527,6 +527,12 @@ export default function PlaceDetailDrawer({
   const [saving, setSaving] =
     useState(false);
 
+  const [similarSavedIds, setSimilarSavedIds] =
+    useState<Set<string>>(new Set());
+
+  const [similarSavingIds, setSimilarSavingIds] =
+    useState<Set<string>>(new Set());
+
   const [activeTab, setActiveTab] =
     useState<DetailTab>("overview");
 
@@ -811,6 +817,65 @@ export default function PlaceDetailDrawer({
     longitude,
   ]);
 
+  useEffect(() => {
+    let active = true;
+
+    if (
+      !open ||
+      type !== "attraction" ||
+      relatedData.similarPlaces.length === 0
+    ) {
+      setSimilarSavedIds(new Set());
+      return;
+    }
+
+    const ids = relatedData.similarPlaces
+      .slice(0, 4)
+      .map((place) =>
+        place?.att_id != null
+          ? String(place.att_id)
+          : ""
+      )
+      .filter(Boolean);
+
+    Promise.all(
+      ids.map(async (id) => ({
+        id,
+        saved:
+          await getAttractionSavedState(id),
+      }))
+    )
+      .then((results) => {
+        if (!active) return;
+
+        setSimilarSavedIds(
+          new Set(
+            results
+              .filter(
+                (result) => result.saved
+              )
+              .map(
+                (result) => result.id
+              )
+          )
+        );
+      })
+      .catch((error) => {
+        console.warn(
+          "LOAD SIMILAR SAVED STATE ERROR:",
+          error
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    open,
+    type,
+    relatedData.similarPlaces,
+  ]);
+
   const categoryChips =
     useMemo(() => {
       const values: string[] = [];
@@ -979,6 +1044,79 @@ export default function PlaceDetailDrawer({
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleToggleSimilarSaved = async (
+    event: React.MouseEvent<HTMLButtonElement>,
+    place: any
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const id =
+      place?.att_id != null
+        ? String(place.att_id)
+        : "";
+
+    if (
+      !id ||
+      similarSavingIds.has(id)
+    ) {
+      return;
+    }
+
+    setSimilarSavingIds(
+      (current) => {
+        const next =
+          new Set(current);
+
+        next.add(id);
+
+        return next;
+      }
+    );
+
+    try {
+      const currentlySaved =
+        similarSavedIds.has(id);
+
+      const nextSaved =
+        await toggleAttractionSaved(
+          id,
+          currentlySaved
+        );
+
+      setSimilarSavedIds(
+        (current) => {
+          const next =
+            new Set(current);
+
+          if (nextSaved) {
+            next.add(id);
+          } else {
+            next.delete(id);
+          }
+
+          return next;
+        }
+      );
+    } catch (error) {
+      console.warn(
+        "TOGGLE SIMILAR SAVED ERROR:",
+        error
+      );
+    } finally {
+      setSimilarSavingIds(
+        (current) => {
+          const next =
+            new Set(current);
+
+          next.delete(id);
+
+          return next;
+        }
+      );
     }
   };
 
@@ -1542,29 +1680,65 @@ export default function PlaceDetailDrawer({
                               </div>
                             )}
 
-                            <span
-                              className="
+                            <button
+                              type="button"
+                              onClick={(event) =>
+                                handleToggleSimilarSaved(
+                                  event,
+                                  place
+                                )
+                              }
+                              onKeyDown={(event) =>
+                                event.stopPropagation()
+                              }
+                              disabled={similarSavingIds.has(
+                                String(place.att_id)
+                              )}
+                              className={`
                                 absolute
                                 right-1.5
                                 top-1.5
+                                z-10
                                 flex
                                 h-[24px]
                                 w-[24px]
                                 items-center
                                 justify-center
                                 rounded-full
-                                border border-[#eadfeb]
+                                border
                                 bg-white/95
-                                text-[#c13b82]
                                 shadow-[0_2px_6px_rgba(66,45,76,0.12)]
-                              "
-                              aria-hidden="true"
+                                transition
+                                hover:scale-105
+                                active:scale-95
+                                disabled:cursor-wait
+                                disabled:opacity-60
+                                ${similarSavedIds.has(
+                                  String(place.att_id)
+                                )
+                                  ? "border-rose-100 text-[#c13b82]"
+                                  : "border-[#eadfeb] text-[#c13b82]"}
+                              `}
+                              aria-label={
+                                similarSavedIds.has(
+                                  String(place.att_id)
+                                )
+                                  ? "นำออกจากรายการบันทึก"
+                                  : "บันทึกสถานที่"
+                              }
                             >
                               <Heart
                                 size={13}
                                 strokeWidth={2}
+                                fill={
+                                  similarSavedIds.has(
+                                    String(place.att_id)
+                                  )
+                                    ? "currentColor"
+                                    : "none"
+                                }
                               />
-                            </span>
+                            </button>
                           </div>
 
                           <div className="px-2 pb-2 pt-1.5">
