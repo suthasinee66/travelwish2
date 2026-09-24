@@ -4,12 +4,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  CloudSun,
   ExternalLink,
   Globe2,
   Heart,
   Hotel,
   MapPin,
+  Navigation,
   Phone,
+  Plus,
   Sparkles,
   Star,
   Trees,
@@ -19,6 +22,12 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
+import {
+  getAttractionSavedState,
+  loadPlaceDetailRelatedData,
+  toggleAttractionSaved,
+  type PlaceDetailRelatedData,
+} from "@/lib/travel/loadPlaceDetailData";
 
 export type PlaceDetailTargetType =
   | "attraction"
@@ -376,7 +385,29 @@ export default function PlaceDetailDrawer({
   const [record, setRecord] =
     useState<any>(null);
 
+  const [recordType, setRecordType] =
+    useState<PlaceDetailTargetType | null>(
+      null
+    );
+
   const [loading, setLoading] =
+    useState(false);
+
+  const [relatedLoading, setRelatedLoading] =
+    useState(false);
+
+  const [relatedData, setRelatedData] =
+    useState<PlaceDetailRelatedData>({
+      weather: null,
+      similarPlaces: [],
+      nearbyRestaurants: [],
+      nearbyPlaces: [],
+    });
+
+  const [isSaved, setIsSaved] =
+    useState(false);
+
+  const [saving, setSaving] =
     useState(false);
 
   const [activeTab, setActiveTab] =
@@ -395,6 +426,14 @@ export default function PlaceDetailDrawer({
 
     if (!open || !target) {
       setRecord(null);
+      setRecordType(null);
+      setRelatedData({
+        weather: null,
+        similarPlaces: [],
+        nearbyRestaurants: [],
+        nearbyPlaces: [],
+      });
+      setIsSaved(false);
       setMainImageIndex(0);
       setActiveTab("overview");
       setDescriptionExpanded(false);
@@ -402,6 +441,13 @@ export default function PlaceDetailDrawer({
     }
 
     setRecord(target.data ?? {});
+    setRecordType(target.type);
+    setRelatedData({
+      weather: null,
+      similarPlaces: [],
+      nearbyRestaurants: [],
+      nearbyPlaces: [],
+    });
     setMainImageIndex(0);
     setActiveTab("overview");
     setDescriptionExpanded(false);
@@ -467,7 +513,9 @@ export default function PlaceDetailDrawer({
     record ?? target?.data ?? {};
 
   const type =
-    target?.type ?? "attraction";
+    recordType ??
+    target?.type ??
+    "attraction";
 
   const title = getTitle(type, data);
   const typeLabel = getTypeLabel(type);
@@ -552,6 +600,93 @@ export default function PlaceDetailDrawer({
     latitude,
     longitude,
     address,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (
+      !open ||
+      type !== "attraction" ||
+      !data?.att_id
+    ) {
+      setIsSaved(false);
+      return;
+    }
+
+    getAttractionSavedState(
+      String(data.att_id)
+    )
+      .then((saved) => {
+        if (active) {
+          setIsSaved(saved);
+        }
+      })
+      .catch((error) => {
+        console.warn(
+          "LOAD SAVED STATE ERROR:",
+          error
+        );
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    open,
+    type,
+    data?.att_id,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (
+      !open ||
+      type !== "attraction" ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      setRelatedData({
+        weather: null,
+        similarPlaces: [],
+        nearbyRestaurants: [],
+        nearbyPlaces: [],
+      });
+      setRelatedLoading(false);
+      return;
+    }
+
+    setRelatedLoading(true);
+
+    loadPlaceDetailRelatedData(data)
+      .then((result) => {
+        if (active) {
+          setRelatedData(result);
+        }
+      })
+      .catch((error) => {
+        console.warn(
+          "LOAD RELATED PLACE DATA ERROR:",
+          error
+        );
+      })
+      .finally(() => {
+        if (active) {
+          setRelatedLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    open,
+    type,
+    data?.att_id,
+    data?.province,
+    latitude,
+    longitude,
   ]);
 
   const categoryChips =
@@ -696,6 +831,103 @@ export default function PlaceDetailDrawer({
   const longDescription =
     String(description).length > 430;
 
+  const handleToggleSaved = async () => {
+    if (
+      type !== "attraction" ||
+      !data?.att_id ||
+      saving
+    ) {
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const nextSaved =
+        await toggleAttractionSaved(
+          String(data.att_id),
+          isSaved
+        );
+
+      setIsSaved(nextSaved);
+    } catch (error) {
+      console.warn(
+        "TOGGLE SAVED ERROR:",
+        error
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openRelatedAttraction = async (
+    place: any
+  ) => {
+    const nextTarget: PlaceDetailTarget = {
+      type: "attraction",
+      data: place,
+    };
+
+    setRecordType("attraction");
+    setRecord(place);
+    setMainImageIndex(0);
+    setActiveTab("overview");
+    setDescriptionExpanded(false);
+    setLoading(true);
+
+    try {
+      const fullRecord =
+        await loadFullRecord(nextTarget);
+
+      setRecord(fullRecord);
+    } catch (error) {
+      console.warn(
+        "OPEN RELATED ATTRACTION ERROR:",
+        error
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const imageFor = (item: any) => {
+    const itemImages = getImages(item);
+    return itemImages[0] ?? null;
+  };
+
+  const mapsUrlFor = (item: any) => {
+    if (hasValue(item?.google_maps_uri)) {
+      return String(item.google_maps_uri);
+    }
+
+    const lat = Number(
+      item?.latitude ??
+        item?.location?.latitude
+    );
+    const lng = Number(
+      item?.longitude ??
+        item?.location?.longitude
+    );
+
+    if (
+      Number.isFinite(lat) &&
+      Number.isFinite(lng)
+    ) {
+      return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    }
+
+    const itemAddress =
+      getAddress(item);
+
+    if (itemAddress) {
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        itemAddress
+      )}`;
+    }
+
+    return null;
+  };
+
   return (
     <div
       className={`
@@ -768,14 +1000,42 @@ export default function PlaceDetailDrawer({
               </div>
             )}
 
-            <button
-              type="button"
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-[#e6dde8] bg-white px-3.5 text-sm font-semibold text-[#5b3a61] shadow-sm transition hover:bg-[#f7f2f8]"
-              aria-label="บันทึกสถานที่"
-            >
-              <Heart size={16} />
-              <span className="hidden sm:inline">บันทึก</span>
-            </button>
+            {type === "attraction" && data?.att_id && (
+              <button
+                type="button"
+                onClick={handleToggleSaved}
+                disabled={saving}
+                className={`
+                  inline-flex h-10 items-center gap-2 rounded-full
+                  border px-3.5 text-sm font-semibold shadow-sm transition
+                  disabled:cursor-wait disabled:opacity-70
+                  ${isSaved
+                    ? "border-rose-100 bg-rose-50 text-rose-600 hover:bg-rose-100"
+                    : "border-[#e6dde8] bg-white text-[#5b3a61] hover:bg-[#f7f2f8]"}
+                `}
+                aria-label={
+                  isSaved
+                    ? "นำออกจากรายการบันทึก"
+                    : "บันทึกสถานที่"
+                }
+              >
+                <Heart
+                  size={16}
+                  fill={
+                    isSaved
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+                <span className="hidden sm:inline">
+                  {saving
+                    ? "กำลังบันทึก..."
+                    : isSaved
+                      ? "บันทึกแล้ว"
+                      : "บันทึก"}
+                </span>
+              </button>
+            )}
 
             {mapsUrl && (
               <a
@@ -1242,10 +1502,391 @@ export default function PlaceDetailDrawer({
                 </section>
               )}
 
+              {type === "attraction" && (
+                <>
+                  <section className="mt-8">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-lg font-bold text-[#302833]">
+                          สภาพอากาศวันนี้
+                        </h2>
+                        <p className="mt-1 text-xs text-[#988b9b]">
+                          อ้างอิงจากพิกัดจริงของสถานที่
+                        </p>
+                      </div>
+
+                      {relatedLoading && (
+                        <span className="text-xs font-medium text-[#9a8da0]">
+                          กำลังอัปเดต...
+                        </span>
+                      )}
+                    </div>
+
+                    {relatedData.weather ? (
+                      <div className="overflow-hidden rounded-[24px] border border-[#eadfeb] bg-gradient-to-br from-[#f8f3f9] via-[#fbf8fc] to-[#f2eef7] p-5 shadow-[0_14px_36px_rgba(91,72,117,0.08)] sm:p-6">
+                        <div className="flex flex-wrap items-center justify-between gap-5">
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[#5B3A61] shadow-sm">
+                              <CloudSun size={28} />
+                            </div>
+
+                            <div>
+                              <div className="text-4xl font-bold tracking-[-0.04em] text-[#49334f]">
+                                {relatedData.weather.temperature != null
+                                  ? `${Math.round(relatedData.weather.temperature)}°C`
+                                  : "—"}
+                              </div>
+                              <div className="mt-1 text-sm font-semibold text-[#66596a]">
+                                {relatedData.weather.condition}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid min-w-[220px] grid-cols-2 gap-3 text-sm">
+                            <div className="rounded-2xl bg-white/75 p-3">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a093a4]">
+                                โอกาสฝน
+                              </div>
+                              <div className="mt-1 font-bold text-[#49334f]">
+                                {relatedData.weather.rainChance != null
+                                  ? `${relatedData.weather.rainChance}%`
+                                  : "—"}
+                              </div>
+                            </div>
+
+                            <div className="rounded-2xl bg-white/75 p-3">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#a093a4]">
+                                ช่วงแนะนำ
+                              </div>
+                              <div className="mt-1 font-bold leading-5 text-[#49334f]">
+                                {relatedData.weather.recommendedTime}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 rounded-2xl bg-white/75 px-4 py-3 text-sm leading-6 text-[#655968]">
+                          {relatedData.weather.advice}
+                        </div>
+                      </div>
+                    ) : !relatedLoading ? (
+                      <div className="rounded-[22px] border border-dashed border-[#ded3e1] bg-[#fcfafc] px-5 py-6 text-sm text-[#948798]">
+                        ยังไม่สามารถโหลดสภาพอากาศจากพิกัดของสถานที่นี้ได้
+                      </div>
+                    ) : (
+                      <div className="h-40 animate-pulse rounded-[24px] bg-[#f2edf4]" />
+                    )}
+                  </section>
+
+                  {relatedData.similarPlaces.length > 0 && (
+                    <section className="mt-9">
+                      <div className="mb-4 flex items-end justify-between gap-3">
+                        <div>
+                          <h2 className="text-lg font-bold text-[#302833]">
+                            สถานที่คล้ายกัน
+                          </h2>
+                          <p className="mt-1 text-xs text-[#988b9b]">
+                            เทียบจากประเภท กิจกรรม และบรรยากาศในฐานข้อมูล TravelWise
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex snap-x gap-3 overflow-x-auto pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {relatedData.similarPlaces.map((place) => {
+                          const image = imageFor(place);
+                          const placeTags = [
+                            ...(
+                              Array.isArray(place?.travel_type)
+                                ? place.travel_type
+                                : []
+                            ),
+                            ...(
+                              Array.isArray(place?.category)
+                                ? place.category
+                                : []
+                            ),
+                          ]
+                            .filter(Boolean)
+                            .slice(0, 2);
+
+                          return (
+                            <article
+                              key={place.att_id}
+                              className="w-[230px] shrink-0 snap-start overflow-hidden rounded-[22px] border border-[#ebe3ed] bg-white shadow-[0_10px_28px_rgba(72,54,80,0.06)]"
+                            >
+                              <div className="h-32 bg-[#f1edf2]">
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={
+                                      place.name_th ??
+                                      place.name_en ??
+                                      ""
+                                    }
+                                    loading="lazy"
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-[#a493a8]">
+                                    <Building2 size={28} />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="p-3.5">
+                                <h3 className="line-clamp-1 text-sm font-bold text-[#413644]">
+                                  {place.name_th ??
+                                    place.name_en ??
+                                    "สถานที่ท่องเที่ยว"}
+                                </h3>
+                                <div className="mt-1 flex items-center gap-1 text-[11px] text-[#948798]">
+                                  <MapPin size={12} />
+                                  {place.province ?? "Thailand"}
+                                </div>
+
+                                {placeTags.length > 0 && (
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {placeTags.map((tag: string) => (
+                                      <span
+                                        key={tag}
+                                        className="rounded-full bg-[#f5eff6] px-2 py-1 text-[10px] font-medium text-[#6d5572]"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openRelatedAttraction(place)
+                                  }
+                                  className="mt-3 text-xs font-bold text-[#5B3A61] hover:underline"
+                                >
+                                  ดูรายละเอียด →
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                  {relatedData.nearbyRestaurants.length > 0 && (
+                    <section className="mt-9">
+                      <div className="mb-4">
+                        <h2 className="text-lg font-bold text-[#302833]">
+                          ร้านอาหารใกล้เคียง
+                        </h2>
+                        <p className="mt-1 text-xs text-[#988b9b]">
+                          ค้นจากร้านอาหารใกล้พิกัดสถานที่ และใช้ข้อมูล cache เมื่อจำเป็น
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {relatedData.nearbyRestaurants.map((restaurant) => {
+                          const image =
+                            imageFor(restaurant);
+                          const routeUrl =
+                            mapsUrlFor(restaurant);
+                          const distance =
+                            Number(
+                              restaurant.distance
+                            );
+
+                          return (
+                            <article
+                              key={
+                                restaurant.place_id ??
+                                restaurant.google_place_id
+                              }
+                              className="flex gap-3 rounded-[22px] border border-[#ebe3ed] bg-white p-3 shadow-[0_8px_24px_rgba(72,54,80,0.05)]"
+                            >
+                              <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[17px] bg-[#f1edf2] sm:h-28 sm:w-28">
+                                {image ? (
+                                  <img
+                                    src={image}
+                                    alt={
+                                      restaurant.place_name_th ??
+                                      restaurant.place_name_en ??
+                                      ""
+                                    }
+                                    loading="lazy"
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center text-[#a493a8]">
+                                    <Utensils size={24} />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="min-w-0 flex-1 py-0.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div>
+                                    <h3 className="line-clamp-1 text-sm font-bold text-[#413644]">
+                                      {restaurant.place_name_th ??
+                                        restaurant.place_name_en ??
+                                        "ร้านอาหาร"}
+                                    </h3>
+                                    <p className="mt-1 text-xs text-[#8f8292]">
+                                      {String(
+                                        restaurant.place_type ??
+                                        "restaurant"
+                                      ).replaceAll("_", " ")}
+                                      {Number.isFinite(distance)
+                                        ? ` · ${distance.toFixed(1)} กม.`
+                                        : ""}
+                                    </p>
+                                  </div>
+
+                                  {restaurant.rating != null && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-[#fff5dc] px-2 py-1 text-[11px] font-bold text-[#7b5a19]">
+                                      <Star
+                                        size={11}
+                                        fill="currentColor"
+                                      />
+                                      {Number(
+                                        restaurant.rating
+                                      ).toFixed(1)}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {routeUrl && (
+                                  <a
+                                    href={routeUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-[#e4d9e6] bg-[#fbf8fc] px-3 py-2 text-xs font-bold text-[#5B3A61] transition hover:bg-[#f3ebf5]"
+                                  >
+                                    <Navigation size={13} />
+                                    ดูเส้นทาง
+                                  </a>
+                                )}
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                  {relatedData.nearbyPlaces.length > 0 && (
+                    <section className="mt-9">
+                      <div className="mb-4">
+                        <h2 className="text-lg font-bold text-[#302833]">
+                          สถานที่ใกล้เคียง
+                        </h2>
+                        <p className="mt-1 text-xs text-[#988b9b]">
+                          คำนวณระยะทางจากพิกัดสถานที่ในฐานข้อมูล
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {relatedData.nearbyPlaces
+                          .slice(0, 4)
+                          .map((place) => {
+                            const image =
+                              imageFor(place);
+
+                            return (
+                              <article
+                                key={place.att_id}
+                                className="flex gap-3 rounded-[22px] border border-[#ebe3ed] bg-white p-3 shadow-[0_8px_24px_rgba(72,54,80,0.05)]"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openRelatedAttraction(place)
+                                  }
+                                  className="h-24 w-24 shrink-0 overflow-hidden rounded-[17px] bg-[#f1edf2] sm:h-28 sm:w-28"
+                                >
+                                  {image ? (
+                                    <img
+                                      src={image}
+                                      alt={
+                                        place.name_th ??
+                                        place.name_en ??
+                                        ""
+                                      }
+                                      loading="lazy"
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="flex h-full items-center justify-center text-[#a493a8]">
+                                      <MapPin size={24} />
+                                    </div>
+                                  )}
+                                </button>
+
+                                <div className="min-w-0 flex-1 py-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      openRelatedAttraction(place)
+                                    }
+                                    className="line-clamp-1 text-left text-sm font-bold text-[#413644] hover:text-[#5B3A61]"
+                                  >
+                                    {place.name_th ??
+                                      place.name_en ??
+                                      "สถานที่ท่องเที่ยว"}
+                                  </button>
+
+                                  <div className="mt-1 text-xs font-semibold text-[#6f456f]">
+                                    {Number.isFinite(
+                                      Number(place.distance)
+                                    )
+                                      ? `${Number(
+                                          place.distance
+                                        ).toFixed(1)} กม.`
+                                      : ""}
+                                  </div>
+
+                                  {hasValue(
+                                    place.detail_th ??
+                                      place.highlight
+                                  ) && (
+                                    <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#8c7f8f]">
+                                      {String(
+                                        place.detail_th ??
+                                          place.highlight
+                                      )}
+                                    </p>
+                                  )}
+
+                                  {onAddToTrip && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        onAddToTrip({
+                                          type: "attraction",
+                                          data: place,
+                                        })
+                                      }
+                                      className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f3ebf5] px-3 py-2 text-xs font-bold text-[#5B3A61] transition hover:bg-[#eaddec]"
+                                    >
+                                      <Plus size={13} />
+                                      เพิ่มลงทริป
+                                    </button>
+                                  )}
+                                </div>
+                              </article>
+                            );
+                          })}
+                      </div>
+                    </section>
+                  )}
+                </>
+              )}
+
               {!hasValue(description) &&
                 !address &&
                 !website &&
-                !phone && (
+                !phone &&
+                type !== "attraction" && (
                   <EmptyState>
                     ยังไม่มีข้อมูล Overview
                     เพิ่มเติมสำหรับสถานที่นี้
@@ -1368,10 +2009,13 @@ export default function PlaceDetailDrawer({
           <div className="mx-auto flex w-full max-w-[920px] gap-3">
             <button
               type="button"
-              disabled={!target || !onAddToTrip}
+              disabled={!record || !onAddToTrip}
               onClick={() => {
-                if (target && onAddToTrip) {
-                  onAddToTrip(target);
+                if (record && onAddToTrip) {
+                  onAddToTrip({
+                    type,
+                    data: record,
+                  });
                 }
               }}
               className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#5B3A61] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(91,58,97,0.22)] transition hover:bg-[#68466e] disabled:cursor-not-allowed disabled:opacity-50"
