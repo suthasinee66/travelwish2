@@ -3398,3 +3398,7 @@
     scroll-snap-align: start;
   }
 }
+
+.travel-home .travel-inspiration-video-title {
+  color: #ffffff !important;
+}
