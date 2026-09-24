@@ -168,18 +168,56 @@ function getRestaurantOpeningLabel(
       : "ปิดอยู่";
   }
 
-  const today =
+  const weekdayDescriptions =
     Array.isArray(
       restaurant
         ?.weekday_descriptions
     )
       ? restaurant
-          .weekday_descriptions[0]
-      : null;
+          .weekday_descriptions
+      : [];
 
-  return hasValue(today)
-    ? String(today)
-    : null;
+  if (
+    weekdayDescriptions.length > 0
+  ) {
+    const todayName =
+      new Intl.DateTimeFormat(
+        "th-TH",
+        {
+          weekday: "long",
+          timeZone:
+            "Asia/Bangkok",
+        }
+      ).format(new Date());
+
+    const todayDescription =
+      weekdayDescriptions.find(
+        (description: any) =>
+          String(description)
+            .trim()
+            .startsWith(
+              todayName
+            )
+      ) ??
+      weekdayDescriptions.find(
+        (description: any) =>
+          String(description)
+            .includes(
+              todayName
+            )
+      ) ??
+      weekdayDescriptions[0];
+
+    return hasValue(
+      todayDescription
+    )
+      ? String(
+          todayDescription
+        )
+      : null;
+  }
+
+  return null;
 }
 
 function formatReviewCount(value: any) {
