@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "backfill:restaurant-hours": "node scripts/backfillRestaurantOpeningHours.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
