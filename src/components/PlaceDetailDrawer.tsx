@@ -1411,16 +1411,21 @@ export default function PlaceDetailDrawer({
           {type === "attraction" &&
             relatedData.similarPlaces.length > 0 && (
               <section className="mt-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-lg font-bold text-[#2f2946]">
+                <div className="mb-2 flex items-center justify-between">
+                  <h2 className="text-[15px] font-bold leading-none text-[#2f2946]">
                     สถานที่คล้ายกัน
                   </h2>
-                  <span className="text-xs font-semibold text-[#7a3f80]">
-                    ดูทั้งหมด →
-                  </span>
+
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#7a3f80] transition hover:text-[#5B3A61]"
+                  >
+                    ดูทั้งหมด
+                    <span aria-hidden="true">→</span>
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {relatedData.similarPlaces
                     .slice(0, 4)
                     .map((place) => {
@@ -1447,15 +1452,41 @@ export default function PlaceDetailDrawer({
                         .slice(0, 2);
 
                       return (
-                        <button
+                        <article
                           key={place.att_id}
-                          type="button"
                           onClick={() =>
                             openRelatedAttraction(place)
                           }
-                          className="group overflow-hidden rounded-[16px] border border-[#ece5ee] bg-white text-left shadow-[0_6px_18px_rgba(72,54,80,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(72,54,80,0.10)]"
+                          onKeyDown={(event) => {
+                            if (
+                              event.key === "Enter" ||
+                              event.key === " "
+                            ) {
+                              event.preventDefault();
+                              openRelatedAttraction(place);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          className="
+                            group
+                            relative
+                            cursor-pointer
+                            overflow-hidden
+                            rounded-[11px]
+                            border border-[#ece5ee]
+                            bg-white
+                            text-left
+                            shadow-[0_3px_10px_rgba(72,54,80,0.055)]
+                            transition
+                            hover:-translate-y-0.5
+                            hover:shadow-[0_6px_14px_rgba(72,54,80,0.09)]
+                            focus:outline-none
+                            focus-visible:ring-2
+                            focus-visible:ring-[#6f456f]
+                          "
                         >
-                          <div className="aspect-[16/9] overflow-hidden bg-[#f2edf3]">
+                          <div className="relative h-[72px] overflow-hidden bg-[#f2edf3] sm:h-[78px]">
                             {image ? (
                               <img
                                 src={image}
@@ -1465,34 +1496,71 @@ export default function PlaceDetailDrawer({
                                   ""
                                 }
                                 loading="lazy"
-                                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]"
                               />
                             ) : (
-                              <div className="flex h-full items-center justify-center text-[#a89aaa]">
-                                <Building2 size={22} />
+                              <div className="flex h-full items-center justify-center text-[#b3a7b5]">
+                                <Building2 size={20} />
                               </div>
                             )}
+
+                            <span
+                              className="
+                                absolute
+                                right-1.5
+                                top-1.5
+                                flex
+                                h-[24px]
+                                w-[24px]
+                                items-center
+                                justify-center
+                                rounded-full
+                                border border-[#eadfeb]
+                                bg-white/95
+                                text-[#c13b82]
+                                shadow-[0_2px_6px_rgba(66,45,76,0.12)]
+                              "
+                              aria-hidden="true"
+                            >
+                              <Heart
+                                size={13}
+                                strokeWidth={2}
+                              />
+                            </span>
                           </div>
 
-                          <div className="p-2.5">
-                            <div className="line-clamp-1 text-sm font-bold text-[#332b4b]">
+                          <div className="px-2 pb-2 pt-1.5">
+                            <div className="line-clamp-1 text-[11px] font-bold leading-[15px] text-[#302a49]">
                               {place.name_th ??
                                 place.name_en ??
                                 "สถานที่ท่องเที่ยว"}
                             </div>
 
-                            <div className="mt-1 flex items-center gap-1 text-[11px] text-[#76697b]">
-                              <MapPin size={11} />
-                              {place.province ?? "Thailand"}
+                            <div className="mt-[2px] flex items-center gap-1 text-[9px] leading-none text-[#76697b]">
+                              <MapPin size={9} />
+                              <span className="truncate">
+                                {place.province ?? "Thailand"}
+                              </span>
                             </div>
 
                             {placeTags.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1">
+                              <div className="mt-1.5 flex min-h-[18px] gap-1 overflow-hidden">
                                 {placeTags.map(
                                   (tag: string) => (
                                     <span
                                       key={tag}
-                                      className="rounded-full bg-[#f5f0f7] px-2 py-0.5 text-[10px] font-medium text-[#78687d]"
+                                      className="
+                                        max-w-[84px]
+                                        truncate
+                                        rounded-full
+                                        bg-[#f6f1f8]
+                                        px-2
+                                        py-[3px]
+                                        text-[8px]
+                                        font-medium
+                                        leading-none
+                                        text-[#78687d]
+                                      "
                                     >
                                       {tag}
                                     </span>
@@ -1501,11 +1569,11 @@ export default function PlaceDetailDrawer({
                               </div>
                             )}
 
-                            <div className="mt-2 rounded-full bg-[#f7f1f9] py-1.5 text-center text-xs font-semibold text-[#6c3b71]">
-                              ดูรายละเอียด →
+                            <div className="mt-1.5 flex h-[23px] items-center justify-center rounded-full bg-[#f7f1f9] text-[9px] font-semibold text-[#6c3b71]">
+                              ดูรายละเอียด&nbsp;&nbsp;→
                             </div>
                           </div>
-                        </button>
+                        </article>
                       );
                     })}
                 </div>
