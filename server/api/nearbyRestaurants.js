@@ -294,7 +294,9 @@ router.get(
                 "places.websiteUri," +
                 "places.rating," +
                 "places.userRatingCount," +
-                "places.photos",
+                "places.photos," +
+                "places.currentOpeningHours," +
+                "places.regularOpeningHours",
             },
 
             body: JSON.stringify({
@@ -461,6 +463,33 @@ router.get(
               place.userRatingCount ??
               null,
 
+            current_opening_hours:
+              place.currentOpeningHours ??
+              null,
+
+            regular_opening_hours:
+              place.regularOpeningHours ??
+              null,
+
+            open_now:
+              place.currentOpeningHours
+                ?.openNow ?? null,
+
+            next_open_time:
+              place.currentOpeningHours
+                ?.nextOpenTime ?? null,
+
+            next_close_time:
+              place.currentOpeningHours
+                ?.nextCloseTime ?? null,
+
+            weekday_descriptions:
+              place.currentOpeningHours
+                ?.weekdayDescriptions ??
+              place.regularOpeningHours
+                ?.weekdayDescriptions ??
+              [],
+
             updated_at:
               new Date().toISOString(),
           }))
@@ -509,13 +538,26 @@ router.get(
         restaurants.length > 0
       ) {
 
+        const restaurantsForUpsert =
+          restaurants.map(
+            ({
+              current_opening_hours,
+              regular_opening_hours,
+              open_now,
+              next_open_time,
+              next_close_time,
+              weekday_descriptions,
+              ...restaurant
+            }) => restaurant
+          );
+
         const {
           error: upsertError,
         } =
           await supabase
             .from("restaurant")
             .upsert(
-              restaurants,
+              restaurantsForUpsert,
               {
                 onConflict:
                   "place_id",
