@@ -1166,9 +1166,10 @@
 }
 
 @media (max-width: 767px) {
-  .travel-home .travel-inspiration-description {
+  .travel-home .travel-inspiration-video-title {
     color: #ffffff !important;
   }
+
 
   .travel-home {
     min-width: 0;
