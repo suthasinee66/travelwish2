@@ -12060,7 +12060,7 @@ text-white/80
                       Get inspired for you
                     </h2>
 
-                    <p className="travel-inspiration-description mt-0.5 text-[11px] leading-4 text-[#8b7d90]">
+                    <p className="mt-0.5 text-[11px] leading-4 text-[#8b7d90]">
                       วิดีโอท่องเที่ยวที่คัดจากสไตล์และความสนใจของคุณ
                     </p>
                   </div>
@@ -12116,7 +12116,7 @@ text-white/80
                               </p>
                             )}
 
-                            <h3 className="line-clamp-2 text-[12px] font-bold leading-[17px]">
+                            <h3 className="travel-inspiration-video-title line-clamp-2 text-[12px] font-bold leading-[17px] text-white">
                               {v.title}
                             </h3>
                           </div>
