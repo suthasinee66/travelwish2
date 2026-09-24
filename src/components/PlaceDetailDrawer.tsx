@@ -2193,7 +2193,7 @@ export default function PlaceDetailDrawer({
                                   type: "attraction",
                                   data: place,
                                 });
-                              }
+                              }}
                               className="
                                 inline-flex
                                 h-[30px]
