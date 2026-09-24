@@ -6,11 +6,15 @@ import {
   Clock3,
   ExternalLink,
   Globe2,
+  Heart,
   Hotel,
   MapPin,
   Phone,
+  Sparkles,
   Star,
+  Trees,
   Utensils,
+  WalletCards,
   X,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -30,6 +34,7 @@ type Props = {
   open: boolean;
   target: PlaceDetailTarget | null;
   onClose: () => void;
+  onAddToTrip?: (target: PlaceDetailTarget) => void;
 };
 
 type DetailTab = "overview" | "reviews" | "location";
@@ -366,6 +371,7 @@ export default function PlaceDetailDrawer({
   open,
   target,
   onClose,
+  onAddToTrip,
 }: Props) {
   const [record, setRecord] =
     useState<any>(null);
@@ -727,47 +733,67 @@ export default function PlaceDetailDrawer({
           bg-[#fffdfb]
           shadow-[-28px_0_80px_rgba(59,43,67,0.20)]
           transition-transform duration-300 ease-out
-          sm:w-[min(900px,92vw)]
-          lg:w-[min(940px,72vw)]
+          sm:w-[min(920px,94vw)]
+          lg:w-[min(980px,74vw)]
           ${open
             ? "translate-x-0"
             : "translate-x-full"}
         `}
       >
-        <div className="sticky top-0 z-30 flex h-[72px] items-center justify-between border-b border-[#eee8ef] bg-[#fffdfb]/96 px-4 backdrop-blur-md sm:px-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e9e2ea] bg-white text-[#3f3545] shadow-sm transition hover:bg-[#f8f4f8]"
-            aria-label="ปิด"
-          >
-            <X size={20} />
-          </button>
-
-          {loading && (
-            <div className="rounded-full bg-[#f6f1f7] px-3 py-1.5 text-[11px] font-medium text-[#8d7d91]">
-              กำลังโหลดข้อมูล...
-            </div>
-          )}
-
-          {mapsUrl ? (
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-full bg-[#573d63] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#684974]"
+        <div className="sticky top-0 z-30 flex h-[76px] items-center justify-between border-b border-[#eee7ef] bg-[#fffdfb]/94 px-4 shadow-[0_8px_26px_rgba(72,54,80,0.04)] backdrop-blur-xl sm:px-6">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e8e0e9] bg-white text-[#3f3545] shadow-sm transition hover:-translate-y-0.5 hover:bg-[#f8f4f8]"
+              aria-label="ปิด"
             >
-              <MapPin size={16} />
-              <span className="hidden sm:inline">
-                เปิดแผนที่
-              </span>
-            </a>
-          ) : (
-            <div className="h-10 w-10" />
-          )}
+              <X size={20} />
+            </button>
+
+            <div className="hidden sm:block">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#aa9cad]">
+                Place detail
+              </div>
+              <div className="mt-0.5 max-w-[260px] truncate text-sm font-semibold text-[#4c3f50]">
+                {title}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {loading && (
+              <div className="hidden rounded-full bg-[#f6f1f7] px-3 py-1.5 text-[11px] font-medium text-[#8d7d91] md:block">
+                กำลังโหลดข้อมูล...
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-[#e6dde8] bg-white px-3.5 text-sm font-semibold text-[#5b3a61] shadow-sm transition hover:bg-[#f7f2f8]"
+              aria-label="บันทึกสถานที่"
+            >
+              <Heart size={16} />
+              <span className="hidden sm:inline">บันทึก</span>
+            </button>
+
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-[#5B3A61] px-4 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(91,58,97,0.20)] transition hover:-translate-y-0.5 hover:bg-[#68466e]"
+              >
+                <MapPin size={16} />
+                <span className="hidden sm:inline">
+                  เปิดแผนที่
+                </span>
+              </a>
+            )}
+          </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[900px] px-4 pb-14 pt-7 sm:px-7 lg:px-8">
+        <div className="mx-auto w-full max-w-[920px] px-4 pb-36 pt-7 sm:px-7 lg:px-8">
           <section>
             <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
               <div className="min-w-0 flex-1">
@@ -1047,6 +1073,73 @@ export default function PlaceDetailDrawer({
 
           {activeTab === "overview" && (
             <div className="pt-6">
+              <section className="mb-7">
+                <div className="mb-4 flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#f2eaf3] text-[#5B3A61]">
+                    <Sparkles size={17} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-[#302833]">
+                      ภาพรวม
+                    </h2>
+                    <p className="text-xs text-[#9a8d9d]">
+                      ข้อมูลสำคัญสำหรับวางแผนการเที่ยว
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    {
+                      icon: <Clock3 size={18} />,
+                      label: "เวลาที่แนะนำ",
+                      value:
+                        cleanText(data?.opening_hours) ||
+                        cleanText(data?.open_time) ||
+                        "ตรวจสอบก่อนเดินทาง",
+                    },
+                    {
+                      icon: <Trees size={18} />,
+                      label: "บรรยากาศ",
+                      value:
+                        cleanText(data?.atmosphere) ||
+                        cleanText(data?.activity) ||
+                        "เหมาะกับการพักผ่อน",
+                    },
+                    {
+                      icon: <WalletCards size={18} />,
+                      label: "งบประมาณ",
+                      value:
+                        cleanText(data?.budget) ||
+                        cleanText(data?.accom_price_name) ||
+                        "ขึ้นอยู่กับกิจกรรม",
+                    },
+                    {
+                      icon: <Clock3 size={18} />,
+                      label: "ระยะเวลา",
+                      value:
+                        cleanText(data?.suitable_duration) ||
+                        "ประมาณ 1–2 ชั่วโมง",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-[20px] border border-[#eee6ef] bg-gradient-to-br from-white to-[#fbf8fc] p-4 shadow-[0_10px_28px_rgba(72,54,80,0.05)]"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#f1e9f2] text-[#5B3A61]">
+                        {item.icon}
+                      </div>
+                      <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9c8fa0]">
+                        {item.label}
+                      </div>
+                      <div className="mt-1 text-sm font-semibold leading-5 text-[#4a404d]">
+                        {item.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
               {hasValue(description) && (
                 <section>
                   <p
@@ -1269,6 +1362,36 @@ export default function PlaceDetailDrawer({
                 )}
               </div>
             )}
+        </div>
+
+        <div className="sticky bottom-0 z-30 border-t border-[#e9e1ea] bg-[#fffdfb]/95 px-4 py-3 shadow-[0_-16px_38px_rgba(72,54,80,0.08)] backdrop-blur-xl sm:px-6">
+          <div className="mx-auto flex w-full max-w-[920px] gap-3">
+            <button
+              type="button"
+              disabled={!target || !onAddToTrip}
+              onClick={() => {
+                if (target && onAddToTrip) {
+                  onAddToTrip(target);
+                }
+              }}
+              className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[#5B3A61] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(91,58,97,0.22)] transition hover:bg-[#68466e] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Sparkles size={17} />
+              เพิ่มสถานที่นี้ลงในทริป
+            </button>
+
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#ddd1e0] bg-white px-5 text-sm font-semibold text-[#5B3A61] shadow-sm transition hover:bg-[#f7f2f8]"
+              >
+                <MapPin size={17} />
+                นำทางด้วย Google Maps
+              </a>
+            )}
+          </div>
         </div>
       </aside>
     </div>
