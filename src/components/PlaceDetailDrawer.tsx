@@ -1581,234 +1581,301 @@ export default function PlaceDetailDrawer({
             )}
 
           {type === "attraction" && (
-            <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
               {relatedData.nearbyRestaurants.length > 0 && (
                 <section>
-                  <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-[#2f2946]">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h2 className="text-[15px] font-bold leading-none text-[#2f2946]">
                       ร้านอาหารใกล้เคียง
                     </h2>
-                    <span className="text-xs font-semibold text-[#7a3f80]">
-                      ดูทั้งหมด →
-                    </span>
+
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#7a3f80] hover:text-[#5B3A61]"
+                    >
+                      ดูทั้งหมด
+                      <span aria-hidden="true">→</span>
+                    </button>
                   </div>
 
-                  <div className="space-y-2.5">
-                    {relatedData.nearbyRestaurants
-                      .slice(0, 3)
-                      .map((restaurant) => {
-                        const image =
-                          imageFor(restaurant);
-                        const routeUrl =
-                          mapsUrlFor(restaurant);
-                        const distance =
-                          Number(
-                            restaurant.distance
-                          );
-                        const openingLabel =
-                          getRestaurantOpeningLabel(
-                            restaurant
-                          );
-
-                        return (
-                          <article
-                            key={
-                              restaurant.place_id ??
-                              restaurant.google_place_id
-                            }
-                            className="flex gap-3 rounded-[16px] border border-[#ece5ee] bg-white p-2.5 shadow-[0_5px_16px_rgba(72,54,80,0.05)]"
-                          >
-                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-[12px] bg-[#f2edf3]">
-                              {image ? (
-                                <img
-                                  src={image}
-                                  alt={
-                                    restaurant.place_name_th ??
-                                    restaurant.place_name_en ??
-                                    ""
-                                  }
-                                  loading="lazy"
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-[#a89aaa]">
-                                  <Utensils size={20} />
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <h3 className="line-clamp-1 text-sm font-bold text-[#332b4b]">
-                                    {restaurant.place_name_th ??
-                                      restaurant.place_name_en ??
-                                      "ร้านอาหาร"}
-                                  </h3>
-
-                                  <div className="mt-1 text-[11px] text-[#746879]">
-                                    {String(
-                                      restaurant.place_type ??
-                                      "restaurant"
-                                    ).replaceAll("_", " ")}
-                                    {Number.isFinite(distance)
-                                      ? ` · ${distance.toFixed(1)} กม.`
-                                      : ""}
-                                  </div>
-                                </div>
-
-                                {restaurant.rating != null && (
-                                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-[#6c531d]">
-                                    <Star
-                                      size={12}
-                                      fill="#f2b735"
-                                      className="text-[#f2b735]"
-                                    />
-                                    {Number(
-                                      restaurant.rating
-                                    ).toFixed(1)}
-                                  </span>
-                                )}
-                              </div>
-
-                              {openingLabel && (
-                                <div
-                                  className={`
-                                    mt-1 text-[11px] font-medium
-                                    ${restaurant.open_now === true
-                                      ? "text-emerald-600"
-                                      : restaurant.open_now === false
-                                        ? "text-rose-500"
-                                        : "text-[#746879]"}
-                                  `}
-                                >
-                                  {openingLabel}
-                                </div>
-                              )}
-
-                              {routeUrl && (
-                                <a
-                                  href={routeUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#f7f1f9] px-3 py-1.5 text-[11px] font-semibold text-[#703c76]"
-                                >
-                                  <Navigation size={12} />
-                                  ดูเส้นทาง
-                                </a>
-                              )}
-                            </div>
-                          </article>
+                  {relatedData.nearbyRestaurants
+                    .slice(0, 1)
+                    .map((restaurant) => {
+                      const image =
+                        imageFor(restaurant);
+                      const routeUrl =
+                        mapsUrlFor(restaurant);
+                      const distance =
+                        Number(
+                          restaurant.distance
                         );
-                      })}
-                  </div>
+                      const openingLabel =
+                        getRestaurantOpeningLabel(
+                          restaurant
+                        );
+
+                      return (
+                        <article
+                          key={
+                            restaurant.place_id ??
+                            restaurant.google_place_id
+                          }
+                          className="
+                            flex
+                            min-h-[86px]
+                            items-center
+                            gap-2.5
+                            rounded-[12px]
+                            border border-[#ece5ee]
+                            bg-white
+                            p-2
+                            shadow-[0_3px_10px_rgba(72,54,80,0.05)]
+                          "
+                        >
+                          <div className="h-[70px] w-[82px] shrink-0 overflow-hidden rounded-[9px] bg-[#f2edf3]">
+                            {image ? (
+                              <img
+                                src={image}
+                                alt={
+                                  restaurant.place_name_th ??
+                                  restaurant.place_name_en ??
+                                  ""
+                                }
+                                loading="lazy"
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-[#a89aaa]">
+                                <Utensils size={20} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <h3 className="line-clamp-1 text-[11px] font-bold leading-[14px] text-[#302a49]">
+                              {restaurant.place_name_th ??
+                                restaurant.place_name_en ??
+                                "ร้านอาหาร"}
+                            </h3>
+
+                            <div className="mt-[2px] flex items-center gap-1 text-[8.5px] leading-none text-[#76697b]">
+                              <MapPin size={9} />
+                              <span className="truncate">
+                                {String(
+                                  restaurant.place_type ??
+                                  "restaurant"
+                                ).replaceAll("_", " ")}
+                              </span>
+                            </div>
+
+                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[8.5px]">
+                              {restaurant.rating != null && (
+                                <span className="inline-flex items-center gap-1 font-bold text-[#6d5319]">
+                                  <Star
+                                    size={10}
+                                    fill="#f2b735"
+                                    className="text-[#f2b735]"
+                                  />
+                                  {Number(
+                                    restaurant.rating
+                                  ).toFixed(1)}
+                                  {restaurant.user_ratings_total != null && (
+                                    <span className="font-medium text-[#95879a]">
+                                      ({restaurant.user_ratings_total})
+                                    </span>
+                                  )}
+                                </span>
+                              )}
+
+                              {Number.isFinite(distance) && (
+                                <span className="inline-flex items-center gap-1 text-[#776b7c]">
+                                  <span className="text-[7px]">◉</span>
+                                  {distance.toFixed(1)} กม.
+                                </span>
+                              )}
+                            </div>
+
+                            {openingLabel && (
+                              <div
+                                className={`
+                                  mt-[3px] flex items-center gap-1 text-[8.5px] font-medium leading-none
+                                  ${restaurant.open_now === true
+                                    ? "text-emerald-600"
+                                    : restaurant.open_now === false
+                                      ? "text-rose-500"
+                                      : "text-[#756977]"}
+                                `}
+                              >
+                                <Clock3 size={9} />
+                                <span className="truncate">
+                                  {openingLabel}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {routeUrl && (
+                            <a
+                              href={routeUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="
+                                inline-flex
+                                h-[30px]
+                                shrink-0
+                                items-center
+                                gap-1.5
+                                rounded-full
+                                bg-[#f7f1f9]
+                                px-3
+                                text-[9px]
+                                font-semibold
+                                text-[#6d3972]
+                                transition
+                                hover:bg-[#efe4f2]
+                              "
+                            >
+                              <Navigation size={11} />
+                              ดูเส้นทาง
+                            </a>
+                          )}
+                        </article>
+                      );
+                    })}
                 </section>
               )}
 
               {relatedData.nearbyPlaces.length > 0 && (
                 <section>
-                  <div className="mb-3 flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-[#2f2946]">
+                  <div className="mb-2 flex items-center justify-between">
+                    <h2 className="text-[15px] font-bold leading-none text-[#2f2946]">
                       สถานที่ใกล้เคียง
                     </h2>
-                    <span className="text-xs font-semibold text-[#7a3f80]">
-                      ดูทั้งหมด →
-                    </span>
+
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#7a3f80] hover:text-[#5B3A61]"
+                    >
+                      ดูทั้งหมด
+                      <span aria-hidden="true">→</span>
+                    </button>
                   </div>
 
-                  <div className="space-y-2.5">
-                    {relatedData.nearbyPlaces
-                      .slice(0, 3)
-                      .map((place) => {
-                        const image =
-                          imageFor(place);
+                  {relatedData.nearbyPlaces
+                    .slice(0, 1)
+                    .map((place) => {
+                      const image =
+                        imageFor(place);
 
-                        return (
-                          <article
-                            key={place.att_id}
-                            className="flex gap-3 rounded-[16px] border border-[#ece5ee] bg-white p-2.5 shadow-[0_5px_16px_rgba(72,54,80,0.05)]"
+                      return (
+                        <article
+                          key={place.att_id}
+                          className="
+                            flex
+                            min-h-[86px]
+                            items-center
+                            gap-2.5
+                            rounded-[12px]
+                            border border-[#ece5ee]
+                            bg-white
+                            p-2
+                            shadow-[0_3px_10px_rgba(72,54,80,0.05)]
+                          "
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openRelatedAttraction(place)
+                            }
+                            className="h-[70px] w-[82px] shrink-0 overflow-hidden rounded-[9px] bg-[#f2edf3]"
                           >
+                            {image ? (
+                              <img
+                                src={image}
+                                alt={
+                                  place.name_th ??
+                                  place.name_en ??
+                                  ""
+                                }
+                                loading="lazy"
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-[#b3a7b5]">
+                                <MapPin size={20} />
+                              </div>
+                            )}
+                          </button>
+
+                          <div className="min-w-0 flex-1">
                             <button
                               type="button"
                               onClick={() =>
                                 openRelatedAttraction(place)
                               }
-                              className="h-20 w-20 shrink-0 overflow-hidden rounded-[12px] bg-[#f2edf3]"
+                              className="line-clamp-1 text-left text-[11px] font-bold leading-[14px] text-[#302a49] hover:text-[#6f456f]"
                             >
-                              {image ? (
-                                <img
-                                  src={image}
-                                  alt={
-                                    place.name_th ??
-                                    place.name_en ??
-                                    ""
-                                  }
-                                  loading="lazy"
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full items-center justify-center text-[#a89aaa]">
-                                  <MapPin size={20} />
-                                </div>
-                              )}
+                              {place.name_th ??
+                                place.name_en ??
+                                "สถานที่ท่องเที่ยว"}
                             </button>
 
-                            <div className="min-w-0 flex-1">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openRelatedAttraction(place)
-                                }
-                                className="line-clamp-1 text-left text-sm font-bold text-[#332b4b] hover:text-[#6f456f]"
-                              >
-                                {place.name_th ??
-                                  place.name_en ??
-                                  "สถานที่ท่องเที่ยว"}
-                              </button>
-
-                              <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[#75677b]">
-                                <MapPin size={11} />
-                                {Number.isFinite(
-                                  Number(place.distance)
-                                )
-                                  ? `${Number(
-                                      place.distance
-                                    ).toFixed(1)} กม.`
-                                  : ""}
-                              </div>
-
-                              {hasValue(
-                                place.detail_th ??
-                                  place.highlight
-                              ) && (
-                                <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[#8a7d8e]">
-                                  {String(
-                                    place.detail_th ??
-                                      place.highlight
-                                  )}
-                                </p>
-                              )}
-
-                              {onAddToTrip && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    onAddToTrip({
-                                      type: "attraction",
-                                      data: place,
-                                    })
-                                  }
-                                  className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#f4e9f6] px-3 py-1.5 text-[11px] font-semibold text-[#703c76]"
-                                >
-                                  <Plus size={12} />
-                                  เพิ่มลงทริป
-                                </button>
-                              )}
+                            <div className="mt-[3px] flex items-center gap-1 text-[8.5px] font-medium leading-none text-[#75677b]">
+                              <MapPin size={9} />
+                              {Number.isFinite(
+                                Number(place.distance)
+                              )
+                                ? `${Number(
+                                    place.distance
+                                  ).toFixed(1)} กม.`
+                                : ""}
                             </div>
-                          </article>
-                        );
-                      })}
-                  </div>
+
+                            {hasValue(
+                              place.detail_th ??
+                              place.highlight
+                            ) && (
+                              <p className="mt-1 line-clamp-2 text-[8.5px] leading-[12px] text-[#8a7d8e]">
+                                {String(
+                                  place.detail_th ??
+                                  place.highlight
+                                )}
+                              </p>
+                            )}
+                          </div>
+
+                          {onAddToTrip && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onAddToTrip({
+                                  type: "attraction",
+                                  data: place,
+                                })
+                              }
+                              className="
+                                inline-flex
+                                h-[30px]
+                                shrink-0
+                                items-center
+                                gap-1.5
+                                rounded-full
+                                bg-[#f4e9f6]
+                                px-3
+                                text-[9px]
+                                font-semibold
+                                text-[#703c76]
+                                transition
+                                hover:bg-[#ecdef0]
+                              "
+                            >
+                              <Plus size={11} />
+                              เพิ่มลงทริป
+                            </button>
+                          )}
+                        </article>
+                      );
+                    })}
                 </section>
               )}
             </div>
