@@ -10351,7 +10351,7 @@ text-xl
   }}
   className="min-w-0 px-2 text-center transition-colors hover:text-purple-600"
 >
-  Stay
+  Hotel
   <br />
   <span className="block truncate text-xs text-gray-400">
     {tripInput.accommodation?.name ||
