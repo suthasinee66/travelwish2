@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import PlaceDetailDrawer, { type PlaceDetailTarget } from "@/components/PlaceDetailDrawer";
+import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
 import { supabase } from "@/lib/supabase";
 import { useTravelStore } from "@/store/travelStore";
 
@@ -57,6 +58,8 @@ const {
   const [loading,setLoading] = useState(true);
   const [placeDetailTarget, setPlaceDetailTarget] =
     useState<PlaceDetailTarget | null>(null);
+  const [placeToAddTrip, setPlaceToAddTrip] =
+    useState<any | null>(null);
 
   const {
   savedItems,
@@ -299,6 +302,20 @@ async function loadSaved(){
         open={Boolean(placeDetailTarget)}
         target={placeDetailTarget}
         onClose={() => setPlaceDetailTarget(null)}
+        onAddToTrip={(detailTarget) => {
+          if (detailTarget.type !== "attraction") {
+            return;
+          }
+
+          setPlaceToAddTrip(detailTarget.data);
+          setPlaceDetailTarget(null);
+        }}
+      />
+
+      <AddPlaceToTripModal
+        open={Boolean(placeToAddTrip)}
+        place={placeToAddTrip}
+        onClose={() => setPlaceToAddTrip(null)}
       />
     <div className="travel-home flex h-screen text-foreground aurora-canvas">
       <Sidebar user={user}/>
