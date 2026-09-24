@@ -8726,6 +8726,173 @@ const ensureChatSession = async (
 
   return data.id;
 };
+const extractAccommodationUrlFromMessage = (
+  message: string
+) => {
+  const matches =
+    message.match(
+      /https?:\/\/[^\s\])}>]+/gi
+    ) ?? [];
+
+  const supportedHosts = [
+    "agoda.com",
+    "booking.com",
+    "google.com",
+    "maps.google.com",
+    "maps.app.goo.gl",
+  ];
+
+  const candidate =
+    matches.find((value) => {
+      try {
+        const hostname =
+          new URL(value)
+            .hostname
+            .toLowerCase();
+
+        return supportedHosts.some(
+          (host) =>
+            hostname === host ||
+            hostname.endsWith(
+              `.${host}`
+            )
+        );
+      } catch {
+        return false;
+      }
+    }) ?? null;
+
+  return candidate
+    ? candidate.replace(
+        /[.,;!?]+$/,
+        ""
+      )
+    : null;
+};
+
+const resolveAccommodationFromChat =
+  async (
+    url: string,
+    province: string
+  ) => {
+    const apiUrl =
+      (
+        import.meta.env.VITE_API_URL ||
+        (
+          import.meta.env.DEV
+            ? "http://localhost:5000"
+            : ""
+        )
+      ).replace(/\/$/, "");
+
+    if (!apiUrl) {
+      throw new Error(
+        "ยังไม่ได้ตั้งค่า VITE_API_URL"
+      );
+    }
+
+    const response =
+      await fetch(
+        `${apiUrl}/api/resolve-accommodation-link`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            url,
+            province,
+          }),
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if (
+      !response.ok ||
+      !result?.accommodation
+    ) {
+      throw new Error(
+        result?.error ||
+        "ไม่สามารถอ่านข้อมูลที่พักจากลิงก์ได้"
+      );
+    }
+
+    const accommodation =
+      result.accommodation;
+
+    const latitude =
+      Number(
+        accommodation.latitude
+      );
+
+    const longitude =
+      Number(
+        accommodation.longitude
+      );
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      throw new Error(
+        "ที่พักไม่มีพิกัดที่ใช้งานได้"
+      );
+    }
+
+    return {
+      id:
+        accommodation.acc_id != null
+          ? String(
+              accommodation.acc_id
+            )
+          : null,
+
+      name:
+        accommodation.acc_name_th ??
+        accommodation.acc_name_en ??
+        "ที่พัก",
+
+      address:
+        accommodation.acc_address ??
+        null,
+
+      latitude,
+      longitude,
+
+      source:
+        accommodation.source ??
+        (
+          accommodation
+            .booking_provider
+            ? "booking_link"
+            : "google_maps"
+        ),
+
+      source_url:
+        accommodation.source_url ??
+        url,
+
+      booking_provider:
+        accommodation
+          .booking_provider ??
+        null,
+
+      images:
+        Array.isArray(
+          accommodation.images
+        )
+          ? accommodation.images
+          : [],
+
+      locked: true,
+    } as TripInput["accommodation"];
+  };
+
 const handleTripComplete = async (
   tripOverride?: TripInput
 ) => {
@@ -8770,6 +8937,11 @@ const handleSend = async () => {
 
   const text = input.trim();
   setInput("");
+
+  const accommodationUrl =
+    extractAccommodationUrlFromMessage(
+      text
+    );
 
   // =====================================
   // 1. สร้าง / หา chat session ก่อน
@@ -9142,7 +9314,7 @@ const handleSend = async () => {
         : [detected.atmosphere]
       : [];
 
-    const updatedTrip: TripInput = {
+    let updatedTrip: TripInput = {
       ...tripInput,
 
       province:
@@ -9180,6 +9352,43 @@ const handleSend = async () => {
           ? detectedAtmosphere
           : tripInput.atmosphere ?? []
     };
+
+    if (
+      accommodationUrl &&
+      updatedTrip.province
+    ) {
+      try {
+        const accommodation =
+          await resolveAccommodationFromChat(
+            accommodationUrl,
+            updatedTrip.province
+          );
+
+        updatedTrip = {
+          ...updatedTrip,
+          accommodation,
+        };
+
+        console.log(
+          "🏨 CHAT ACCOMMODATION RESOLVED:",
+          accommodation
+        );
+      } catch (error) {
+        console.error(
+          "❌ CHAT ACCOMMODATION LINK ERROR:",
+          error
+        );
+
+        setMessages(prev => [
+          ...prev,
+          {
+            role: "ai",
+            text:
+              "อ่านลิงก์ที่พักนี้ไม่สำเร็จครับ แต่ยังใช้ข้อมูลทริปส่วนอื่นต่อได้ ลองใช้ลิงก์ Agoda/Booking/Google Maps ของโรงแรมอีกครั้ง",
+          }
+        ]);
+      }
+    }
 
     console.log("🧳 UPDATED TRIP:", updatedTrip);
     setTripInput(updatedTrip);
@@ -9239,6 +9448,9 @@ const handleSend = async () => {
         : null,
       updatedTrip.budget
         ? `งบประมาณ ${Number(updatedTrip.budget).toLocaleString()} บาท`
+        : null,
+      updatedTrip.accommodation?.name
+        ? `พักที่ ${updatedTrip.accommodation.name}`
         : null
     ].filter(Boolean);
 
