@@ -195,7 +195,9 @@ router.get(
               longitude,
               images,
               rating,
-              user_ratings_total
+              user_ratings_total,
+              google_opening_hours,
+              google_last_synced_at
             )
           `)
           .eq(
@@ -234,6 +236,19 @@ router.get(
                 ? restaurant.images
                 : [];
 
+            const cachedOpeningHours =
+              restaurant.google_opening_hours ??
+              null;
+
+            const weekdayDescriptions =
+              cachedOpeningHours
+                ?.regular
+                ?.weekdayDescriptions ??
+              cachedOpeningHours
+                ?.current
+                ?.weekdayDescriptions ??
+              [];
+
             return {
               ...restaurant,
 
@@ -244,6 +259,13 @@ router.get(
 
               hasImages:
                 images.length > 0,
+
+              weekday_descriptions:
+                Array.isArray(
+                  weekdayDescriptions
+                )
+                  ? weekdayDescriptions
+                  : [],
             };
           })
           .filter(Boolean);
@@ -519,6 +541,19 @@ router.get(
               place.regularOpeningHours
                 ?.weekdayDescriptions ??
               [],
+
+            google_opening_hours: {
+              current:
+                place.currentOpeningHours ??
+                null,
+
+              regular:
+                place.regularOpeningHours ??
+                null,
+            },
+
+            google_last_synced_at:
+              new Date().toISOString(),
 
             updated_at:
               new Date().toISOString(),
