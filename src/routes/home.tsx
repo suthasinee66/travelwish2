@@ -12067,11 +12067,11 @@ text-white/80
                 </div>
 
                 {inspireLoading ? (
-                  <div className="flex gap-3 overflow-x-hidden sm:grid sm:grid-cols-3">
+                  <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {Array.from({ length: 3 }).map((_, index) => (
                       <div
                         key={index}
-                        className="w-[76%] shrink-0 overflow-hidden rounded-[18px] border border-[#eee6f0] bg-white p-1.5 shadow-[0_7px_22px_rgba(73,53,82,0.07)] sm:w-auto"
+                        className="w-[72%] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[#eee6f0] bg-white p-1.5 shadow-[0_7px_22px_rgba(73,53,82,0.07)] sm:w-[220px] lg:w-[230px]"
                       >
                         <div className="aspect-[9/16] animate-pulse rounded-[14px] bg-[#eee9ef]" />
                         <div className="px-2 pb-2 pt-2.5">
@@ -12091,11 +12091,11 @@ text-white/80
                     ยังไม่มีวิดีโอแนะนำสำหรับคุณ
                   </div>
                 ) : (
-                  <div className="travel-inspiration-grid flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:overflow-visible">
+                  <div className="travel-inspiration-grid flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {inspire.map((v) => (
                       <article
                         key={v.id}
-                        className="group w-[76%] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[#ece4ee] bg-white p-1.5 shadow-[0_7px_22px_rgba(73,53,82,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-[#dbcce0] hover:shadow-[0_12px_28px_rgba(73,53,82,0.12)] sm:w-auto"
+                        className="group w-[72%] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[#ece4ee] bg-white p-1.5 shadow-[0_7px_22px_rgba(73,53,82,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-[#dbcce0] hover:shadow-[0_12px_28px_rgba(73,53,82,0.12)] sm:w-[220px] lg:w-[230px]"
                       >
                         <div className="relative overflow-hidden rounded-[14px] bg-black">
                           <iframe
