@@ -59,7 +59,7 @@ import {
   Search,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { Fragment, useEffect, useState, useMemo, useRef } from "react";
+import { Children, Fragment, useEffect, useState, useMemo, useRef } from "react";
 import { getRecommendations } from "@/lib/recommend/getRecommendations";
 import { getRecommendations as getInspireVideos } from "@/lib/inspire/getRecommendations";
 import { Link } from "@tanstack/react-router";
@@ -139,6 +139,52 @@ export const Route = createFileRoute("/home")({
   }),
   component: Home,
 });
+
+function renderMarkdownBreaks(
+  children: React.ReactNode
+) {
+  return Children.toArray(
+    children
+  ).flatMap(
+    (
+      child,
+      childIndex
+    ) => {
+      if (
+        typeof child !==
+        "string"
+      ) {
+        return [child];
+      }
+
+      const parts =
+        child.split(
+          /<br\s*\/?\s*>/gi
+        );
+
+      if (
+        parts.length === 1
+      ) {
+        return [child];
+      }
+
+      return parts.flatMap(
+        (
+          part,
+          partIndex
+        ) =>
+          partIndex === 0
+            ? [part]
+            : [
+                <br
+                  key={`md-br-${childIndex}-${partIndex}`}
+                />,
+                part,
+              ]
+      );
+    }
+  );
+}
 
 const navItems = [
   { icon: MessageCircle, label: "Chats", badge: 1 },
@@ -10766,7 +10812,9 @@ ${m.role === "user"
         leading-6
         whitespace-normal
       ">
-        {children}
+        {renderMarkdownBreaks(
+          children
+        )}
       </td>
     )
   }}
