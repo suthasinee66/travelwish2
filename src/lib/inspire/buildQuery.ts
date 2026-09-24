@@ -125,12 +125,6 @@ export function buildQuery(pref: any) {
     ...regions,
     ...travelTypes,
     ...activities,
-    ...atmosphere,
-    ...companion,
-    ...travelGoal,
-    ...travelTime,
-    ...budget,
-    ...personality,
   ];
 
   const uniqueTerms =
