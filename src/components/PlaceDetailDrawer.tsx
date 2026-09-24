@@ -533,9 +533,6 @@ export default function PlaceDetailDrawer({
   const [similarSavingIds, setSimilarSavingIds] =
     useState<Set<string>>(new Set());
 
-  const [showAllSimilar, setShowAllSimilar] =
-    useState(false);
-
   const [showAllRestaurants, setShowAllRestaurants] =
     useState(false);
 
@@ -573,7 +570,6 @@ export default function PlaceDetailDrawer({
       setActiveTab("overview");
       setDescriptionExpanded(false);
       setShowPhotoViewer(false);
-      setShowAllSimilar(false);
       setShowAllRestaurants(false);
       setShowAllNearbyPlaces(false);
       return;
@@ -591,7 +587,6 @@ export default function PlaceDetailDrawer({
     setActiveTab("overview");
     setDescriptionExpanded(false);
     setShowPhotoViewer(false);
-    setShowAllSimilar(false);
     setShowAllRestaurants(false);
     setShowAllNearbyPlaces(false);
     setLoading(true);
@@ -1147,7 +1142,6 @@ export default function PlaceDetailDrawer({
     setMainImageIndex(0);
     setActiveTab("overview");
     setDescriptionExpanded(false);
-    setShowAllSimilar(false);
     setShowAllRestaurants(false);
     setShowAllNearbyPlaces(false);
     setLoading(true);
@@ -1604,39 +1598,25 @@ export default function PlaceDetailDrawer({
           {type === "attraction" &&
             relatedData.similarPlaces.length > 0 && (
               <section className="mt-5">
-                <div className="mb-2 flex items-center justify-between">
+                <div className="mb-2">
                   <h2 className="text-[15px] font-bold leading-none text-[#2f2946]">
                     สถานที่คล้ายกัน
                   </h2>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowAllSimilar(
-                        (value) => !value
-                      )
-                    }
-                    className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#7a3f80] transition hover:text-[#5B3A61]"
-                  >
-                    {showAllSimilar
-                      ? "ย่อ"
-                      : "ดูทั้งหมด"}
-                    <span aria-hidden="true">
-                      {showAllSimilar
-                        ? "↑"
-                        : "→"}
-                    </span>
-                  </button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div
+                  className="
+                    flex
+                    snap-x
+                    snap-mandatory
+                    gap-2
+                    overflow-x-auto
+                    pb-2
+                    [scrollbar-width:none]
+                    [&::-webkit-scrollbar]:hidden
+                  "
+                >
                   {relatedData.similarPlaces
-                    .slice(
-                      0,
-                      showAllSimilar
-                        ? relatedData.similarPlaces.length
-                        : 4
-                    )
                     .map((place) => {
                       const image =
                         imageFor(place);
@@ -1680,6 +1660,9 @@ export default function PlaceDetailDrawer({
                           className="
                             group
                             relative
+                            w-[180px]
+                            shrink-0
+                            snap-start
                             cursor-pointer
                             overflow-hidden
                             rounded-[11px]
