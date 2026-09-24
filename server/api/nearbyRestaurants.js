@@ -256,18 +256,48 @@ router.get(
 
 
       // =====================================================
-      // Nearby-first policy
-      // มี cache ก็ยังค้น Google Nearby ก่อน
-      // cache ใช้เป็น fallback เท่านั้น
+      // Cache-first policy
+      // ถ้ามีร้านที่เคยค้นและผูกกับ attraction นี้แล้ว
+      // ใช้ Supabase Cache ทันที และไม่เรียก Google Places ซ้ำ
       // =====================================================
 
+      if (cachedRestaurants.length > 0) {
+        const sortedCachedRestaurants =
+          [...cachedRestaurants]
+            .sort(
+              (a, b) =>
+                Number(a.distance) -
+                Number(b.distance)
+            );
+
+        console.log(
+          "♻️ ใช้ Supabase Cache:",
+          sortedCachedRestaurants.length,
+          "ร้าน"
+        );
+
+        console.log(
+          "🚫 ไม่เรียก Google Places API"
+        );
+
+        return res.json({
+          success: true,
+          cached: true,
+          fallback: false,
+          count:
+            sortedCachedRestaurants.length,
+          restaurants:
+            sortedCachedRestaurants,
+        });
+      }
+
       console.log(
-        "🌐 ค้น Google Places Nearby ก่อน..."
+        "🌐 Cache ว่าง → ค้น Google Places Nearby..."
       );
 
 
       // =====================================================
-      // 2. เรียก Google Places API
+      // 2. Cache ไม่มีข้อมูล → เรียก Google Places API
       // =====================================================
 
       const response =
