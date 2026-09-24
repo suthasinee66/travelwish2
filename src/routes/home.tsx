@@ -12222,7 +12222,7 @@ text-white/80
 
                           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
 
-                          <h3 className="pointer-events-none absolute inset-x-0 bottom-0 z-10 line-clamp-2 p-3 text-[12px] font-bold leading-[17px] text-white">
+                          <h3 className="travel-inspiration-video-title pointer-events-none absolute inset-x-0 bottom-0 z-10 line-clamp-2 p-3 text-[12px] font-bold leading-[17px] text-white">
                             {v.title}
                           </h3>
                         </button>
