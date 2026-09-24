@@ -12107,19 +12107,6 @@ text-white/80
                             loading="lazy"
                           />
 
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
-
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-3 text-white">
-                            {v.channelTitle && (
-                              <p className="mb-1 truncate text-[10px] font-medium text-white/80">
-                                {v.channelTitle}
-                              </p>
-                            )}
-
-                            <h3 className="travel-inspiration-video-title line-clamp-2 text-[12px] font-bold leading-[17px] text-white">
-                              {v.title}
-                            </h3>
-                          </div>
                         </div>
                       </article>
                     ))}
