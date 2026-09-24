@@ -1534,10 +1534,11 @@
     -webkit-overflow-scrolling: touch;
   }
 
-  .travel-home .travel-inspiration-grid > * {
-    flex: 0 0 72%;
-    width: 72%;
+  .travel-home .travel-inspiration-card {
+    flex: 0 0 calc((100% - 12px) / 2);
+    width: calc((100% - 12px) / 2);
     min-width: 0;
+    aspect-ratio: 3 / 4;
     scroll-snap-align: start;
   }
 
@@ -1682,6 +1683,12 @@
   }
 
   .travel-home .travel-recommend-grid > div {
+    aspect-ratio: 4 / 3;
+  }
+
+  .travel-home .travel-inspiration-card {
+    flex-basis: 100%;
+    width: 100%;
     aspect-ratio: 4 / 3;
   }
 
@@ -3368,5 +3375,24 @@
   .travel-modal-card {
     border-radius: 22px !important;
     max-height: calc(100dvh - 24px) !important;
+  }
+}
+
+
+/* Inspiration uses the same card width/aspect as Recommend, but stays in one horizontal row. */
+@media (min-width: 768px) {
+  .travel-home .travel-inspiration-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 12px;
+  }
+
+  .travel-home .travel-inspiration-card {
+    flex: 0 0 calc((100% - 24px) / 3);
+    width: calc((100% - 24px) / 3);
+    aspect-ratio: 3 / 4;
+    scroll-snap-align: start;
   }
 }
