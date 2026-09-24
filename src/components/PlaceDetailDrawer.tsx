@@ -1552,6 +1552,84 @@ export default function PlaceDetailDrawer({
             )}
           </section>
 
+          {(hasValue(description) ||
+            address ||
+            website ||
+            phone) && (
+            <section className="mt-6 rounded-[18px] border border-[#eee7ef] bg-[#fcfafc] p-4">
+              <h2 className="text-base font-bold text-[#30294a]">
+                เกี่ยวกับสถานที่
+              </h2>
+
+              {hasValue(description) && (
+                <>
+                  <p
+                    className={`
+                      mt-2 whitespace-pre-line text-sm leading-6 text-[#625767]
+                      ${!descriptionExpanded &&
+                      longDescription
+                        ? "line-clamp-3"
+                        : ""}
+                    `}
+                  >
+                    {String(description)}
+                  </p>
+
+                  {longDescription && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDescriptionExpanded(
+                          (value) => !value
+                        )
+                      }
+                      className="mt-1.5 text-xs font-semibold text-[#6f456f]"
+                    >
+                      {descriptionExpanded
+                        ? "ย่อรายละเอียด"
+                        : "อ่านเพิ่มเติม"}
+                    </button>
+                  )}
+                </>
+              )}
+
+              {(address ||
+                website ||
+                phone) && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {address && (
+                    <InfoItem
+                      icon={<MapPin size={18} />}
+                      label="ที่อยู่"
+                      value={address}
+                      href={mapsUrl}
+                    />
+                  )}
+
+                  {website && (
+                    <InfoItem
+                      icon={<Globe2 size={18} />}
+                      label="เว็บไซต์"
+                      value={String(
+                        websiteValue
+                      )}
+                      href={website}
+                    />
+                  )}
+
+                  {phone && (
+                    <InfoItem
+                      icon={<Phone size={18} />}
+                      label="โทรศัพท์"
+                      value={String(phone)}
+                      href={`tel:${phone}`}
+                    />
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
           {type === "attraction" && (
             <section className="mt-4">
               {relatedData.weather ? (
@@ -2222,83 +2300,6 @@ export default function PlaceDetailDrawer({
             </div>
           )}
 
-          {(hasValue(description) ||
-            address ||
-            website ||
-            phone) && (
-            <section className="mt-6 rounded-[18px] border border-[#eee7ef] bg-[#fcfafc] p-4">
-              <h2 className="text-base font-bold text-[#30294a]">
-                เกี่ยวกับสถานที่
-              </h2>
-
-              {hasValue(description) && (
-                <>
-                  <p
-                    className={`
-                      mt-2 whitespace-pre-line text-sm leading-6 text-[#625767]
-                      ${!descriptionExpanded &&
-                      longDescription
-                        ? "line-clamp-3"
-                        : ""}
-                    `}
-                  >
-                    {String(description)}
-                  </p>
-
-                  {longDescription && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDescriptionExpanded(
-                          (value) => !value
-                        )
-                      }
-                      className="mt-1.5 text-xs font-semibold text-[#6f456f]"
-                    >
-                      {descriptionExpanded
-                        ? "ย่อรายละเอียด"
-                        : "อ่านเพิ่มเติม"}
-                    </button>
-                  )}
-                </>
-              )}
-
-              {(address ||
-                website ||
-                phone) && (
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {address && (
-                    <InfoItem
-                      icon={<MapPin size={18} />}
-                      label="ที่อยู่"
-                      value={address}
-                      href={mapsUrl}
-                    />
-                  )}
-
-                  {website && (
-                    <InfoItem
-                      icon={<Globe2 size={18} />}
-                      label="เว็บไซต์"
-                      value={String(
-                        websiteValue
-                      )}
-                      href={website}
-                    />
-                  )}
-
-                  {phone && (
-                    <InfoItem
-                      icon={<Phone size={18} />}
-                      label="โทรศัพท์"
-                      value={String(phone)}
-                      href={`tel:${phone}`}
-                    />
-                  )}
-                </div>
-              )}
-            </section>
-          )}
         </div>
 
         <div
