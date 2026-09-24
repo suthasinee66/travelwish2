@@ -33,26 +33,6 @@ import {
   type PlaceDetailRelatedData,
 } from "@/lib/travel/loadPlaceDetailData";
 
-const API_URL = (
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV
-    ? "http://localhost:5000"
-    : "")
-).replace(/\/$/, "");
-
-type TikTokPlaceVideo = {
-  id: string;
-  url: string;
-  title: string;
-  username: string | null;
-  thumbnail_url: string | null;
-  create_time: number | null;
-  view_count: number;
-  like_count: number;
-  comment_count: number;
-  share_count: number;
-};
-
 export type PlaceDetailTargetType =
   | "attraction"
   | "restaurant"
@@ -571,12 +551,6 @@ export default function PlaceDetailDrawer({
   const [showPhotoViewer, setShowPhotoViewer] =
     useState(false);
 
-  const [tiktokVideos, setTikTokVideos] =
-    useState<TikTokPlaceVideo[]>([]);
-
-  const [tiktokLoading, setTikTokLoading] =
-    useState(false);
-
   const drawerRef =
     useRef<HTMLElement | null>(null);
 
@@ -601,8 +575,6 @@ export default function PlaceDetailDrawer({
       setShowPhotoViewer(false);
       setShowAllRestaurants(false);
       setShowAllNearbyPlaces(false);
-      setTikTokVideos([]);
-      setTikTokLoading(false);
       return;
     }
 
@@ -620,8 +592,6 @@ export default function PlaceDetailDrawer({
     setShowPhotoViewer(false);
     setShowAllRestaurants(false);
     setShowAllNearbyPlaces(false);
-    setTikTokVideos([]);
-    setTikTokLoading(false);
     setLoading(true);
 
     loadFullRecord(target)
@@ -771,106 +741,6 @@ export default function PlaceDetailDrawer({
     latitude,
     longitude,
     address,
-  ]);
-
-  useEffect(() => {
-    let active = true;
-
-    if (
-      !open ||
-      !API_URL ||
-      !hasValue(title)
-    ) {
-      setTikTokVideos([]);
-      setTikTokLoading(false);
-      return;
-    }
-
-    const controller =
-      new AbortController();
-
-    const province =
-      cleanText(
-        data?.province ??
-        data?.province_name_th
-      );
-
-    const params =
-      new URLSearchParams({
-        name: title,
-      });
-
-    if (province) {
-      params.set(
-        "province",
-        province
-      );
-    }
-
-    setTikTokLoading(true);
-
-    fetch(
-      `${API_URL}/api/tiktok-search?${params.toString()}`,
-      {
-        signal:
-          controller.signal,
-      }
-    )
-      .then(async (response) => {
-        if (!response.ok) {
-          return {
-            videos: [],
-          };
-        }
-
-        return response.json();
-      })
-      .then((result) => {
-        if (!active) {
-          return;
-        }
-
-        setTikTokVideos(
-          Array.isArray(
-            result?.videos
-          )
-            ? result.videos
-            : []
-        );
-      })
-      .catch((error) => {
-        if (
-          error?.name !==
-          "AbortError"
-        ) {
-          console.warn(
-            "LOAD TIKTOK VIDEOS ERROR:",
-            error
-          );
-        }
-
-        if (active) {
-          setTikTokVideos([]);
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setTikTokLoading(false);
-        }
-      });
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [
-    open,
-    title,
-    data?.att_id,
-    data?.place_id,
-    data?.acc_id,
-    data?.province,
-    data?.province_name_th,
   ]);
 
   useEffect(() => {
@@ -1754,111 +1624,6 @@ export default function PlaceDetailDrawer({
                       value={String(phone)}
                       href={`tel:${phone}`}
                     />
-                  )}
-                </div>
-              )}
-            </section>
-          )}
-
-          {(tiktokLoading ||
-            tiktokVideos.length > 0) && (
-            <section className="mt-5">
-              <div className="mb-2.5 flex items-end justify-between gap-3">
-                <div>
-                  <h2 className="text-[15px] font-bold text-[#2f2946]">
-                    TikTok ที่เกี่ยวกับสถานที่นี้
-                  </h2>
-
-                  <p className="mt-1 text-[10px] leading-4 text-[#948797]">
-                    คลิปที่ค้นจากชื่อสถานที่บน TikTok
-                  </p>
-                </div>
-
-                <div className="shrink-0 rounded-full bg-[#171717] px-2.5 py-1 text-[9px] font-bold text-white">
-                  TikTok
-                </div>
-              </div>
-
-              {tiktokLoading ? (
-                <div className="flex gap-2.5 overflow-hidden">
-                  {Array.from({
-                    length: 3,
-                  }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="w-[150px] shrink-0 overflow-hidden rounded-[16px] border border-[#eee7ef] bg-white"
-                    >
-                      <div className="aspect-[9/14] animate-pulse bg-[#eee9ef]" />
-                      <div className="space-y-2 p-2.5">
-                        <div className="h-2.5 w-full animate-pulse rounded-full bg-[#eee9ef]" />
-                        <div className="h-2.5 w-2/3 animate-pulse rounded-full bg-[#f4f0f4]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {tiktokVideos.map(
-                    (video) => (
-                      <a
-                        key={video.id}
-                        href={video.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="group w-[150px] shrink-0 snap-start overflow-hidden rounded-[16px] border border-[#ece5ee] bg-white shadow-[0_5px_16px_rgba(72,54,80,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_9px_20px_rgba(72,54,80,0.10)] sm:w-[164px]"
-                      >
-                        <div className="relative aspect-[9/14] overflow-hidden bg-[#171717]">
-                          {video.thumbnail_url ? (
-                            <img
-                              src={
-                                video.thumbnail_url
-                              }
-                              alt={
-                                video.title ||
-                                title
-                              }
-                              loading="lazy"
-                              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center px-4 text-center text-xs font-bold text-white">
-                              TikTok
-                            </div>
-                          )}
-
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 p-2.5 text-white">
-                            {video.username && (
-                              <div className="mb-1 truncate text-[9px] font-semibold text-white/80">
-                                @
-                                {video.username}
-                              </div>
-                            )}
-
-                            <div className="line-clamp-2 text-[10px] font-bold leading-[14px]">
-                              {video.title ||
-                                title}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2 px-2.5 py-2 text-[9px] text-[#7d7081]">
-                          <span>
-                            {video.view_count > 0
-                              ? `${formatReviewCount(
-                                  video.view_count
-                                )} views`
-                              : "ดูบน TikTok"}
-                          </span>
-
-                          <ExternalLink
-                            size={11}
-                            className="shrink-0 text-[#6f456f]"
-                          />
-                        </div>
-                      </a>
-                    )
                   )}
                 </div>
               )}
