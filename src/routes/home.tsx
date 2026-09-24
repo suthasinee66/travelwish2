@@ -10757,7 +10757,7 @@ ${m.role === "user"
           min-w-[700px]
           w-full
           border-collapse
-          text-sm
+          text-[13px]
         ">
           {children}
         </table>
