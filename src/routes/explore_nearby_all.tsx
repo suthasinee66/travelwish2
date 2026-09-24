@@ -611,6 +611,14 @@ function ExploreNearbyAll() {
         open={Boolean(placeDetailTarget)}
         target={placeDetailTarget}
         onClose={() => setPlaceDetailTarget(null)}
+        onAddToTrip={(detailTarget) => {
+          if (detailTarget.type !== "attraction") {
+            return;
+          }
+
+          setPlaceToAddTrip(detailTarget.data);
+          setPlaceDetailTarget(null);
+        }}
       />
     <div className="
       travel-home
