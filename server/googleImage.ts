@@ -678,6 +678,40 @@ router.post(
                5. บันทึก images ลง attraction
             ----------------------------------------- */
 
+            const googleLatitude =
+                result.place.location?.latitude;
+
+            const googleLongitude =
+                result.place.location?.longitude;
+
+            const updatePayload: Record<string, any> = {
+
+                images:
+                    result.images,
+
+                updated_at:
+                    new Date().toISOString()
+
+            };
+
+            if (
+                Number.isFinite(
+                    googleLatitude
+                ) &&
+                Number.isFinite(
+                    googleLongitude
+                )
+            ) {
+
+                updatePayload.latitude =
+                    googleLatitude;
+
+                updatePayload.longitude =
+                    googleLongitude;
+
+            }
+
+
             const {
                 error: updateError
             } =
@@ -685,15 +719,9 @@ router.post(
 
                     .from("attraction")
 
-                    .update({
-
-                        images:
-                            result.images,
-
-                        updated_at:
-                            new Date().toISOString()
-
-                    })
+                    .update(
+                        updatePayload
+                    )
 
                     .eq(
                         "att_id",
@@ -712,6 +740,23 @@ router.post(
                 "✅ บันทึกรูปสำเร็จ:",
                 result.images.length
             );
+
+            if (
+                Number.isFinite(
+                    googleLatitude
+                ) &&
+                Number.isFinite(
+                    googleLongitude
+                )
+            ) {
+
+                console.log(
+                    "📍 อัปเดต location:",
+                    googleLatitude,
+                    googleLongitude
+                );
+
+            }
 
 
             /* -----------------------------------------
@@ -742,7 +787,23 @@ router.post(
                     result.images,
 
                 image_count:
-                    result.images.length
+                    result.images.length,
+
+                location: {
+                    latitude:
+                        Number.isFinite(
+                            googleLatitude
+                        )
+                            ? googleLatitude
+                            : attraction.latitude,
+
+                    longitude:
+                        Number.isFinite(
+                            googleLongitude
+                        )
+                            ? googleLongitude
+                            : attraction.longitude
+                }
 
             });
 
@@ -1031,6 +1092,40 @@ router.post(
                        Update Supabase
                     --------------------------------- */
 
+                    const googleLatitude =
+                        result.place.location?.latitude;
+
+                    const googleLongitude =
+                        result.place.location?.longitude;
+
+                    const updatePayload: Record<string, any> = {
+
+                        images:
+                            result.images,
+
+                        updated_at:
+                            new Date().toISOString()
+
+                    };
+
+                    if (
+                        Number.isFinite(
+                            googleLatitude
+                        ) &&
+                        Number.isFinite(
+                            googleLongitude
+                        )
+                    ) {
+
+                        updatePayload.latitude =
+                            googleLatitude;
+
+                        updatePayload.longitude =
+                            googleLongitude;
+
+                    }
+
+
                     const {
                         error: updateError
                     } =
@@ -1038,15 +1133,9 @@ router.post(
 
                             .from("attraction")
 
-                            .update({
-
-                                images:
-                                    result.images,
-
-                                updated_at:
-                                    new Date().toISOString()
-
-                            })
+                            .update(
+                                updatePayload
+                            )
 
                             .eq(
                                 "att_id",
@@ -1078,7 +1167,23 @@ router.post(
                         success: true,
 
                         image_count:
-                            result.images.length
+                            result.images.length,
+
+                        location: {
+                            latitude:
+                                Number.isFinite(
+                                    googleLatitude
+                                )
+                                    ? googleLatitude
+                                    : attraction.latitude,
+
+                            longitude:
+                                Number.isFinite(
+                                    googleLongitude
+                                )
+                                    ? googleLongitude
+                                    : attraction.longitude
+                        }
 
                     });
 
@@ -1086,6 +1191,21 @@ router.post(
                     console.log(
                         `   ✅ ${result.images.length} รูป`
                     );
+
+                    if (
+                        Number.isFinite(
+                            googleLatitude
+                        ) &&
+                        Number.isFinite(
+                            googleLongitude
+                        )
+                    ) {
+
+                        console.log(
+                            `   📍 location: ${googleLatitude}, ${googleLongitude}`
+                        );
+
+                    }
 
 
                     /* ---------------------------------
