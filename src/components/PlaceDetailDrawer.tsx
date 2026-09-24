@@ -533,6 +533,15 @@ export default function PlaceDetailDrawer({
   const [similarSavingIds, setSimilarSavingIds] =
     useState<Set<string>>(new Set());
 
+  const [showAllSimilar, setShowAllSimilar] =
+    useState(false);
+
+  const [showAllRestaurants, setShowAllRestaurants] =
+    useState(false);
+
+  const [showAllNearbyPlaces, setShowAllNearbyPlaces] =
+    useState(false);
+
   const [activeTab, setActiveTab] =
     useState<DetailTab>("overview");
 
@@ -564,6 +573,9 @@ export default function PlaceDetailDrawer({
       setActiveTab("overview");
       setDescriptionExpanded(false);
       setShowPhotoViewer(false);
+      setShowAllSimilar(false);
+      setShowAllRestaurants(false);
+      setShowAllNearbyPlaces(false);
       return;
     }
 
@@ -579,6 +591,9 @@ export default function PlaceDetailDrawer({
     setActiveTab("overview");
     setDescriptionExpanded(false);
     setShowPhotoViewer(false);
+    setShowAllSimilar(false);
+    setShowAllRestaurants(false);
+    setShowAllNearbyPlaces(false);
     setLoading(true);
 
     loadFullRecord(target)
@@ -830,7 +845,6 @@ export default function PlaceDetailDrawer({
     }
 
     const ids = relatedData.similarPlaces
-      .slice(0, 4)
       .map((place) =>
         place?.att_id != null
           ? String(place.att_id)
@@ -1133,6 +1147,9 @@ export default function PlaceDetailDrawer({
     setMainImageIndex(0);
     setActiveTab("overview");
     setDescriptionExpanded(false);
+    setShowAllSimilar(false);
+    setShowAllRestaurants(false);
+    setShowAllNearbyPlaces(false);
     setLoading(true);
 
     try {
@@ -1594,16 +1611,32 @@ export default function PlaceDetailDrawer({
 
                   <button
                     type="button"
+                    onClick={() =>
+                      setShowAllSimilar(
+                        (value) => !value
+                      )
+                    }
                     className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#7a3f80] transition hover:text-[#5B3A61]"
                   >
-                    ดูทั้งหมด
-                    <span aria-hidden="true">→</span>
+                    {showAllSimilar
+                      ? "ย่อ"
+                      : "ดูทั้งหมด"}
+                    <span aria-hidden="true">
+                      {showAllSimilar
+                        ? "↑"
+                        : "→"}
+                    </span>
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {relatedData.similarPlaces
-                    .slice(0, 4)
+                    .slice(
+                      0,
+                      showAllSimilar
+                        ? relatedData.similarPlaces.length
+                        : 4
+                    )
                     .map((place) => {
                       const image =
                         imageFor(place);
@@ -1803,15 +1836,31 @@ export default function PlaceDetailDrawer({
 
                     <button
                       type="button"
+                      onClick={() =>
+                        setShowAllRestaurants(
+                          (value) => !value
+                        )
+                      }
                       className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#7a3f80] hover:text-[#5B3A61]"
                     >
-                      ดูทั้งหมด
-                      <span aria-hidden="true">→</span>
+                      {showAllRestaurants
+                        ? "ย่อ"
+                        : "ดูทั้งหมด"}
+                      <span aria-hidden="true">
+                        {showAllRestaurants
+                          ? "↑"
+                          : "→"}
+                      </span>
                     </button>
                   </div>
 
                   {relatedData.nearbyRestaurants
-                    .slice(0, 1)
+                    .slice(
+                      0,
+                      showAllRestaurants
+                        ? relatedData.nearbyRestaurants.length
+                        : 1
+                    )
                     .map((restaurant) => {
                       const image =
                         imageFor(restaurant);
@@ -1833,6 +1882,8 @@ export default function PlaceDetailDrawer({
                             restaurant.google_place_id
                           }
                           className="
+                            mb-2
+                            last:mb-0
                             flex
                             min-h-[86px]
                             items-center
@@ -1966,15 +2017,31 @@ export default function PlaceDetailDrawer({
 
                     <button
                       type="button"
+                      onClick={() =>
+                        setShowAllNearbyPlaces(
+                          (value) => !value
+                        )
+                      }
                       className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#7a3f80] hover:text-[#5B3A61]"
                     >
-                      ดูทั้งหมด
-                      <span aria-hidden="true">→</span>
+                      {showAllNearbyPlaces
+                        ? "ย่อ"
+                        : "ดูทั้งหมด"}
+                      <span aria-hidden="true">
+                        {showAllNearbyPlaces
+                          ? "↑"
+                          : "→"}
+                      </span>
                     </button>
                   </div>
 
                   {relatedData.nearbyPlaces
-                    .slice(0, 1)
+                    .slice(
+                      0,
+                      showAllNearbyPlaces
+                        ? relatedData.nearbyPlaces.length
+                        : 1
+                    )
                     .map((place) => {
                       const image =
                         imageFor(place);
@@ -1983,6 +2050,8 @@ export default function PlaceDetailDrawer({
                         <article
                           key={place.att_id}
                           className="
+                            mb-2
+                            last:mb-0
                             flex
                             min-h-[86px]
                             items-center
