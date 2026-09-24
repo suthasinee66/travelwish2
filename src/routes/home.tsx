@@ -7608,6 +7608,8 @@ function Home() {
   const [inspire, setInspire] = useState<any[]>([]);
   const [inspireLoading, setInspireLoading] = useState(false);
   const [inspireError, setInspireError] = useState<string | null>(null);
+  const [selectedInspireVideo, setSelectedInspireVideo] =
+    useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [selectedModel, setSelectedModel] = useState<"gemini" | "gpt" | "claude">("gemini");
@@ -7850,6 +7852,41 @@ useEffect(() => {
   };
 
 }, [preferences]);
+
+useEffect(() => {
+  if (!selectedInspireVideo) {
+    return;
+  }
+
+  const previousOverflow =
+    document.body.style.overflow;
+
+  document.body.style.overflow =
+    "hidden";
+
+  const handleKeyDown = (
+    event: KeyboardEvent
+  ) => {
+    if (event.key === "Escape") {
+      setSelectedInspireVideo(null);
+    }
+  };
+
+  window.addEventListener(
+    "keydown",
+    handleKeyDown
+  );
+
+  return () => {
+    document.body.style.overflow =
+      previousOverflow;
+
+    window.removeEventListener(
+      "keydown",
+      handleKeyDown
+    );
+  };
+}, [selectedInspireVideo]);
 
 const aiModels = [
   {
@@ -10116,6 +10153,77 @@ text-xl
       }
 
 
+      {selectedInspireVideo && (
+        <div
+          className="
+            fixed
+            inset-0
+            z-[140]
+            flex
+            items-center
+            justify-center
+            bg-black/70
+            px-4
+            py-6
+          "
+          onClick={() =>
+            setSelectedInspireVideo(null)
+          }
+        >
+          <div
+            className="
+              relative
+              w-full
+              max-w-[900px]
+              overflow-hidden
+              rounded-[22px]
+              bg-black
+              shadow-2xl
+            "
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedInspireVideo(null)
+              }
+              className="
+                absolute
+                right-3
+                top-3
+                z-20
+                flex
+                h-10
+                w-10
+                items-center
+                justify-center
+                rounded-full
+                bg-black/60
+                text-white
+                transition
+                hover:bg-black/80
+              "
+              aria-label="ปิดวิดีโอ"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="aspect-video w-full bg-black">
+              <iframe
+                key={selectedInspireVideo.id}
+                src={`https://www.youtube.com/embed/${selectedInspireVideo.id}?autoplay=1&rel=0&modestbranding=1`}
+                title={selectedInspireVideo.title}
+                className="h-full w-full"
+                allow="autoplay; encrypted-media; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <AddPlaceToTripModal
         open={!!placeToAddTrip}
         place={placeToAddTrip}
@@ -12095,19 +12203,29 @@ text-white/80
                     {inspire.map((v) => (
                       <article
                         key={v.id}
-                        className="travel-inspiration-card travel-recommend-card group shrink-0 snap-start overflow-hidden rounded-xl border border-[#ece4ee] bg-white shadow-sm transition hover:shadow-md"
+                        className="travel-inspiration-card travel-recommend-card group shrink-0 snap-start overflow-hidden rounded-xl border border-[#ece4ee] bg-black shadow-sm transition hover:shadow-md"
                       >
-                        <div className="relative h-full w-full overflow-hidden bg-black">
-                          <iframe
-                            src={v.videoUrl}
-                            title={v.title}
-                            className="absolute inset-0 h-full w-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedInspireVideo(v)
+                          }
+                          className="relative h-full w-full overflow-hidden text-left"
+                          aria-label={`เล่นวิดีโอ ${v.title}`}
+                        >
+                          <img
+                            src={v.thumbnail}
+                            alt={v.title}
                             loading="lazy"
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                           />
 
-                        </div>
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[48%] bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+
+                          <h3 className="pointer-events-none absolute inset-x-0 bottom-0 z-10 line-clamp-2 p-3 text-[12px] font-bold leading-[17px] text-white">
+                            {v.title}
+                          </h3>
+                        </button>
                       </article>
                     ))}
                   </div>
