@@ -7606,6 +7606,8 @@ function Home() {
   } = useTravelStore();
 
   const [inspire, setInspire] = useState<any[]>([]);
+  const [inspireLoading, setInspireLoading] = useState(false);
+  const [inspireError, setInspireError] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [selectedModel, setSelectedModel] = useState<"gemini" | "gpt" | "claude">("gemini");
@@ -7787,9 +7789,68 @@ const [tripInput, setTripInput] = useState<TripInput>({
 };
 useEffect(() => {
 
-  loadUserTripPreference();
+  let cancelled = false;
 
-}, [user]);
+  async function loadInspiration() {
+
+    if (!preferences) {
+      setInspire([]);
+      setInspireError(null);
+      return;
+    }
+
+    setInspireLoading(true);
+    setInspireError(null);
+
+    try {
+
+      const videos =
+        await getInspireVideos(
+          preferences
+        );
+
+      if (cancelled) {
+        return;
+      }
+
+      setInspire(
+        Array.isArray(videos)
+          ? videos
+          : []
+      );
+
+    } catch (error) {
+
+      console.error(
+        "❌ LOAD INSPIRE ERROR:",
+        error
+      );
+
+      if (!cancelled) {
+        setInspire([]);
+        setInspireError(
+          "โหลดวิดีโอแนะนำไม่สำเร็จ"
+        );
+      }
+
+    } finally {
+
+      if (!cancelled) {
+        setInspireLoading(false);
+      }
+
+    }
+
+  }
+
+  loadInspiration();
+
+  return () => {
+    cancelled = true;
+  };
+
+}, [preferences]);
+
 const aiModels = [
   {
     id: "gemini" as const,
@@ -11993,27 +12054,45 @@ text-white/80
                   Get inspired for you
                 </h2>
 
-                <div
-                  className={`travel-inspiration-grid grid gap-3 ${exploreOpen
-                    ? "grid-cols-4"
-                    : "grid-cols-3 w-full"
-                    }`}
-                >
-                  {inspire.map((v) => (
-                    <div key={v.id} className="rounded-xl overflow-hidden bg-black">
-                      <iframe
-                        src={v.videoUrl}
-                        className="w-full aspect-[9/16]"
-                        allowFullScreen
+                {inspireLoading ? (
+                  <div className="travel-inspiration-grid grid grid-cols-3 gap-3 w-full">
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="aspect-[9/16] animate-pulse rounded-xl bg-muted"
                       />
+                    ))}
+                  </div>
+                ) : inspireError ? (
+                  <p className="text-sm text-muted-foreground">
+                    {inspireError}
+                  </p>
+                ) : inspire.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    ยังไม่มีวิดีโอแนะนำสำหรับคุณ
+                  </p>
+                ) : (
+                  <div className="travel-inspiration-grid grid grid-cols-3 gap-3 w-full">
+                    {inspire.map((v) => (
+                      <div
+                        key={v.id}
+                        className="rounded-xl overflow-hidden bg-black"
+                      >
+                        <iframe
+                          src={v.videoUrl}
+                          title={v.title}
+                          className="w-full aspect-[9/16]"
+                          allowFullScreen
+                          loading="lazy"
+                        />
 
-                      <div className="p-2 text-white text-sm line-clamp-2">
-                        {v.title}
+                        <div className="p-2 text-white text-sm line-clamp-2">
+                          {v.title}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-
-                </div>
+                    ))}
+                  </div>
+                )}
 
               </section>
             )}
