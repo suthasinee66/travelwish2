@@ -573,6 +573,10 @@ export default function PlaceDetailDrawer({
       event: KeyboardEvent
     ) => {
       if (event.key === "Escape") {
+        if (showPhotoViewer) {
+          setShowPhotoViewer(false);
+          return;
+        }
         onClose();
       }
     };
@@ -591,7 +595,7 @@ export default function PlaceDetailDrawer({
         handleKeyDown
       );
     };
-  }, [open, onClose]);
+  }, [open, onClose, showPhotoViewer]);
 
   const data =
     record ?? target?.data ?? {};
@@ -790,15 +794,7 @@ export default function PlaceDetailDrawer({
           values.push(String(data.type));
         }
 
-        if (
-          hasValue(
-            data?.suitable_duration
-          )
-        ) {
-          values.push(
-            `ใช้เวลาประมาณ ${data.suitable_duration}`
-          );
-        }
+
       }
 
       if (type === "restaurant") {
@@ -1046,20 +1042,20 @@ export default function PlaceDetailDrawer({
           absolute right-0 top-0
           h-[100dvh]
           w-full
-          overflow-y-auto
+          flex flex-col overflow-hidden
           border-l border-[#e7dfea]
           bg-[#fffdfb]
           shadow-[-26px_0_70px_rgba(47,31,56,0.18)]
           transition-transform duration-300 ease-out
           sm:w-[min(920px,94vw)]
           lg:w-[min(930px,64vw)]
-          xl:w-[min(960px,62vw)]
+          xl:w-[61.2vw]
           ${open
             ? "translate-x-0"
             : "translate-x-full"}
         `}
       >
-        <div className="sticky top-0 z-40 flex h-[64px] items-center justify-between border-b border-[#eee7ef] bg-[#fffdfb]/96 px-4 backdrop-blur-xl sm:px-5">
+        <div className="sticky top-0 z-40 flex h-[60px] shrink-0 items-center justify-between border-b border-[#eee7ef] bg-[#fffdfb]/96 px-4 backdrop-blur-xl sm:px-5">
           <button
             type="button"
             onClick={onClose}
@@ -1120,7 +1116,7 @@ export default function PlaceDetailDrawer({
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[930px] px-4 pb-32 pt-5 sm:px-6">
+        <div className="mx-auto min-h-0 w-full flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-5 sm:px-8">
           <section>
             <h1 className="text-[28px] font-bold leading-tight tracking-[-0.03em] text-[#25213f] sm:text-[34px]">
               {title}
@@ -1151,6 +1147,13 @@ export default function PlaceDetailDrawer({
                 </span>
               ))}
 
+              {type === "attraction" && hasValue(data?.suitable_duration) && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ece5ee] bg-[#fbf9fc] px-3 py-1.5 text-xs font-medium text-[#6f6274]">
+                  <Clock3 size={14} />
+                  {cleanText(data.suitable_duration)}
+                </span>
+              )}
+
               {rating != null && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-[#efe5c8] bg-[#fff9e8] px-3 py-1.5 text-xs font-semibold text-[#77591d]">
                   <Star size={13} fill="currentColor" />
@@ -1162,13 +1165,13 @@ export default function PlaceDetailDrawer({
 
           <section className="mt-4">
             {selectedImage ? (
-              <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_118px]">
+              <div className={`grid items-stretch gap-4 ${images.length > 1 ? "lg:grid-cols-[minmax(0,1fr)_140px]" : ""}`}>
                 <div
                   {...swipeProps(
                     changeImage,
                     images.length > 1
                   )}
-                  className="group relative overflow-hidden rounded-[20px] bg-[#eee8ef] shadow-[0_10px_30px_rgba(72,54,80,0.10)] touch-pan-y"
+                  className="group relative min-w-0 overflow-hidden rounded-[20px] bg-[#eee8ef] shadow-[0_10px_30px_rgba(72,54,80,0.10)] touch-pan-y"
                 >
                   <div className="aspect-[16/9] w-full lg:aspect-[16/7.4]">
                     <img
@@ -1221,7 +1224,7 @@ export default function PlaceDetailDrawer({
                     className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-black/60"
                   >
                     <Images size={14} />
-                    ดูรูปภาพ
+                    {title}
                   </button>
 
                   <button
@@ -1238,7 +1241,7 @@ export default function PlaceDetailDrawer({
 
                 {images.length > 1 && (
                   <>
-                    <div className="hidden gap-2 lg:flex lg:flex-col">
+                    <div className="hidden h-full min-h-0 gap-1.5 lg:flex lg:flex-col">
                       {images
                         .slice(0, 4)
                         .map((image, index) => (
@@ -1249,7 +1252,7 @@ export default function PlaceDetailDrawer({
                               setMainImageIndex(index)
                             }
                             className={`
-                              relative h-[64px] overflow-hidden rounded-[12px]
+                              relative min-h-0 flex-1 overflow-hidden rounded-[12px]
                               border-2 bg-[#f3eef4] transition
                               ${mainImageIndex === index
                                 ? "border-[#5B3A61]"
@@ -1258,7 +1261,7 @@ export default function PlaceDetailDrawer({
                           >
                             <img
                               src={image}
-                              alt=""
+                              alt={`รูปที่ ${index + 1} ของ ${title}`}
                               loading="lazy"
                               className="h-full w-full object-cover"
                             />
@@ -1270,7 +1273,7 @@ export default function PlaceDetailDrawer({
                         onClick={() =>
                           setShowPhotoViewer(true)
                         }
-                        className="flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-[12px] bg-[#f6f1f7] px-2 text-[11px] font-semibold text-[#5B3A61] transition hover:bg-[#eee5f0]"
+                        className="flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[12px] bg-[#f6f1f7] px-2 text-[11px] font-semibold text-[#5B3A61] transition hover:bg-[#eee5f0]"
                       >
                         <Plus size={14} />
                         ดูรูปทั้งหมด
@@ -1321,8 +1324,8 @@ export default function PlaceDetailDrawer({
           {type === "attraction" && (
             <section className="mt-4">
               {relatedData.weather ? (
-                <div className="rounded-[20px] bg-gradient-to-r from-[#f2ecff] via-[#f8f1fb] to-[#fff1f3] px-4 py-4 shadow-[0_8px_24px_rgba(91,58,97,0.07)] sm:px-5">
-                  <div className="grid gap-4 sm:grid-cols-[1.05fr_1px_.9fr_1px_1.35fr] sm:items-center">
+                <div className="rounded-[18px] bg-gradient-to-r from-[#f1ebf8] via-[#f2edf8] to-[#f0eaf7] px-4 py-3 shadow-[0_8px_24px_rgba(91,58,97,0.07)] sm:px-5">
+                  <div className="grid gap-4 sm:grid-cols-[1fr_1px_1fr_1px_1.65fr] sm:items-center">
                     <div>
                       <div className="text-sm font-bold text-[#30254b]">
                         สภาพอากาศวันนี้
@@ -1389,7 +1392,7 @@ export default function PlaceDetailDrawer({
 
                     <div className="hidden h-20 bg-[#d8cde0] sm:block" />
 
-                    <div className="rounded-[16px] bg-white/45 px-4 py-3">
+                    <div className="rounded-[16px] border border-[#f5deeb] bg-[#fff1f7]/80 px-4 py-3">
                       <div className="flex items-center gap-2 text-xs font-bold text-[#6d3a72]">
                         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ffe4f0] text-[#c33a82]">
                           <Lightbulb size={16} />
@@ -1420,7 +1423,7 @@ export default function PlaceDetailDrawer({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   {relatedData.similarPlaces
                     .slice(0, 4)
                     .map((place) => {
@@ -1455,7 +1458,7 @@ export default function PlaceDetailDrawer({
                           }
                           className="group overflow-hidden rounded-[16px] border border-[#ece5ee] bg-white text-left shadow-[0_6px_18px_rgba(72,54,80,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(72,54,80,0.10)]"
                         >
-                          <div className="aspect-[16/9] overflow-hidden bg-[#f2edf3]">
+                          <div className="aspect-[2.4/1] overflow-hidden bg-[#f2edf3]">
                             {image ? (
                               <img
                                 src={image}
@@ -1826,13 +1829,13 @@ export default function PlaceDetailDrawer({
         </div>
 
         <div
-          className="sticky bottom-0 z-40 border-t border-[#e9e1ea] bg-[#fffdfb]/96 px-4 pt-2.5 shadow-[0_-10px_30px_rgba(72,54,80,0.08)] backdrop-blur-xl sm:px-5"
+          className="relative z-40 shrink-0 border-t border-[#e9e1ea] bg-[#fffdfb]/96 px-4 pt-2.5 shadow-[0_-10px_30px_rgba(72,54,80,0.08)] backdrop-blur-xl sm:px-5"
           style={{
             paddingBottom:
               "max(10px, env(safe-area-inset-bottom))",
           }}
         >
-          <div className="mx-auto grid w-full max-w-[930px] grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="mx-auto grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
               disabled={
@@ -1852,7 +1855,7 @@ export default function PlaceDetailDrawer({
                   });
                 }
               }}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[16px] bg-[#f4ebf6] px-5 text-sm font-semibold text-[#6e3b74] transition hover:bg-[#ebdef0] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-full bg-[#f4ebf6] px-5 text-sm font-semibold text-[#6e3b74] transition hover:bg-[#ebdef0] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus size={17} />
               เพิ่มสถานที่นี้ลงในทริป
@@ -1863,7 +1866,7 @@ export default function PlaceDetailDrawer({
                 href={mapsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[16px] bg-[#67276b] px-5 text-sm font-semibold text-white shadow-[0_7px_18px_rgba(91,58,97,0.22)] transition hover:bg-[#743479]"
+                className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-full bg-[#5B3A61] px-5 text-sm font-semibold text-white shadow-[0_7px_18px_rgba(91,58,97,0.22)] transition hover:bg-[#743479]"
               >
                 <Navigation size={17} />
                 นำทางด้วย Google Maps
