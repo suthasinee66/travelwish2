@@ -76,6 +76,16 @@
  * ROOT
  * ============================================================
  */
+
+/*
+ * Global typography scale
+ * ลดขนาดตัวอักษรทั้งแอปเล็กน้อย โดยให้ utility ที่อิง rem
+ * เช่น text-sm / text-base / text-lg / text-xl ปรับตามทุกหน้า
+ */
+html {
+  font-size: 15px;
+}
+
 :root {
   --radius: 0.625rem;
 
