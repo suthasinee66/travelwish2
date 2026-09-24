@@ -12067,11 +12067,11 @@ text-white/80
                 </div>
 
                 {inspireLoading ? (
-                  <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="travel-inspiration-grid flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {Array.from({ length: 3 }).map((_, index) => (
                       <div
                         key={index}
-                        className="w-[72%] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[#eee6f0] bg-white p-1.5 shadow-[0_7px_22px_rgba(73,53,82,0.07)] sm:w-[220px] lg:w-[230px]"
+                        className="travel-inspiration-card travel-recommend-card shrink-0 snap-start overflow-hidden rounded-xl border border-[#eee6f0] bg-white shadow-sm"
                       >
                         <div className="aspect-[9/16] animate-pulse rounded-[14px] bg-[#eee9ef]" />
                         <div className="px-2 pb-2 pt-2.5">
@@ -12095,37 +12095,31 @@ text-white/80
                     {inspire.map((v) => (
                       <article
                         key={v.id}
-                        className="group w-[72%] shrink-0 snap-start overflow-hidden rounded-[18px] border border-[#ece4ee] bg-white p-1.5 shadow-[0_7px_22px_rgba(73,53,82,0.07)] transition duration-300 hover:-translate-y-0.5 hover:border-[#dbcce0] hover:shadow-[0_12px_28px_rgba(73,53,82,0.12)] sm:w-[220px] lg:w-[230px]"
+                        className="travel-inspiration-card travel-recommend-card group shrink-0 snap-start overflow-hidden rounded-xl border border-[#ece4ee] bg-white shadow-sm transition hover:shadow-md"
                       >
-                        <div className="relative overflow-hidden rounded-[14px] bg-black">
+                        <div className="relative h-full w-full overflow-hidden bg-black">
                           <iframe
                             src={v.videoUrl}
                             title={v.title}
-                            className="aspect-[9/16] w-full"
+                            className="absolute inset-0 h-full w-full"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
                             loading="lazy"
                           />
 
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/20 to-transparent" />
-                        </div>
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42%] bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
 
-                        <div className="px-2.5 pb-2.5 pt-2.5">
-                          <div className="mb-1.5 flex items-center gap-1.5">
-                            <span className="inline-flex items-center rounded-full bg-[#f4eaf6] px-2 py-1 text-[9px] font-bold text-[#75457a]">
-                              For you
-                            </span>
-
+                          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-3 text-white">
                             {v.channelTitle && (
-                              <span className="min-w-0 truncate text-[9px] font-medium text-[#9a8c9d]">
+                              <p className="mb-1 truncate text-[10px] font-medium text-white/80">
                                 {v.channelTitle}
-                              </span>
+                              </p>
                             )}
-                          </div>
 
-                          <h3 className="line-clamp-2 min-h-[38px] text-[12px] font-bold leading-[19px] text-[#342d41] transition group-hover:text-[#6f456f]">
-                            {v.title}
-                          </h3>
+                            <h3 className="line-clamp-2 text-[12px] font-bold leading-[17px]">
+                              {v.title}
+                            </h3>
+                          </div>
                         </div>
                       </article>
                     ))}
