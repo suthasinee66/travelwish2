@@ -64,6 +64,106 @@ function distanceKm(
     );
 }
 
+function normalizePhysicalPlaceName(
+    value: unknown
+) {
+    return String(value ?? "")
+        .toLowerCase()
+        .normalize("NFKC")
+        .replace(/\s+/g, "")
+        .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+function isSamePhysicalPlace(
+    place: any,
+    restaurant: any
+) {
+    const placeGoogleId =
+        place?.google_place_id ??
+        place?.googlePlaceId ??
+        null;
+
+    const restaurantGoogleId =
+        restaurant?.google_place_id ??
+        restaurant?.googlePlaceId ??
+        null;
+
+    if (
+        placeGoogleId &&
+        restaurantGoogleId &&
+        String(placeGoogleId) ===
+            String(restaurantGoogleId)
+    ) {
+        return true;
+    }
+
+    const placeName =
+        normalizePhysicalPlaceName(
+            place?.name_th ??
+            place?.name_en ??
+            place?.name
+        );
+
+    const restaurantName =
+        normalizePhysicalPlaceName(
+            restaurant?.place_name_th ??
+            restaurant?.restaurant_name_th ??
+            restaurant?.place_name_en ??
+            restaurant?.restaurant_name ??
+            restaurant?.name
+        );
+
+    if (
+        !placeName ||
+        !restaurantName ||
+        placeName !== restaurantName
+    ) {
+        return false;
+    }
+
+    const placeLat =
+        Number(
+            place?.latitude ??
+            place?.lat
+        );
+
+    const placeLng =
+        Number(
+            place?.longitude ??
+            place?.lng
+        );
+
+    const restaurantLat =
+        Number(
+            restaurant?.latitude ??
+            restaurant?.lat
+        );
+
+    const restaurantLng =
+        Number(
+            restaurant?.longitude ??
+            restaurant?.lng
+        );
+
+    if (
+        !Number.isFinite(placeLat) ||
+        !Number.isFinite(placeLng) ||
+        !Number.isFinite(restaurantLat) ||
+        !Number.isFinite(restaurantLng)
+    ) {
+        return false;
+    }
+
+    return (
+        distanceKm(
+            placeLat,
+            placeLng,
+            restaurantLat,
+            restaurantLng
+        ) <= 0.15
+    );
+}
+
 
 /* =========================================================
    NEARBY RESTAURANTS
@@ -122,7 +222,11 @@ function findNearbyRestaurants(
         .filter(
             rest =>
                 Number.isFinite(rest.distance) &&
-                rest.distance < 10
+                rest.distance < 10 &&
+                !isSamePhysicalPlace(
+                    place,
+                    rest
+                )
         )
 
         .sort(
@@ -854,6 +958,15 @@ let selectedRestaurants =
     await loadNearbyRestaurantsFromGoogle(
         tdmcPlace,
         trip.province
+    );
+
+selectedRestaurants =
+    selectedRestaurants.filter(
+        (restaurant: any) =>
+            !isSamePhysicalPlace(
+                tdmcPlace,
+                restaurant
+            )
     );
 
 if (selectedRestaurants.length === 0) {
