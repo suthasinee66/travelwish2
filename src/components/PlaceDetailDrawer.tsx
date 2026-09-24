@@ -103,6 +103,81 @@ function normalizeUrl(value: any) {
   return `https://${url}`;
 }
 
+function formatOpeningTime(
+  value: any
+) {
+  if (!hasValue(value)) {
+    return null;
+  }
+
+  const date = new Date(
+    String(value)
+  );
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(
+    "th-TH",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone:
+        "Asia/Bangkok",
+    }
+  ).format(date);
+}
+
+function getRestaurantOpeningLabel(
+  restaurant: any
+) {
+  const isOpen =
+    restaurant?.open_now;
+
+  const nextClose =
+    formatOpeningTime(
+      restaurant
+        ?.next_close_time
+    );
+
+  const nextOpen =
+    formatOpeningTime(
+      restaurant
+        ?.next_open_time
+    );
+
+  if (isOpen === true) {
+    return nextClose
+      ? `เปิดอยู่ · ปิด ${nextClose}`
+      : "เปิดอยู่";
+  }
+
+  if (isOpen === false) {
+    return nextOpen
+      ? `ปิดอยู่ · เปิด ${nextOpen}`
+      : "ปิดอยู่";
+  }
+
+  const today =
+    Array.isArray(
+      restaurant
+        ?.weekday_descriptions
+    )
+      ? restaurant
+          .weekday_descriptions[0]
+      : null;
+
+  return hasValue(today)
+    ? String(today)
+    : null;
+}
+
 function formatReviewCount(value: any) {
   const count = Number(value);
 
@@ -1696,6 +1771,11 @@ export default function PlaceDetailDrawer({
                               restaurant.distance
                             );
 
+                          const openingLabel =
+                            getRestaurantOpeningLabel(
+                              restaurant
+                            );
+
                           return (
                             <article
                               key={
@@ -1740,6 +1820,21 @@ export default function PlaceDetailDrawer({
                                         ? ` · ${distance.toFixed(1)} กม.`
                                         : ""}
                                     </p>
+
+                                    {openingLabel && (
+                                      <p
+                                        className={`
+                                          mt-1 text-xs font-semibold
+                                          ${restaurant.open_now === true
+                                            ? "text-emerald-600"
+                                            : restaurant.open_now === false
+                                              ? "text-rose-500"
+                                              : "text-[#756977]"}
+                                        `}
+                                      >
+                                        {openingLabel}
+                                      </p>
+                                    )}
                                   </div>
 
                                   {restaurant.rating != null && (
