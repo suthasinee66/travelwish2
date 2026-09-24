@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2,
   ChevronLeft,
@@ -551,6 +551,9 @@ export default function PlaceDetailDrawer({
   const [showPhotoViewer, setShowPhotoViewer] =
     useState(false);
 
+  const drawerRef =
+    useRef<HTMLElement | null>(null);
+
   const swipeProps = useImageSwipe();
 
   useEffect(() => {
@@ -1056,6 +1059,15 @@ export default function PlaceDetailDrawer({
     }
   };
 
+  const scrollDrawerToTop = () => {
+    requestAnimationFrame(() => {
+      drawerRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
+  };
+
   const handleToggleSimilarSaved = async (
     event: React.MouseEvent<HTMLButtonElement>,
     place: any
@@ -1140,6 +1152,7 @@ export default function PlaceDetailDrawer({
     setRecordType("attraction");
     setRecord(place);
     setMainImageIndex(0);
+    scrollDrawerToTop();
     setActiveTab("overview");
     setDescriptionExpanded(false);
     setShowAllRestaurants(false);
@@ -1154,6 +1167,39 @@ export default function PlaceDetailDrawer({
     } catch (error) {
       console.warn(
         "OPEN RELATED ATTRACTION ERROR:",
+        error
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openRelatedRestaurant = async (
+    restaurant: any
+  ) => {
+    const nextTarget: PlaceDetailTarget = {
+      type: "restaurant",
+      data: restaurant,
+    };
+
+    setRecordType("restaurant");
+    setRecord(restaurant);
+    setMainImageIndex(0);
+    setActiveTab("overview");
+    setDescriptionExpanded(false);
+    setShowAllRestaurants(false);
+    setShowAllNearbyPlaces(false);
+    setLoading(true);
+    scrollDrawerToTop();
+
+    try {
+      const fullRecord =
+        await loadFullRecord(nextTarget);
+
+      setRecord(fullRecord);
+    } catch (error) {
+      console.warn(
+        "OPEN RELATED RESTAURANT ERROR:",
         error
       );
     } finally {
@@ -1226,6 +1272,7 @@ export default function PlaceDetailDrawer({
       />
 
       <aside
+        ref={drawerRef}
         role="dialog"
         aria-modal="true"
         aria-label={`รายละเอียด ${title}`}
@@ -1864,10 +1911,29 @@ export default function PlaceDetailDrawer({
                             restaurant.place_id ??
                             restaurant.google_place_id
                           }
+                          onClick={() =>
+                            openRelatedRestaurant(
+                              restaurant
+                            )
+                          }
+                          onKeyDown={(event) => {
+                            if (
+                              event.key === "Enter" ||
+                              event.key === " "
+                            ) {
+                              event.preventDefault();
+                              openRelatedRestaurant(
+                                restaurant
+                              );
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
                           className="
                             mb-2
                             last:mb-0
                             flex
+                            cursor-pointer
                             min-h-[86px]
                             items-center
                             gap-2.5
@@ -1965,6 +2031,9 @@ export default function PlaceDetailDrawer({
                               href={routeUrl}
                               target="_blank"
                               rel="noreferrer"
+                              onClick={(event) =>
+                                event.stopPropagation()
+                              }
                               className="
                                 inline-flex
                                 h-[30px]
@@ -2032,10 +2101,29 @@ export default function PlaceDetailDrawer({
                       return (
                         <article
                           key={place.att_id}
+                          onClick={() =>
+                            openRelatedAttraction(
+                              place
+                            )
+                          }
+                          onKeyDown={(event) => {
+                            if (
+                              event.key === "Enter" ||
+                              event.key === " "
+                            ) {
+                              event.preventDefault();
+                              openRelatedAttraction(
+                                place
+                              );
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
                           className="
                             mb-2
                             last:mb-0
                             flex
+                            cursor-pointer
                             min-h-[86px]
                             items-center
                             gap-2.5
@@ -2046,13 +2134,7 @@ export default function PlaceDetailDrawer({
                             shadow-[0_3px_10px_rgba(72,54,80,0.05)]
                           "
                         >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openRelatedAttraction(place)
-                            }
-                            className="h-[70px] w-[82px] shrink-0 overflow-hidden rounded-[9px] bg-[#f2edf3]"
-                          >
+                          <div className="h-[70px] w-[82px] shrink-0 overflow-hidden rounded-[9px] bg-[#f2edf3]">
                             {image ? (
                               <img
                                 src={image}
@@ -2069,20 +2151,14 @@ export default function PlaceDetailDrawer({
                                 <MapPin size={20} />
                               </div>
                             )}
-                          </button>
+                          </div>
 
                           <div className="min-w-0 flex-1">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openRelatedAttraction(place)
-                              }
-                              className="line-clamp-1 text-left text-[11px] font-bold leading-[14px] text-[#302a49] hover:text-[#6f456f]"
-                            >
+                            <div className="line-clamp-1 text-left text-[11px] font-bold leading-[14px] text-[#302a49] group-hover:text-[#6f456f]">
                               {place.name_th ??
                                 place.name_en ??
                                 "สถานที่ท่องเที่ยว"}
-                            </button>
+                            </div>
 
                             <div className="mt-[3px] flex items-center gap-1 text-[8.5px] font-medium leading-none text-[#75677b]">
                               <MapPin size={9} />
@@ -2111,11 +2187,12 @@ export default function PlaceDetailDrawer({
                           {onAddToTrip && (
                             <button
                               type="button"
-                              onClick={() =>
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 onAddToTrip({
                                   type: "attraction",
                                   data: place,
-                                })
+                                });
                               }
                               className="
                                 inline-flex
