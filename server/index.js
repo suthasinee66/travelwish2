@@ -16,8 +16,6 @@ import resolveAIRestaurantRouter
   from "./api/resolveAIRestaurant.js";
 import resolveAccommodationLinkRouter
   from "./api/resolveAccommodationLink.js";
-import tiktokSearchRouter
-  from "./api/tiktokSearch.js";
 
 
 const app = express();
@@ -54,11 +52,6 @@ app.use(
 app.use(
   "/api",
   resolveAccommodationLinkRouter
-);
-
-app.use(
-  "/api",
-  tiktokSearchRouter
 );
 
 // ============================================
