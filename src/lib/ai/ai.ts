@@ -10,6 +10,18 @@ const API_URL =
         ? "http://localhost:5000"
         : import.meta.env.VITE_API_URL;
 
+async function waitBeforeAIRetry(
+    milliseconds: number
+) {
+    await new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                milliseconds
+            )
+    );
+}
+
 export async function generateWithSelectedModel(
     selectedModel: AIModel,
     prompt: string,
@@ -17,32 +29,91 @@ export async function generateWithSelectedModel(
         responseMode?:
             | "planner_json"
             | "trend_context"
+            | "accommodation_json"
             | "markdown";
     }
 ): Promise<string> {
 
-    const response = await fetch(
-        `${API_URL}/api/ai`,
-        {
-            method: "POST",
+    let response:
+        Response | null =
+        null;
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+    const retryDelays =
+        [0, 1200, 2800];
 
-            body: JSON.stringify({
-                model: selectedModel,
-                prompt,
-                responseMode:
-                    options?.responseMode ?? null
-            })
+    for (
+        let attempt = 0;
+        attempt <
+        retryDelays.length;
+        attempt += 1
+    ) {
+        const delay =
+            retryDelays[
+                attempt
+            ];
+
+        if (delay > 0) {
+            console.warn(
+                `⏳ AI 429 retry ${attempt}/${retryDelays.length - 1} in ${delay}ms`
+            );
+
+            await waitBeforeAIRetry(
+                delay
+            );
         }
-    );
 
-    if (!response.ok) {
+        response =
+            await fetch(
+                `${API_URL}/api/ai`,
+                {
+                    method: "POST",
 
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            model:
+                                selectedModel,
+
+                            prompt,
+
+                            responseMode:
+                                options
+                                    ?.responseMode ??
+                                null
+                        })
+                }
+            );
+
+        if (
+            response.status !==
+            429
+        ) {
+            break;
+        }
+
+        const retryError =
+            await response
+                .clone()
+                .text();
+
+        console.warn(
+            "⚠️ AI RATE LIMITED:",
+            retryError
+        );
+    }
+
+    if (
+        !response ||
+        !response.ok
+    ) {
         const error =
-            await response.text();
+            response
+                ? await response.text()
+                : "No AI response";
 
         console.error(
             "AI Server Error:",
@@ -50,7 +121,9 @@ export async function generateWithSelectedModel(
         );
 
         throw new Error(
-            "AI server error"
+            response?.status === 429
+                ? "AI server rate limited after retries"
+                : "AI server error"
         );
     }
 
@@ -66,7 +139,8 @@ export async function generateWithSelectedModel(
     if (
         (
             options?.responseMode === "planner_json" ||
-            options?.responseMode === "trend_context"
+            options?.responseMode === "trend_context" ||
+            options?.responseMode === "accommodation_json"
         ) &&
         data.finish_reason &&
         !["stop", "tool_calls"].includes(
