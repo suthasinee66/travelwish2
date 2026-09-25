@@ -66,18 +66,101 @@ function hasValidCoordinates(
   );
 }
 
-function hasCompleteGoogleSnapshot(
+function hasRestaurantOpeningHours(
   value: any
 ) {
+  const openingHours =
+    value?.google_opening_hours;
+
+  if (!openingHours) {
+    return false;
+  }
+
+  const regular =
+    openingHours?.regular ??
+    openingHours;
+
+  const current =
+    openingHours?.current;
+
   return Boolean(
-    value?.google_place_id &&
-    value?.google_last_synced_at &&
-    value?.google_place_data &&
+    (
+      Array.isArray(
+        regular?.weekdayDescriptions
+      ) &&
+      regular.weekdayDescriptions
+        .length > 0
+    ) ||
+    (
+      Array.isArray(
+        current?.weekdayDescriptions
+      ) &&
+      current.weekdayDescriptions
+        .length > 0
+    ) ||
+    Array.isArray(
+      regular?.periods
+    ) ||
+    Array.isArray(
+      current?.periods
+    )
+  );
+}
+
+function hasRestaurantDetailDisplayData(
+  value: any
+) {
+  const hasName =
+    Boolean(
+      value?.place_name_th ??
+      value?.place_name_en
+    );
+
+  const hasType =
+    Boolean(
+      value?.place_type ??
+      value?.google_primary_type
+    );
+
+  return Boolean(
+    hasName &&
+    value?.place_address &&
     hasValidCoordinates(value) &&
     hasUsefulImages(
       value?.images
+    ) &&
+    value?.google_place_id &&
+    value?.google_maps_uri &&
+    hasType &&
+    value?.rating != null &&
+    value?.user_ratings_total != null &&
+    hasRestaurantOpeningHours(
+      value
     )
   );
+}
+
+function restaurantNeedsDetailFetch(
+  value: any
+) {
+  if (
+    hasRestaurantDetailDisplayData(
+      value
+    )
+  ) {
+    return false;
+  }
+
+  // เคยเรียก Google Detail แล้วและบันทึก snapshot ล่าสุดไว้แล้ว
+  // ถ้าบาง field ไม่มีจาก Google จริง ๆ จะไม่ยิงซ้ำทุกครั้งที่เปิด
+  if (
+    value?.google_last_synced_at &&
+    value?.google_place_data
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 async function enrichPlaceDetailIfNeeded(
@@ -85,8 +168,9 @@ async function enrichPlaceDetailIfNeeded(
   existing: any
 ) {
   if (
+    target.type !== "restaurant" ||
     !API_URL ||
-    hasCompleteGoogleSnapshot(
+    !restaurantNeedsDetailFetch(
       existing
     )
   ) {
@@ -806,7 +890,8 @@ export default function PlaceDetailDrawer({
         setRecord(data);
 
         if (
-          hasCompleteGoogleSnapshot(
+          target.type !== "restaurant" ||
+          !restaurantNeedsDetailFetch(
             data
           )
         ) {
