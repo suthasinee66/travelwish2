@@ -2698,6 +2698,85 @@ const [selectedHotel, setSelectedHotel] = useState<any | null>(
     : null
 );
 
+useEffect(() => {
+  const accommodation =
+    tripInput?.accommodation;
+
+  if (!accommodation) {
+    setSelectedHotel(
+      null
+    );
+    return;
+  }
+
+  const nextHotel = {
+    acc_id:
+      accommodation.id,
+
+    acc_name_th:
+      accommodation.name,
+
+    acc_address:
+      accommodation.address,
+
+    latitude:
+      accommodation.latitude,
+
+    longitude:
+      accommodation.longitude,
+
+    images:
+      Array.isArray(
+        accommodation.images
+      )
+        ? accommodation.images
+        : [],
+
+    source:
+      accommodation.source ??
+      "travelwish",
+
+    source_url:
+      accommodation.source_url ??
+      null,
+
+    booking_provider:
+      accommodation.booking_provider ??
+      null,
+
+    locked:
+      accommodation.locked ??
+      false,
+
+    google_place_id:
+      accommodation.google_place_id ??
+      null,
+
+    rating:
+      accommodation.rating ??
+      null,
+
+    user_ratings_total:
+      accommodation.user_ratings_total ??
+      null,
+  };
+
+  console.log(
+    "🏨 SYNC AI/SESSION ACCOMMODATION:",
+    nextHotel
+  );
+
+  setSelectedHotel(
+    nextHotel
+  );
+}, [
+  tripInput?.accommodation?.id,
+  tripInput?.accommodation?.name,
+  tripInput?.accommodation?.latitude,
+  tripInput?.accommodation?.longitude,
+  tripInput?.accommodation?.source,
+]);
+
 const selectedHotelRouteStop =
   selectedHotel &&
   Number.isFinite(
