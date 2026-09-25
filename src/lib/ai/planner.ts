@@ -1673,11 +1673,31 @@ ${JSON.stringify(combinedCandidatePool)}
       "source": "tdmc",
       "place_id": "attraction.id จาก candidate pool",
       "place_name": "ชื่อสถานที่",
+      "place_duration_minutes": 120,
+      "place_activities": [
+        "เดินชมบริเวณ",
+        "ถ่ายรูปวิว",
+        "ชมจุดเด่นของสถานที่"
+      ],
+      "place_activity_summary": "เดินชม ถ่ายรูป และสัมผัสจุดเด่นของสถานที่",
+      "place_notes": "เหมาะกับช่วงเช้าและควรเผื่อเวลาพัก",
+      "place_time_constraint": "flexible",
+      "place_fixed_start_time": null,
       "proposed_place_key": null,
       "fallback_place_id": null,
       "restaurant_source": "database",
       "restaurant_id": "...",
       "restaurant_name": "...",
+      "restaurant_period": "Lunch",
+      "restaurant_duration_minutes": 75,
+      "restaurant_activities": [
+        "รับประทานอาหาร",
+        "ลองเมนูที่เข้ากับ food lifestyle"
+      ],
+      "restaurant_activity_summary": "พักรับประทานอาหารและลองเมนูที่เหมาะกับผู้ใช้",
+      "restaurant_notes": "เผื่อเวลาสั่งอาหารและพักก่อนเดินทางต่อ",
+      "restaurant_time_constraint": "flexible",
+      "restaurant_fixed_start_time": null,
       "proposed_restaurant_key": null
     },
     {
@@ -1687,15 +1707,70 @@ ${JSON.stringify(combinedCandidatePool)}
       "source": "ai_discovery",
       "place_id": "attraction.id จาก AI Discovery candidate",
       "place_name": "ชื่อสถานที่จาก AI Discovery",
+      "place_duration_minutes": 90,
+      "place_activities": [
+        "ทำกิจกรรมหลักของสถานที่",
+        "ถ่ายรูปหรือชมวิว"
+      ],
+      "place_activity_summary": "ทำกิจกรรมหลักและใช้เวลาสำรวจสถานที่",
+      "place_notes": "เวลาเป็นระยะเวลาโดยประมาณ ไม่ใช่เวลานาฬิกาที่ fix",
+      "place_time_constraint": "flexible",
+      "place_fixed_start_time": null,
       "proposed_place_key": null,
       "fallback_place_id": null,
       "restaurant_source": "ai_external",
       "restaurant_id": null,
       "restaurant_name": "ชื่อร้านอาหารใหม่",
+      "restaurant_period": "Dinner",
+      "restaurant_duration_minutes": 90,
+      "restaurant_activities": [
+        "รับประทานอาหาร"
+      ],
+      "restaurant_activity_summary": "รับประทานอาหารและพักก่อนจบช่วงเที่ยว",
+      "restaurant_notes": "ระยะเวลาโดยประมาณ",
+      "restaurant_time_constraint": "flexible",
+      "restaurant_fixed_start_time": null,
       "proposed_restaurant_key": "new-restaurant-1"
     }
   ]
 }
+
+==================================================
+6.1 ACTIVITY / DURATION RULES
+==================================================
+
+สำหรับ selectedPlaces ทุกจุด ต้องสร้างข้อมูลกิจกรรมตั้งแต่รอบสร้างแผนครั้งแรก
+เพื่อให้ระบบสามารถนำข้อมูลเดิมไปใช้หลัง Drag & Drop และตอน Export โดยไม่ต้องเรียก AI ใหม่
+
+กฎสำคัญ:
+- ห้ามกำหนดเวลาแบบ 08:00-10:00 ให้สถานที่ทั่วไป
+- ให้กำหนดเป็น "ระยะเวลา" ด้วย duration_minutes แทน
+- period เป็นช่วงเวลาแบบหลวม เช่น Morning / Lunch / Afternoon / Evening / Dinner
+- duration_minutes ต้องเป็นจำนวนเต็มนาที
+- ใช้ suitable_duration, activity, highlight, detail_th และประเภทสถานที่เป็นข้อมูลตั้งต้น
+- ถ้ามี suitable_duration ให้ยึดข้อมูลนั้นเป็นหลัก
+- ถ้าไม่มี ให้ประเมินระยะเวลาที่สมเหตุสมผล
+- place_activities ต้องเป็นกิจกรรมที่ทำได้จริงในสถานที่นั้น 1-4 ข้อ
+- place_activity_summary เป็นข้อความสั้นสำหรับแสดงในการ์ด/Export
+- place_notes เป็นคำแนะนำสั้น ๆ ที่ยังใช้ได้แม้ลำดับ route เปลี่ยน
+- ห้ามใส่ข้อเท็จจริงเฉพาะ เช่น ราคา/เวลาเปิดปิด หากไม่มีข้อมูลรองรับ
+
+time constraint:
+- ปกติใช้ place_time_constraint = "flexible"
+- place_fixed_start_time = null
+- ใช้ "fixed" เฉพาะเมื่อข้อมูลที่ได้รับระบุเวลาจริงที่จำเป็นต้องยึด เช่น รอบโชว์ รถไฟ เที่ยวบิน หรือการจองที่มีเวลา
+- ห้ามเดา fixed time
+
+สำหรับร้านอาหาร:
+- restaurant_duration_minutes เป็นระยะเวลาที่คาดว่าจะใช้กับมื้อนั้น
+- restaurant_period แยกจาก period ของ attraction ได้ เช่น Lunch หรือ Dinner
+- restaurant_activities / restaurant_activity_summary อธิบายประสบการณ์อาหารแบบสั้น
+- restaurant_notes เก็บคำแนะนำที่ไม่ผูกกับเวลานาฬิกา
+- restaurant_time_constraint = "flexible" และ restaurant_fixed_start_time = null เป็นค่าเริ่มต้น
+- ใช้ fixed เฉพาะเมื่อมีข้อมูลการจองหรือเวลาที่ผู้ใช้ยืนยันจริง
+
+ข้อมูลเหล่านี้ต้องคงอยู่กับ item เดิมแม้ระบบเปลี่ยนลำดับ route
+start_time / end_time ไม่ต้องสร้างใน AI รอบนี้ ระบบจะคำนวณภายหลังจาก route และ travel time
 
 ==================================================
 7. SELECTED PLACES RULES
@@ -1917,8 +1992,164 @@ const selectedFromPool =
             }
         );
 
+const clampDurationMinutes = (
+    value: unknown,
+    fallback: number
+) => {
+    const numeric =
+        Number(value);
+
+    if (
+        !Number.isFinite(numeric) ||
+        numeric <= 0
+    ) {
+        return fallback;
+    }
+
+    return Math.min(
+        480,
+        Math.max(
+            20,
+            Math.round(numeric)
+        )
+    );
+};
+
+const normalizeStringArray = (
+    value: unknown
+) =>
+    Array.isArray(value)
+        ? value
+            .map(item =>
+                String(item ?? "").trim()
+            )
+            .filter(Boolean)
+            .slice(0, 6)
+        : [];
+
+const selectedWithActivityMetadata =
+    selectedFromPool.map(
+        (item: any) => ({
+            ...item,
+
+            place_duration_minutes:
+                clampDurationMinutes(
+                    item.place_duration_minutes,
+                    90
+                ),
+
+            place_activities:
+                normalizeStringArray(
+                    item.place_activities
+                ),
+
+            place_activity_summary:
+                String(
+                    item.place_activity_summary ??
+                    ""
+                ).trim() ||
+                null,
+
+            place_notes:
+                String(
+                    item.place_notes ??
+                    ""
+                ).trim() ||
+                null,
+
+            place_time_constraint:
+                item.place_time_constraint ===
+                    "fixed"
+                    ? "fixed"
+                    : "flexible",
+
+            place_fixed_start_time:
+                item.place_time_constraint ===
+                    "fixed" &&
+                item.place_fixed_start_time
+                    ? String(
+                        item.place_fixed_start_time
+                    )
+                    : null,
+
+            restaurant_period:
+                item.restaurant_id ||
+                item.proposed_restaurant_key
+                    ? (
+                        item.restaurant_period ??
+                        "Lunch"
+                    )
+                    : null,
+
+            restaurant_duration_minutes:
+                item.restaurant_id ||
+                item.proposed_restaurant_key
+                    ? clampDurationMinutes(
+                        item.restaurant_duration_minutes,
+                        75
+                    )
+                    : null,
+
+            restaurant_activities:
+                item.restaurant_id ||
+                item.proposed_restaurant_key
+                    ? normalizeStringArray(
+                        item.restaurant_activities
+                    )
+                    : [],
+
+            restaurant_activity_summary:
+                item.restaurant_id ||
+                item.proposed_restaurant_key
+                    ? (
+                        String(
+                            item.restaurant_activity_summary ??
+                            ""
+                        ).trim() ||
+                        null
+                    )
+                    : null,
+
+            restaurant_notes:
+                item.restaurant_id ||
+                item.proposed_restaurant_key
+                    ? (
+                        String(
+                            item.restaurant_notes ??
+                            ""
+                        ).trim() ||
+                        null
+                    )
+                    : null,
+
+            restaurant_time_constraint:
+                item.restaurant_id ||
+                item.proposed_restaurant_key
+                    ? (
+                        item.restaurant_time_constraint ===
+                            "fixed"
+                            ? "fixed"
+                            : "flexible"
+                    )
+                    : null,
+
+            restaurant_fixed_start_time:
+                (
+                    item.restaurant_id ||
+                    item.proposed_restaurant_key
+                ) &&
+                item.restaurant_time_constraint ===
+                    "fixed" &&
+                item.restaurant_fixed_start_time
+                    ? String(
+                        item.restaurant_fixed_start_time
+                    )
+                    : null
+        })
+    );
+
 const algorithmFirstSelectedPlaces =
-    selectedFromPool;
+    selectedWithActivityMetadata;
 
 const resolvedAIRestaurants =
     await resolveAIProposedRestaurants(
