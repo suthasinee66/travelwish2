@@ -11,8 +11,14 @@ import {
 
 import { supabase } from "@/lib/supabase";
 import Sidebar from "@/components/Sidebar";
+import PlaceDetailDrawer, {
+  type PlaceDetailTarget,
+} from "@/components/PlaceDetailDrawer";
 import { TripPlanPanel } from "./home";
-import { ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+} from "lucide-react";
 
 export const Route = createFileRoute(
   "/trips_detail/$tripId"
@@ -68,6 +74,12 @@ function TripsDetail() {
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | "all">("all");
   const [liveRoutesByDay, setLiveRoutesByDay] = useState<Record<number, any[]> | null>(null);
+  const [
+    placeDetailTarget,
+    setPlaceDetailTarget,
+  ] = useState<PlaceDetailTarget | null>(
+    null
+  );
   // =========================================================
   // LOAD TRIP
   // =========================================================
@@ -497,10 +509,10 @@ const mapCenter = useMemo(() => {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <p className="text-gray-500">
-          Loading trip...
-        </p>
+      <div className="travel-home flex h-screen items-center justify-center bg-background">
+        <div className="rounded-3xl border border-white/80 bg-white/70 px-7 py-5 text-sm font-medium text-[#7f7185] shadow-[0_18px_42px_rgba(91,72,117,0.10)] backdrop-blur-xl">
+          กำลังโหลดทริป...
+        </div>
       </div>
     );
   }
@@ -511,28 +523,27 @@ const mapCenter = useMemo(() => {
 
   if (!trip) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background">
-        <p className="text-gray-500">
-          ไม่พบข้อมูลทริป
-        </p>
+      <div className="travel-home flex h-screen items-center justify-center bg-background px-4">
+        <div className="w-full max-w-sm rounded-3xl border border-white/80 bg-white/75 p-7 text-center shadow-[0_18px_42px_rgba(91,72,117,0.10)] backdrop-blur-xl">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f3eaf5] text-[#6f456f]">
+            <MapPin size={20} />
+          </div>
 
-        <button
-          onClick={() =>
-            navigate({
-              to: "/trips",
-            })
-          }
-          className="
-            px-5
-            py-2
-            rounded-full
-            bg-black
-            text-white
-            hover:opacity-90
-          "
-        >
-          กลับไปหน้า Trips
-        </button>
+          <h2 className="mt-4 text-lg font-bold text-[#40364b]">
+            ไม่พบข้อมูลทริป
+          </h2>
+
+          <button
+            onClick={() =>
+              navigate({
+                to: "/trips",
+              })
+            }
+            className="mt-5 inline-flex min-h-11 items-center justify-center rounded-2xl bg-[#573d63] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(87,61,99,0.18)] transition hover:bg-[#684974]"
+          >
+            กลับไปหน้า Trips
+          </button>
+        </div>
       </div>
     );
   }
@@ -617,6 +628,18 @@ const mapCenter = useMemo(() => {
         }}
       />
 
+      <PlaceDetailDrawer
+        open={Boolean(
+          placeDetailTarget
+        )}
+        target={placeDetailTarget}
+        onClose={() =>
+          setPlaceDetailTarget(
+            null
+          )
+        }
+      />
+
       {/* =====================================================
           CENTER
           Google Map แทนพื้นที่ Chat AI
@@ -635,58 +658,48 @@ const mapCenter = useMemo(() => {
         "
       >
 {/* Header */}
-<div
-  className="
-    travel-detail-header
-    relative
-    flex
-    items-center
-    justify-center
-    pt-6
-    mb-8
-    px-6
-  "
->
-  {/* Back */}
+<header className="travel-header travel-detail-header relative flex items-center px-6">
   <button
+    type="button"
     onClick={() =>
       navigate({
         to: "/trips",
       })
     }
-    className="
-      absolute
-      left-6
-      w-10
-      h-10
-      rounded-full
-      flex
-      items-center
-      justify-center
-      hover:bg-gray-100
-      transition
-    "
+    className="absolute left-6 flex h-10 w-10 items-center justify-center rounded-xl border border-[#e5dbe8] bg-[#fffdfb] text-[#573d63] shadow-[0_5px_14px_rgba(87,61,99,0.06)] transition hover:bg-[#f3eaf5] active:scale-95"
+    aria-label="กลับไปหน้า Trips"
   >
-    <ArrowLeft size={22} />
+    <ArrowLeft size={19} />
   </button>
 
-  {/* Title */}
-  <h1
-    className="
-      font-semibold
-      text-xl
-      truncate
-      max-w-[70%]
-    "
-  >
-    {trip.title}
-  </h1>
-</div>
+  <div className="mx-auto min-w-0 max-w-[72%] text-center">
+    <h1 className="truncate text-xl font-bold text-[#40364b]">
+      {trip.title}
+    </h1>
+
+    <div className="mt-1 flex items-center justify-center gap-2 text-[11px] font-medium text-[#85798a]">
+      {trip.destination && (
+        <span className="truncate">
+          {trip.destination}
+        </span>
+      )}
+
+      {trip.trip_days?.length > 0 && (
+        <>
+          <span className="h-1 w-1 rounded-full bg-[#b89bcb]" />
+          <span>
+            {trip.trip_days.length} วัน
+          </span>
+        </>
+      )}
+    </div>
+  </div>
+</header>
 
         {/* ---------------------------------------------------
             MAP
         --------------------------------------------------- */}
-<div className="w-full h-full rounded-3xl overflow-hidden relative">
+<div className="relative mx-5 mb-5 min-h-0 flex-1 overflow-hidden rounded-3xl border border-white/80 bg-white/55 shadow-[0_18px_42px_rgba(91,72,117,0.10)]">
   <APIProvider
     apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
     libraries={["geometry"]}
@@ -717,18 +730,19 @@ const mapCenter = useMemo(() => {
             >
               <div
                 className="
-                  w-9
-                  h-9
-                  rounded-full
-                  bg-[#573d63]
-                  text-white
                   flex
+                  h-9
+                  w-9
                   items-center
                   justify-center
-                  font-bold
-                  shadow-lg
+                  rounded-full
                   border-2
                   border-white
+                  bg-[#573d63]
+                  text-xs
+                  font-bold
+                  text-white
+                  shadow-[0_8px_18px_rgba(87,61,99,0.24)]
                 "
               >
                 {item.mapIndex}
@@ -741,33 +755,19 @@ const mapCenter = useMemo(() => {
   </APIProvider>
 
   {/* Map information overlay */}
-  <div
-    className="
-      absolute
-      top-5
-      left-5
-      bg-white/95
-      backdrop-blur
-      rounded-2xl
-      shadow-lg
-      border
-      px-5
-      py-4
-    "
-  >
-    <p className="text-sm text-gray-500">
-      Trip
+  <div className="absolute left-4 top-4 max-w-[calc(100%-2rem)] rounded-2xl border border-white/80 bg-[#fffdfb]/92 px-4 py-3 shadow-[0_12px_28px_rgba(91,72,117,0.12)] backdrop-blur-xl">
+    <div className="mb-1 h-1 w-12 rounded-full bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8]" />
+
+    <p className="truncate text-sm font-bold text-[#40364b]">
+      {trip.destination ||
+        trip.title}
     </p>
 
-    <p className="font-semibold">
-      {trip.destination || trip.title}
+    <p className="mt-1 text-[11px] font-medium text-[#85798a]">
+      {selectedDay === "all"
+        ? `${mapPlaces.length} จุด · ทุกวัน`
+        : `Day ${selectedDay} · ${selectedDayPlaces.length} จุด`}
     </p>
-
-    <p className="text-xs text-gray-500 mt-1">
-  {selectedDay === "all"
-    ? `${mapPlaces.length} จุด`
-    : `Day ${selectedDay} · ${selectedDayPlaces.length} จุด`}
-</p>
   </div>
 </div>
 
@@ -780,21 +780,22 @@ const mapCenter = useMemo(() => {
 
       <aside
         className="
+          travel-right-panel
           fixed
-          top-0
           right-0
+          top-0
+          z-50
           h-screen
           w-[600px]
-          bg-background
-          border-l
-          shadow-2xl
-          z-50
           overflow-hidden
+          border-l
+          bg-background
+          shadow-2xl
         "
       >
-
         <div
           className="
+            travel-panel-content
             h-full
             overflow-y-auto
             p-5
@@ -828,6 +829,11 @@ const mapCenter = useMemo(() => {
   }}
   onDayChange={(day) => {
     setSelectedDay(day);
+  }}
+  onOpenPlaceDetail={(target) => {
+    setPlaceDetailTarget(
+      target
+    );
   }}
 />
 
