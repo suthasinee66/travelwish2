@@ -1182,297 +1182,224 @@ const mapCenter = useMemo(() => {
         )
         .join("");
 
+
+    const periodTimeLabels: Record<
+      string,
+      string
+    > = {
+      Morning: "MORNING",
+      Lunch: "LUNCH",
+      Afternoon: "AFTERNOON",
+      Evening: "EVENING",
+      Dinner: "DINNER",
+    };
+
+    const templateDayCards =
+      currentItems
+        .map(
+          (
+            dayData,
+            dayIndex
+          ) => {
+            const firstImage =
+              dayData.items
+                .flatMap(
+                  (item: any) =>
+                    Array.isArray(
+                      item?.images
+                    )
+                      ? item.images
+                      : Array.isArray(
+                          item?.place_data
+                            ?.images
+                        )
+                        ? item.place_data
+                            .images
+                        : []
+                )
+                .find(
+                  (
+                    image: unknown
+                  ): image is string =>
+                    typeof image ===
+                      "string" &&
+                    image.trim().length >
+                      0
+                ) ??
+              coverImages[
+                dayIndex %
+                Math.max(
+                  coverImages.length,
+                  1
+                )
+              ] ??
+              null;
+
+            const rows =
+              dayData.items
+                .map(
+                  (
+                    item: any,
+                    index: number
+                  ) => {
+                    const name =
+                      item?.name ??
+                      item?.place_name ??
+                      item?.place_name_th ??
+                      item?.restaurant_name ??
+                      item?.restaurant_name_th ??
+                      item?.place_data
+                        ?.name_th ??
+                      item?.place_data
+                        ?.place_name_th ??
+                      "สถานที่";
+
+                    const isRestaurant =
+                      item?.type ===
+                        "restaurant" ||
+                      Boolean(
+                        item
+                          ?.restaurant_id
+                      );
+
+                    const period =
+                      item?.period ??
+                      item?.time_period ??
+                      null;
+
+                    const timeLabel =
+                      period
+                        ? (
+                            periodTimeLabels[
+                              String(
+                                period
+                              )
+                            ] ??
+                            String(period)
+                          )
+                        : "STOP " +
+                          (index + 1);
+
+                    const lat =
+                      Number(
+                        item?.location
+                          ?.latitude ??
+                        item?.latitude
+                      );
+
+                    const lng =
+                      Number(
+                        item?.location
+                          ?.longitude ??
+                        item?.longitude
+                      );
+
+                    const note =
+                      isRestaurant
+                        ? "ร้านอาหาร"
+                        : (
+                            Number.isFinite(
+                              lat
+                            ) &&
+                            Number.isFinite(
+                              lng
+                            )
+                          )
+                          ? lat.toFixed(
+                              4
+                            ) +
+                            ", " +
+                            lng.toFixed(
+                              4
+                            )
+                          : (
+                              item
+                                ?.province ??
+                              trip
+                                .destination ??
+                              "สถานที่ท่องเที่ยว"
+                            );
+
+                    return (
+                      '<tr>' +
+                      '<td class="time-cell">' +
+                      escapeHtml(
+                        timeLabel
+                      ) +
+                      "</td>" +
+                      '<td class="activity-cell">' +
+                      escapeHtml(
+                        name
+                      ) +
+                      "</td>" +
+                      '<td class="notes-cell">' +
+                      escapeHtml(
+                        note
+                      ) +
+                      "</td>" +
+                      "</tr>"
+                    );
+                  }
+                )
+                .join("");
+
+            return (
+              '<section class="template-day-card">' +
+              '<div class="template-day-image">' +
+              (
+                firstImage
+                  ? '<img src="' +
+                    escapeHtml(
+                      firstImage
+                    ) +
+                    '" alt="" />'
+                  : '<div class="template-day-placeholder">✈</div>'
+              ) +
+              '<div class="template-day-badge"><span>DAY</span><strong>' +
+              String(
+                dayData.day
+              ).padStart(
+                2,
+                "0"
+              ) +
+              "</strong></div>" +
+              "</div>" +
+              '<div class="template-day-table-wrap">' +
+              '<table class="template-day-table">' +
+              "<thead><tr>" +
+              "<th>TIME:</th>" +
+              "<th>ACTIVITY:</th>" +
+              "<th>NOTES:</th>" +
+              "</tr></thead>" +
+              "<tbody>" +
+              rows +
+              "</tbody>" +
+              "</table>" +
+              "</div>" +
+              "</section>"
+            );
+          }
+        )
+        .join("");
+
     const html = `
 <!doctype html>
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(
-    trip.title ??
-    "TravelWish Trip"
-  )}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(trip.title ?? "TravelWish Trip")}</title>
   <style>
-    @page {
-      size: A4;
-      margin: 14mm;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
+    @page { size: A4 portrait; margin: 8mm; }
+    * { box-sizing: border-box; }
+    html { background: #a5a7ab; }
     body {
       margin: 0;
-      font-family:
-        "Noto Sans Thai",
-        "Segoe UI",
-        Tahoma,
-        sans-serif;
-      color: #30283a;
-      background: #f7f2f8;
+      font-family: "Noto Sans Thai", "Segoe UI", Tahoma, Arial, sans-serif;
+      color: #102f66;
+      background: #a5a7ab;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-    }
-
-    .page {
-      max-width: 860px;
-      margin: 0 auto;
-      background: white;
-      min-height: 100vh;
-    }
-
-    .hero {
-      padding: 34px 34px 28px;
-      border-radius: 28px;
-      background:
-        linear-gradient(
-          135deg,
-          #5b3a61 0%,
-          #76527d 55%,
-          #a077a6 100%
-        );
-      color: white;
-      margin-bottom: 22px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero:after {
-      content: "";
-      position: absolute;
-      width: 210px;
-      height: 210px;
-      border-radius: 999px;
-      right: -70px;
-      top: -80px;
-      background:
-        rgba(255,255,255,.10);
-    }
-
-    .eyebrow {
-      font-size: 11px;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      opacity: .82;
-      font-weight: 700;
-    }
-
-    .title {
-      margin-top: 8px;
-      font-size: 30px;
-      line-height: 1.25;
-      font-weight: 800;
-    }
-
-    .destination {
-      margin-top: 8px;
-      font-size: 14px;
-      opacity: .92;
-    }
-
-    .meta-grid {
-      display: grid;
-      grid-template-columns:
-        repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 22px;
-    }
-
-    .meta-card {
-      padding: 12px 14px;
-      border-radius: 15px;
-      background:
-        rgba(255,255,255,.12);
-      border:
-        1px solid
-        rgba(255,255,255,.16);
-    }
-
-    .meta-label {
-      font-size: 9px;
-      opacity: .75;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-
-    .meta-value {
-      margin-top: 3px;
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .hotel {
-      margin-bottom: 24px;
-      padding: 16px 18px;
-      border-radius: 20px;
-      background: #faf7fb;
-      border: 1px solid #e9dfeb;
-    }
-
-    .hotel-label {
-      font-size: 10px;
-      font-weight: 700;
-      color: #8f7994;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-    }
-
-    .hotel-name {
-      margin-top: 4px;
-      font-size: 16px;
-      font-weight: 800;
-      color: #4c3652;
-    }
-
-    .hotel-address {
-      margin-top: 4px;
-      font-size: 11px;
-      color: #76697a;
-      line-height: 1.6;
-    }
-
-    .day-section {
-      break-inside: avoid;
-      page-break-inside: avoid;
-      margin-bottom: 26px;
-      border: 1px solid #eee6f0;
-      border-radius: 22px;
-      padding: 18px;
-      background: #fff;
-    }
-
-    .day-heading {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #eee8ef;
-    }
-
-    .day-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 999px;
-      flex: 0 0 auto;
-    }
-
-    .day-title {
-      font-size: 17px;
-      font-weight: 800;
-      line-height: 1.2;
-    }
-
-    .day-subtitle {
-      margin-top: 2px;
-      font-size: 11px;
-      color: #8a7d8e;
-    }
-
-    .timeline {
-      margin-top: 4px;
-    }
-
-    .stop {
-      display: grid;
-      grid-template-columns:
-        34px 72px minmax(0,1fr);
-      gap: 12px;
-      align-items: center;
-      padding: 13px 0;
-      border-bottom:
-        1px solid #f0ebf1;
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-
-    .stop:last-child {
-      border-bottom: 0;
-    }
-
-    .stop-number {
-      width: 30px;
-      height: 30px;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-      box-shadow:
-        0 4px 10px
-        rgba(67,48,75,.12);
-    }
-
-    .stop-image {
-      width: 72px;
-      height: 56px;
-      overflow: hidden;
-      border-radius: 12px;
-      background: #f2edf3;
-    }
-
-    .stop-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .image-placeholder {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
-
-    .stop-topline {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      margin-bottom: 3px;
-    }
-
-    .stop-type,
-    .period {
-      font-size: 9px;
-      font-weight: 700;
-      color: #806985;
-    }
-
-    .period {
-      padding: 2px 7px;
-      border-radius: 999px;
-      background: #f4edf6;
-    }
-
-    .stop-name {
-      font-size: 13px;
-      font-weight: 800;
-      line-height: 1.45;
-      color: #3d3143;
-    }
-
-    .coords {
-      margin-top: 3px;
-      font-size: 9px;
-      color: #9a8e9d;
-    }
-
-    .footer {
-      margin-top: 28px;
-      padding: 15px 0 4px;
-      border-top: 1px solid #eee8ef;
-      color: #9a8e9d;
-      font-size: 9px;
-      text-align: center;
-    }
-
-
-    @page {
-      size: A4 portrait;
-      margin: 8mm;
     }
 
     .export-toolbar {
@@ -1484,566 +1411,210 @@ const mapCenter = useMemo(() => {
       justify-content: space-between;
       gap: 16px;
       padding: 12px 18px;
-      background: rgba(38, 30, 40, 0.96);
+      background: rgba(16,47,102,.97);
       color: white;
-      box-shadow: 0 10px 30px rgba(34, 24, 36, 0.18);
-      backdrop-filter: blur(18px);
+      box-shadow: 0 10px 30px rgba(9,30,70,.22);
     }
+    .export-toolbar-title { font-size: 14px; font-weight: 900; }
+    .export-toolbar-subtitle { margin-top: 2px; color: rgba(255,255,255,.7); font-size: 11px; }
+    .export-toolbar-actions { display: flex; gap: 8px; }
+    .export-toolbar button { border: 0; border-radius: 10px; padding: 10px 15px; font: inherit; font-size: 12px; font-weight: 900; cursor: pointer; }
+    .export-close { background: white; color: #102f66; }
+    .export-pdf { background: #ff654e; color: white; }
 
-    .export-toolbar-title {
-      font-size: 14px;
-      font-weight: 800;
-    }
-
-    .export-toolbar-subtitle {
-      margin-top: 2px;
-      color: rgba(255,255,255,.68);
-      font-size: 11px;
-    }
-
-    .export-toolbar-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .export-toolbar button {
-      border: 0;
-      border-radius: 12px;
-      padding: 10px 15px;
-      font: inherit;
-      font-size: 12px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .export-close {
-      background: white;
-      color: #514655;
-    }
-
-    .export-pdf {
-      background: #f7b916;
-      color: white;
-      box-shadow: 0 8px 20px rgba(247,185,22,.25);
-    }
-
-    .poster-cover {
+    .sheet {
+      width: min(100% - 32px, 900px);
+      margin: 26px auto 48px;
+      min-height: 1180px;
+      padding: 54px 58px 60px;
       position: relative;
-      min-height: 1080px;
       overflow: hidden;
-      padding: 52px 48px 44px;
-      background: #fffefb;
+      background: #11356f;
+      box-shadow: 0 30px 70px rgba(26,33,50,.25);
     }
-
-    .poster-cover::before,
-    .poster-cover::after {
+    .sheet::before {
       content: "";
       position: absolute;
-      width: 210px;
-      height: 160px;
-      border: 2px dashed #1f1d20;
-      border-radius: 50%;
-      pointer-events: none;
+      left: -70px;
+      top: -80px;
+      width: 330px;
+      height: 260px;
+      border-radius: 48% 52% 58% 42%;
+      background: #ff7563;
+      transform: rotate(-12deg);
     }
-
-    .poster-cover::before {
-      left: -110px;
-      top: 30px;
-      transform: rotate(20deg);
-      border-right-color: transparent;
-      border-bottom-color: transparent;
-    }
-
-    .poster-cover::after {
+    .sheet::after {
+      content: "";
+      position: absolute;
       right: -120px;
-      top: 36px;
-      transform: rotate(-14deg);
-      border-left-color: transparent;
-      border-bottom-color: transparent;
+      bottom: -90px;
+      width: 390px;
+      height: 300px;
+      border-radius: 55% 45% 52% 48%;
+      background: #173e78;
+      opacity: .95;
     }
 
-    .poster-plane-top {
-      position: absolute;
-      left: 104px;
-      top: 18px;
-      z-index: 4;
-      font-size: 34px;
-      transform: rotate(-20deg);
-    }
-
-    .poster-flag {
-      position: absolute;
-      right: 86px;
-      top: 184px;
-      z-index: 4;
-      font-size: 24px;
-    }
-
-    .poster-head {
+    .header-card,
+    .template-day-card {
       position: relative;
-      z-index: 5;
-      text-align: center;
-    }
-
-    .poster-title-row {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .poster-travel {
-      padding: 6px 24px 9px;
-      border-radius: 15px;
-      background: linear-gradient(180deg,#ffc62b,#f7b916);
-      color: white;
-      font-size: 56px;
-      line-height: 1;
-      font-weight: 900;
-      letter-spacing: -.055em;
-    }
-
-    .poster-itinerary {
-      font-family: Georgia, "Times New Roman", serif;
-      color: #332f31;
-      font-size: 50px;
-      line-height: 1;
-      font-style: italic;
-      font-weight: 600;
-      letter-spacing: -.04em;
-    }
-
-    .poster-tagline {
-      margin-top: 20px;
-      color: #393538;
-      font-size: 14px;
-      font-weight: 900;
-      letter-spacing: .11em;
-    }
-
-    .poster-trip-title {
-      margin-top: 12px;
-      color: #7c727c;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .poster-grid {
-      position: relative;
-      z-index: 4;
-      display: grid;
-      grid-template-columns: minmax(0,1.08fr) minmax(300px,.92fr);
-      gap: 26px;
-      margin-top: 40px;
-    }
-
-    .poster-left {
-      position: relative;
-      min-height: 760px;
-    }
-
-    .poster-collage {
-      position: relative;
-      min-height: 640px;
-    }
-
-    .cover-photo {
-      position: absolute;
-      margin: 0;
-      padding: 11px 11px 27px;
-      background: white;
-      border: 1px solid #eeeae4;
-      box-shadow: 0 14px 34px rgba(48,41,50,.17);
-      transform-origin: center;
-    }
-
-    .cover-photo img {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: cover;
-    }
-
-    .cover-photo-1 {
       z-index: 3;
-      width: 84%;
-      height: 308px;
-      left: 0;
-      top: 12px;
-      transform: rotate(7deg);
+      border-radius: 22px;
+      background: white;
+      box-shadow: 0 12px 28px rgba(7,26,64,.16);
     }
 
-    .cover-photo-2 {
-      z-index: 4;
-      width: 78%;
-      height: 290px;
-      left: 72px;
-      top: 326px;
-      transform: rotate(10deg);
+    .header-card {
+      display: grid;
+      grid-template-columns: 190px minmax(0,1fr);
+      gap: 22px;
+      padding: 20px;
+      margin-bottom: 28px;
     }
-
-    .cover-photo-3 {
-      z-index: 2;
-      width: 63%;
-      height: 270px;
-      left: -26px;
-      top: 374px;
-      transform: rotate(-9deg);
+    .header-image {
+      position: relative;
+      height: 150px;
+      overflow: hidden;
+      background: #39a9d2;
     }
+    .header-image img { width: 100%; height: 100%; object-fit: cover; }
+    .header-image-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 60px; color: white; }
 
-    .cover-photo-4 {
-      z-index: 1;
-      width: 61%;
-      height: 235px;
-      left: 92px;
-      top: 555px;
-      transform: rotate(4deg);
+    .header-copy { padding: 8px 8px 4px 0; min-width: 0; }
+    .title-row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .travel-title { color: #ff5f49; font-size: 38px; line-height: 1; font-weight: 1000; letter-spacing: .02em; }
+    .itinerary-title { color: #123874; font-size: 38px; line-height: 1; font-weight: 1000; letter-spacing: .02em; }
+    .trip-duration { margin-top: 7px; color: #123874; font-size: 21px; font-weight: 800; }
+    .title-rule { width: 92px; height: 3px; margin: 12px 0 17px; background: #123874; }
+    .trip-name { color: #31466c; font-size: 12px; font-weight: 800; margin-bottom: 10px; }
+    .trip-dates { display: flex; flex-wrap: wrap; gap: 22px; color: #222; font-size: 11px; font-weight: 700; }
+    .trip-dates strong { color: #ff5f49; }
+    .hotel-summary { margin-top: 10px; color: #51627e; font-size: 10px; line-height: 1.5; }
+
+    .template-day-card {
+      display: grid;
+      grid-template-columns: 190px minmax(0,1fr);
+      gap: 0;
+      padding: 18px;
+      margin-bottom: 28px;
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
-
-    .cover-photo-placeholder {
-      height: 520px;
-      border-radius: 26px;
+    .template-day-image {
+      position: relative;
+      height: 190px;
+      overflow: hidden;
+      background: #dce7ef;
+    }
+    .template-day-image img { width: 100%; height: 100%; object-fit: cover; }
+    .template-day-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #123874; }
+    .template-day-badge {
+      position: absolute;
+      right: 7px;
+      bottom: 7px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      background: linear-gradient(145deg,#f6edf7,#fff5d9);
-      color: #5b3a61;
-      font-size: 60px;
-    }
-
-    .cover-photo-placeholder span {
-      font-size: 22px;
-      font-weight: 900;
-    }
-
-    .poster-plane-overlay {
-      position: absolute;
-      z-index: 8;
-      left: -26px;
-      top: 270px;
-      width: 112%;
-      text-align: center;
-      color: #1f1b20;
-      font-size: 86px;
-      line-height: 1;
-      transform: rotate(6deg);
-      text-shadow: 0 10px 22px rgba(0,0,0,.10);
-      pointer-events: none;
-    }
-
-    .poster-meta {
-      position: absolute;
-      z-index: 10;
-      left: 10px;
-      right: 8px;
-      bottom: 0;
-      padding: 15px 16px;
-      border-radius: 18px;
-      border: 1px solid #ece4ed;
-      background: rgba(255,255,255,.95);
-      box-shadow: 0 13px 35px rgba(55,45,59,.10);
-    }
-
-    .poster-destination {
-      color: #473a4b;
-      font-size: 20px;
-      font-weight: 900;
-    }
-
-    .poster-meta-line {
-      margin-top: 6px;
-      color: #847985;
-      font-size: 10px;
-      line-height: 1.65;
-    }
-
-    .poster-hotel {
-      margin-top: 7px;
-      padding-top: 7px;
-      border-top: 1px solid #eee7ef;
-      color: #655969;
-      font-size: 10px;
-      line-height: 1.55;
-    }
-
-    .cover-days {
-      min-width: 0;
-      padding-top: 2px;
-    }
-
-    .cover-day {
-      position: relative;
-      margin-bottom: 23px;
-      padding-top: 46px;
-    }
-
-    .cover-day-label {
-      position: absolute;
-      top: 0;
-      left: 46px;
-      min-width: 112px;
-      padding: 8px 18px;
-      border-radius: 11px;
+      align-items: flex-end;
       color: white;
-      font-size: 17px;
-      font-weight: 900;
-      text-align: center;
+      text-shadow: 0 2px 7px rgba(0,0,0,.35);
     }
+    .template-day-badge span { font-size: 14px; font-weight: 1000; line-height: 1; }
+    .template-day-badge strong { font-size: 30px; font-weight: 1000; line-height: .95; }
 
-    .cover-day-body {
-      display: grid;
-      grid-template-columns: 34px minmax(0,1fr);
-      gap: 13px;
+    .template-day-table-wrap { min-width: 0; padding-left: 18px; }
+    .template-day-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .template-day-table th {
+      padding: 0 10px 8px;
+      color: #ff5f49;
+      border-bottom: 1px solid #e8ebef;
+      font-size: 12px;
+      font-weight: 1000;
+      text-align: left;
     }
-
-    .cover-flight {
-      position: relative;
-      min-height: 112px;
-    }
-
-    .cover-plane {
-      position: relative;
-      z-index: 2;
-      font-size: 27px;
-      line-height: 1;
-    }
-
-    .cover-line {
-      position: absolute;
-      top: 27px;
-      bottom: 7px;
-      left: 12px;
-      border-left: 2px dotted #272327;
-    }
-
-    .cover-dot {
-      position: absolute;
-      left: 8px;
-      bottom: 0;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #221e22;
-    }
-
-    .cover-stops {
-      min-width: 0;
-      padding-top: 1px;
-    }
-
-    .cover-stop {
-      display: grid;
-      grid-template-columns: 74px 11px minmax(0,1fr);
-      gap: 3px;
-      margin-bottom: 7px;
+    .template-day-table th:nth-child(1) { width: 22%; }
+    .template-day-table th:nth-child(2) { width: 43%; }
+    .template-day-table th:nth-child(3) { width: 35%; }
+    .template-day-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #edf0f3;
+      color: #161616;
       font-size: 10px;
+      font-weight: 700;
+      vertical-align: top;
       line-height: 1.35;
+      word-break: break-word;
     }
+    .template-day-table tr:last-child td { border-bottom: 0; }
+    .time-cell { color: #213b67 !important; white-space: nowrap; }
+    .activity-cell { font-weight: 800 !important; }
+    .notes-cell { color: #536178 !important; font-weight: 600 !important; }
 
-    .cover-period {
-      color: #716771;
-      font-weight: 700;
-    }
-
-    .cover-stop-dash {
-      color: #aaa1aa;
-    }
-
-    .cover-stop-name {
-      color: #312c31;
-      font-weight: 700;
-    }
-
-    .details-heading {
-      margin: 24px 0 14px;
-      padding: 0 4px;
-      color: #433746;
-      font-size: 20px;
-      font-weight: 900;
+    .footer-note {
+      position: relative;
+      z-index: 3;
+      margin-top: 10px;
+      color: rgba(255,255,255,.72);
+      font-size: 10px;
+      text-align: center;
     }
 
     @media (max-width: 760px) {
-      .poster-cover {
-        min-height: auto;
-        padding: 34px 22px;
-      }
-
-      .poster-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .poster-left {
-        min-height: 680px;
-      }
-
-      .poster-travel {
-        font-size: 42px;
-      }
-
-      .poster-itinerary {
-        font-size: 40px;
-      }
+      .sheet { width: 100%; margin: 0; padding: 24px 16px 34px; min-height: 100vh; }
+      .header-card, .template-day-card { grid-template-columns: 1fr; }
+      .header-image, .template-day-image { height: 220px; }
+      .header-copy { padding: 14px 4px 2px; }
+      .template-day-table-wrap { padding: 18px 0 0; overflow-x: auto; }
+      .travel-title, .itinerary-title { font-size: 31px; }
     }
 
     @media print {
-      body {
-        background: white;
-      }
-
-      .export-toolbar {
-        display: none !important;
-      }
-
-      .page {
-        max-width: none;
-      }
-
-      .poster-cover {
-        min-height: 277mm;
-        box-shadow: none;
-        page-break-after: always;
-      }
-
-      .day-section {
-        break-inside: avoid;
-        page-break-inside: avoid;
-      }
+      html, body { background: white; }
+      .export-toolbar { display: none !important; }
+      .sheet { width: 100%; margin: 0; min-height: 277mm; box-shadow: none; }
     }
   </style>
 </head>
 <body>
   <header class="export-toolbar">
     <div>
-      <div class="export-toolbar-title">
-        Preview แผนการเดินทาง
-      </div>
-      <div class="export-toolbar-subtitle">
-        ตรวจสอบข้อมูล แล้วกด Save as PDF เพื่อเก็บไว้ดูแบบ Offline
-      </div>
+      <div class="export-toolbar-title">Preview แผนการเดินทาง</div>
+      <div class="export-toolbar-subtitle">ตรวจสอบข้อมูล แล้วกด Save as PDF เพื่อเก็บไว้ดูแบบ Offline</div>
     </div>
-
     <div class="export-toolbar-actions">
-      <button
-        class="export-close"
-        onclick="window.close()"
-      >
-        ปิด
-      </button>
-
-      <button
-        class="export-pdf"
-        onclick="window.print()"
-      >
-        Save as PDF
-      </button>
+      <button class="export-close" onclick="window.close()">ปิด</button>
+      <button class="export-pdf" onclick="window.print()">Save as PDF</button>
     </div>
   </header>
 
-  <main class="page">
-    <section class="poster-cover">
-      <div class="poster-plane-top">✈</div>
-      <div class="poster-flag">⚑</div>
+  <main class="sheet">
+    <section class="header-card">
+      <div class="header-image">
+        ${coverImages[0] ? `<img src="${escapeHtml(coverImages[0])}" alt="" />` : `<div class="header-image-placeholder">✈</div>`}
+      </div>
 
-      <header class="poster-head">
-        <div class="poster-title-row">
-          <span class="poster-travel">Travel</span>
-          <span class="poster-itinerary">Itinerary</span>
+      <div class="header-copy">
+        <div class="title-row">
+          <span class="travel-title">TRAVEL</span>
+          <span class="itinerary-title">ITINERARY</span>
         </div>
-
-        <div class="poster-tagline">
-          EXPLORE • FOOD • VIEWS
+        <div class="trip-duration">${currentItems.length} DAYS - LONG TRIP</div>
+        <div class="title-rule"></div>
+        <div class="trip-name">${escapeHtml(trip.title ?? trip.destination ?? "My Trip")}</div>
+        <div class="trip-dates">
+          <span><strong>Departure:</strong> ${escapeHtml(formatDate(trip.start_date) ?? "ไม่ระบุ")}</span>
+          <span><strong>Arrival:</strong> ${escapeHtml(formatDate(trip.end_date) ?? "ไม่ระบุ")}</span>
         </div>
-
-        <div class="poster-trip-title">
-          ${escapeHtml(
-            trip.title ??
-            "My Trip"
-          )}
-        </div>
-      </header>
-
-      <div class="poster-grid">
-        <section class="poster-left">
-          <div class="poster-collage">
-            ${coverImageHtml}
-          </div>
-
-          <div class="poster-plane-overlay">
-            ✈
-          </div>
-
-          <div class="poster-meta">
-            <div class="poster-destination">
-              ${escapeHtml(
-                trip.destination ??
-                "Thailand"
-              )}
-            </div>
-
-            <div class="poster-meta-line">
-              ${
-                dateRange
-                  ? escapeHtml(
-                      dateRange
-                    )
-                  : `${currentItems.length} วัน`
-              }
-              · ${totalStops} จุด
-              ${
-                trip.people
-                  ? ` · ${escapeHtml(
-                      trip.people
-                    )}`
-                  : ""
-              }
-            </div>
-
-            ${
-              accommodation
-                ? `
-                  <div class="poster-hotel">
-                    <strong>ที่พัก:</strong>
-                    ${escapeHtml(
-                      accommodation.name ??
-                      "ที่พัก"
-                    )}
-                    ${
-                      accommodation.address
-                        ? ` · ${escapeHtml(
-                            accommodation.address
-                          )}`
-                        : ""
-                    }
-                  </div>
-                `
-                : ""
-            }
-          </div>
-        </section>
-
-        <section class="cover-days">
-          ${coverDaysHtml}
-        </section>
+        ${accommodation ? `<div class="hotel-summary"><strong>Hotel:</strong> ${escapeHtml(accommodation.name ?? "ที่พัก")}${accommodation.address ? ` · ${escapeHtml(accommodation.address)}` : ""}</div>` : ""}
       </div>
     </section>
 
-    <div class="details-heading">
-      รายละเอียดแผนการเดินทาง
-    </div>
+    ${templateDayCards}
 
-    ${daySections}
-
-    <div class="footer">
-      Exported from TravelWish · เก็บไฟล์ PDF นี้ไว้สำหรับดูแผนการเดินทางแบบ Offline
-    </div>
+    <div class="footer-note">TravelWish Offline Itinerary · ${totalStops} stops · ${escapeHtml(trip.destination ?? "Thailand")}</div>
   </main>
-
 </body>
 </html>
-    `;
+    `
 
     const printWindow =
       window.open(
