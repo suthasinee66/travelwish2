@@ -1681,8 +1681,6 @@ ${JSON.stringify(combinedCandidatePool)}
       ],
       "place_activity_summary": "เดินชม ถ่ายรูป และสัมผัสจุดเด่นของสถานที่",
       "place_notes": "เหมาะกับช่วงเช้าและควรเผื่อเวลาพัก",
-      "place_time_constraint": "flexible",
-      "place_fixed_start_time": null,
       "proposed_place_key": null,
       "fallback_place_id": null,
       "restaurant_source": "database",
@@ -1696,8 +1694,6 @@ ${JSON.stringify(combinedCandidatePool)}
       ],
       "restaurant_activity_summary": "พักรับประทานอาหารและลองเมนูที่เหมาะกับผู้ใช้",
       "restaurant_notes": "เผื่อเวลาสั่งอาหารและพักก่อนเดินทางต่อ",
-      "restaurant_time_constraint": "flexible",
-      "restaurant_fixed_start_time": null,
       "proposed_restaurant_key": null
     },
     {
@@ -1714,8 +1710,6 @@ ${JSON.stringify(combinedCandidatePool)}
       ],
       "place_activity_summary": "ทำกิจกรรมหลักและใช้เวลาสำรวจสถานที่",
       "place_notes": "เวลาเป็นระยะเวลาโดยประมาณ ไม่ใช่เวลานาฬิกาที่ fix",
-      "place_time_constraint": "flexible",
-      "place_fixed_start_time": null,
       "proposed_place_key": null,
       "fallback_place_id": null,
       "restaurant_source": "ai_external",
@@ -1728,8 +1722,6 @@ ${JSON.stringify(combinedCandidatePool)}
       ],
       "restaurant_activity_summary": "รับประทานอาหารและพักก่อนจบช่วงเที่ยว",
       "restaurant_notes": "ระยะเวลาโดยประมาณ",
-      "restaurant_time_constraint": "flexible",
-      "restaurant_fixed_start_time": null,
       "proposed_restaurant_key": "new-restaurant-1"
     }
   ]
@@ -1758,11 +1750,6 @@ ${JSON.stringify(combinedCandidatePool)}
 - ข้อมูลทั้งหมดต้องถูกสร้างในรอบ Final Selection นี้เลย ห้ามปล่อยให้ระบบไปเติมภายหลัง
 - ห้ามใส่ข้อเท็จจริงเฉพาะ เช่น ราคา/เวลาเปิดปิด หากไม่มีข้อมูลรองรับ
 
-time constraint:
-- ปกติใช้ place_time_constraint = "flexible"
-- place_fixed_start_time = null
-- ใช้ "fixed" เฉพาะเมื่อข้อมูลที่ได้รับระบุเวลาจริงที่จำเป็นต้องยึด เช่น รอบโชว์ รถไฟ เที่ยวบิน หรือการจองที่มีเวลา
-- ห้ามเดา fixed time
 
 สำหรับร้านอาหาร:
 - restaurant_duration_minutes เป็นระยะเวลาที่คาดว่าจะใช้กับมื้อนั้น และห้าม null เมื่อมี restaurant_id หรือ proposed_restaurant_key
@@ -2141,21 +2128,6 @@ const selectedWithActivityMetadata =
                     item.place_notes
                 ).trim(),
 
-            place_time_constraint:
-                item.place_time_constraint ===
-                    "fixed"
-                    ? "fixed"
-                    : "flexible",
-
-            place_fixed_start_time:
-                item.place_time_constraint ===
-                    "fixed" &&
-                item.place_fixed_start_time
-                    ? String(
-                        item.place_fixed_start_time
-                    )
-                    : null,
-
             restaurant_period:
                 item.restaurant_id ||
                 item.proposed_restaurant_key
@@ -2205,30 +2177,6 @@ const selectedWithActivityMetadata =
                             ""
                         ).trim() ||
                         null
-                    )
-                    : null,
-
-            restaurant_time_constraint:
-                item.restaurant_id ||
-                item.proposed_restaurant_key
-                    ? (
-                        item.restaurant_time_constraint ===
-                            "fixed"
-                            ? "fixed"
-                            : "flexible"
-                    )
-                    : null,
-
-            restaurant_fixed_start_time:
-                (
-                    item.restaurant_id ||
-                    item.proposed_restaurant_key
-                ) &&
-                item.restaurant_time_constraint ===
-                    "fixed" &&
-                item.restaurant_fixed_start_time
-                    ? String(
-                        item.restaurant_fixed_start_time
                     )
                     : null
         })
