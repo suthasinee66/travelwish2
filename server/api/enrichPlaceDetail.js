@@ -321,9 +321,99 @@ function hasValidCoordinates(entity) {
   );
 }
 
-function hasCompleteGoogleSnapshot(
+function hasRestaurantOpeningHours(
   entity
 ) {
+  const openingHours =
+    entity?.google_opening_hours;
+
+  if (!openingHours) {
+    return false;
+  }
+
+  const regular =
+    openingHours?.regular ??
+    openingHours;
+
+  const current =
+    openingHours?.current;
+
+  return Boolean(
+    (
+      Array.isArray(
+        regular?.weekdayDescriptions
+      ) &&
+      regular.weekdayDescriptions
+        .length > 0
+    ) ||
+    (
+      Array.isArray(
+        current?.weekdayDescriptions
+      ) &&
+      current.weekdayDescriptions
+        .length > 0
+    ) ||
+    Array.isArray(
+      regular?.periods
+    ) ||
+    Array.isArray(
+      current?.periods
+    )
+  );
+}
+
+function hasRestaurantDetailDisplayData(
+  entity
+) {
+  const hasName =
+    Boolean(
+      entity?.place_name_th ??
+      entity?.place_name_en
+    );
+
+  const hasType =
+    Boolean(
+      entity?.place_type ??
+      entity?.google_primary_type
+    );
+
+  return Boolean(
+    hasName &&
+    entity?.place_address &&
+    hasValidCoordinates(entity) &&
+    hasUsefulImages(entity?.images) &&
+    entity?.google_place_id &&
+    entity?.google_maps_uri &&
+    hasType &&
+    entity?.rating != null &&
+    entity?.user_ratings_total != null &&
+    hasRestaurantOpeningHours(
+      entity
+    )
+  );
+}
+
+function hasCompleteGoogleSnapshot(
+  entity,
+  type
+) {
+  if (type === "restaurant") {
+    if (
+      hasRestaurantDetailDisplayData(
+        entity
+      )
+    ) {
+      return true;
+    }
+
+    // Google เคยถูกเรียกและ snapshot ถูกบันทึกแล้ว:
+    // อย่ายิงซ้ำทุกครั้ง หาก field บางอย่างไม่มีจาก Google จริง
+    return Boolean(
+      entity?.google_last_synced_at &&
+      entity?.google_place_data
+    );
+  }
+
   return Boolean(
     entity?.google_place_id &&
     entity?.google_last_synced_at &&
@@ -752,7 +842,8 @@ router.post(
       if (
         existing &&
         hasCompleteGoogleSnapshot(
-          existing
+          existing,
+          type
         )
       ) {
         return res.json({
