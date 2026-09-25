@@ -781,6 +781,32 @@ const mapCenter = useMemo(() => {
       return;
     }
 
+    // เปิดหน้าต่างทันทีจาก click event
+    // เพื่อไม่ให้ browser block หลัง await Supabase
+    const exportWindow =
+      window.open(
+        "",
+        "_blank"
+      );
+
+    if (exportWindow) {
+      exportWindow.document.write(
+        "<!doctype html><html><head><meta charset=\"utf-8\"><title>TravelWish Export</title></head><body style=\"font-family:system-ui,sans-serif;padding:32px\">กำลังเตรียมแผนการเดินทาง...</body></html>"
+      );
+      exportWindow.document.close();
+    }
+
+    console.log(
+      "📄 EXPORT START:",
+      {
+        tripId:
+          trip.id,
+        sourceSessionId:
+          trip.source_session_id ??
+          null,
+      }
+    );
+
     // =====================================================
     // PRIMARY EXPORT SOURCE: chat_messages
     // content = AI-written itinerary
@@ -978,26 +1004,37 @@ const mapCenter = useMemo(() => {
             }
           );
 
-        const printWindow =
-          window.open(
-            "",
-            "_blank"
-          );
+        console.log(
+          "✅ EXPORT USING CHAT_MESSAGES HTML:",
+          {
+            messageId:
+              plannerMessage.id,
+            plannerItems:
+              Array.isArray(
+                plannerJsonForExport
+              )
+                ? plannerJsonForExport.length
+                : plannerJsonForExport
+                    ?.selectedPlaces
+                    ?.length ??
+                  0,
+          }
+        );
 
         if (
-          printWindow
+          exportWindow
         ) {
-          printWindow
+          exportWindow
             .document
             .open();
 
-          printWindow
+          exportWindow
             .document
             .write(
               html
             );
 
-          printWindow
+          exportWindow
             .document
             .close();
 
@@ -1005,9 +1042,25 @@ const mapCenter = useMemo(() => {
         }
 
         console.warn(
-          "⚠️ EXPORT POPUP BLOCKED — FALLING BACK TO CURRENT PAGE PRINT"
+          "⚠️ EXPORT WINDOW BLOCKED — USING LEGACY EXPORT FALLBACK"
         );
       }
+    }
+
+    console.warn(
+      "⚠️ EXPORT USING LEGACY TRIP FALLBACK:",
+      {
+        sourceSessionId:
+          trip.source_session_id ??
+          null,
+      }
+    );
+
+    if (
+      exportWindow &&
+      !exportWindow.closed
+    ) {
+      exportWindow.close();
     }
 
     const escapeHtml = (
@@ -2243,7 +2296,10 @@ const mapCenter = useMemo(() => {
   allPlaces={allPlaces}
   restaurants={restaurants}
   mapCenter={mapCenter}
-  chatId={null}
+  chatId={
+    trip.source_session_id ??
+    null
+  }
   showMap={false}
   existingTripId={String(tripId)}
   existingTripTitle={trip?.title || ""}
