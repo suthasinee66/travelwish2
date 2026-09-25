@@ -2645,6 +2645,14 @@ const [selectedHotel, setSelectedHotel] = useState<any | null>(
           tripInput.accommodation.source ??
           "travelwish",
 
+        source_url:
+          tripInput.accommodation.source_url ??
+          null,
+
+        booking_provider:
+          tripInput.accommodation.booking_provider ??
+          null,
+
         locked:
           tripInput.accommodation.locked ??
           (
@@ -2920,6 +2928,76 @@ const saveTripToSupabase = async () => {
       budget:
         tripInput?.budget
           ? Number(tripInput.budget)
+          : null,
+
+      accommodation:
+        selectedHotel
+          ? {
+              id:
+                selectedHotel.acc_id != null
+                  ? String(
+                      selectedHotel.acc_id
+                    )
+                  : null,
+
+              name:
+                selectedHotel.acc_name_th ??
+                selectedHotel.acc_name_en ??
+                "ที่พัก",
+
+              address:
+                selectedHotel.acc_address ??
+                null,
+
+              latitude:
+                Number.isFinite(
+                  Number(
+                    selectedHotel.latitude
+                  )
+                )
+                  ? Number(
+                      selectedHotel.latitude
+                    )
+                  : null,
+
+              longitude:
+                Number.isFinite(
+                  Number(
+                    selectedHotel.longitude
+                  )
+                )
+                  ? Number(
+                      selectedHotel.longitude
+                    )
+                  : null,
+
+              images:
+                Array.isArray(
+                  selectedHotel.images
+                )
+                  ? selectedHotel.images
+                  : [],
+
+              source:
+                selectedHotel.source ??
+                "travelwish",
+
+              source_url:
+                selectedHotel.source_url ??
+                tripInput?.accommodation
+                  ?.source_url ??
+                null,
+
+              booking_provider:
+                selectedHotel.booking_provider ??
+                tripInput?.accommodation
+                  ?.booking_provider ??
+                null,
+
+              locked:
+                selectedHotel.locked ??
+                true,
+            }
           : null,
     };
 
