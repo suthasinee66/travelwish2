@@ -331,7 +331,7 @@ app.post("/api/ai", async (req, res) => {
 
       max_tokens:
         responseMode === "planner_json"
-          ? 8000
+          ? 12000
           : responseMode === "trend_context"
             ? 7000
             : 12000,
@@ -590,36 +590,150 @@ app.post("/api/ai", async (req, res) => {
                       ]
                     },
                     place_name: { type: "string" },
+
+                    place_duration_minutes: {
+                      type: "integer",
+                      minimum: 20,
+                      maximum: 480
+                    },
+
+                    place_activities: {
+                      type: "array",
+                      minItems: 1,
+                      maxItems: 4,
+                      items: {
+                        type: "string",
+                        minLength: 1
+                      }
+                    },
+
+                    place_activity_summary: {
+                      type: "string",
+                      minLength: 1
+                    },
+
+                    place_notes: {
+                      type: "string",
+                      minLength: 1
+                    },
+
+                    place_time_constraint: {
+                      type: "string",
+                      enum: [
+                        "flexible",
+                        "fixed"
+                      ]
+                    },
+
+                    place_fixed_start_time: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+
                     proposed_place_key: {
                       anyOf: [
                         { type: "string" },
                         { type: "null" }
                       ]
                     },
+
                     fallback_place_id: {
                       anyOf: [
                         { type: "string" },
                         { type: "null" }
                       ]
                     },
+
                     restaurant_source: {
                       anyOf: [
                         { type: "string" },
                         { type: "null" }
                       ]
                     },
+
                     restaurant_id: {
                       anyOf: [
                         { type: "string" },
                         { type: "null" }
                       ]
                     },
+
                     restaurant_name: {
                       anyOf: [
                         { type: "string" },
                         { type: "null" }
                       ]
                     },
+
+                    restaurant_period: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+
+                    restaurant_duration_minutes: {
+                      anyOf: [
+                        {
+                          type: "integer",
+                          minimum: 20,
+                          maximum: 480
+                        },
+                        { type: "null" }
+                      ]
+                    },
+
+                    restaurant_activities: {
+                      type: "array",
+                      maxItems: 4,
+                      items: {
+                        type: "string",
+                        minLength: 1
+                      }
+                    },
+
+                    restaurant_activity_summary: {
+                      anyOf: [
+                        {
+                          type: "string",
+                          minLength: 1
+                        },
+                        { type: "null" }
+                      ]
+                    },
+
+                    restaurant_notes: {
+                      anyOf: [
+                        {
+                          type: "string",
+                          minLength: 1
+                        },
+                        { type: "null" }
+                      ]
+                    },
+
+                    restaurant_time_constraint: {
+                      anyOf: [
+                        {
+                          type: "string",
+                          enum: [
+                            "flexible",
+                            "fixed"
+                          ]
+                        },
+                        { type: "null" }
+                      ]
+                    },
+
+                    restaurant_fixed_start_time: {
+                      anyOf: [
+                        { type: "string" },
+                        { type: "null" }
+                      ]
+                    },
+
                     proposed_restaurant_key: {
                       anyOf: [
                         { type: "string" },
@@ -634,11 +748,24 @@ app.post("/api/ai", async (req, res) => {
                     "source",
                     "place_id",
                     "place_name",
+                    "place_duration_minutes",
+                    "place_activities",
+                    "place_activity_summary",
+                    "place_notes",
+                    "place_time_constraint",
+                    "place_fixed_start_time",
                     "proposed_place_key",
                     "fallback_place_id",
                     "restaurant_source",
                     "restaurant_id",
                     "restaurant_name",
+                    "restaurant_period",
+                    "restaurant_duration_minutes",
+                    "restaurant_activities",
+                    "restaurant_activity_summary",
+                    "restaurant_notes",
+                    "restaurant_time_constraint",
+                    "restaurant_fixed_start_time",
                     "proposed_restaurant_key"
                   ]
                 }
