@@ -16,6 +16,9 @@ import PlaceDetailDrawer, {
 } from "@/components/PlaceDetailDrawer";
 import { TripPlanPanel } from "./home";
 import {
+  buildChatMessageExportHtml,
+} from "@/lib/export/chatMessageExport";
+import {
   ArrowLeft,
   Download,
   MapPin,
@@ -146,6 +149,7 @@ function TripsDetail() {
             budget,
             accommodation,
             created_at,
+            source_session_id,
 
             trip_days(
               id,
@@ -769,12 +773,241 @@ const mapCenter = useMemo(() => {
     ),
   };
 
-  const exportTripOffline = () => {
+  const exportTripOffline = async () => {
     if (
       typeof window === "undefined" ||
       !trip
     ) {
       return;
+    }
+
+    // =====================================================
+    // PRIMARY EXPORT SOURCE: chat_messages
+    // content = AI-written itinerary
+    // planner_json = structured itinerary metadata
+    // =====================================================
+    if (
+      trip.source_session_id
+    ) {
+      const {
+        data:
+          plannerMessage,
+        error:
+          plannerMessageError,
+      } = await supabase
+        .from("chat_messages")
+        .select(
+          "id, content, planner_json, created_at"
+        )
+        .eq(
+          "session_id",
+          trip.source_session_id
+        )
+        .eq(
+          "role",
+          "ai"
+        )
+        .not(
+          "planner_json",
+          "is",
+          null
+        )
+        .order(
+          "created_at",
+          {
+            ascending:
+              false,
+          }
+        )
+        .limit(1)
+        .maybeSingle();
+
+      if (
+        plannerMessageError
+      ) {
+        console.warn(
+          "⚠️ EXPORT CHAT MESSAGE LOAD FAILED — USING TRIP FALLBACK:",
+          plannerMessageError
+        );
+      }
+
+      if (
+        plannerMessage
+      ) {
+        const imageMap:
+          Record<
+            string,
+            string
+          > = {};
+
+        savedItems.forEach(
+          (item: any) => {
+            const images =
+              Array.isArray(
+                item
+                  ?.place_data
+                  ?.images
+              )
+                ? item
+                    .place_data
+                    .images
+                : [];
+
+            const image =
+              images.find(
+                (
+                  value:
+                    unknown
+                ) =>
+                  typeof value ===
+                    "string" &&
+                  value.trim()
+              );
+
+            if (!image) {
+              return;
+            }
+
+            if (
+              item.type ===
+                "restaurant" &&
+              item.restaurant_id
+            ) {
+              imageMap[
+                `restaurant:${String(
+                  item.restaurant_id
+                )}`
+              ] =
+                image;
+            }
+
+            if (
+              item.type ===
+                "place" &&
+              item.att_id
+            ) {
+              imageMap[
+                `place:${String(
+                  item.att_id
+                )}`
+              ] =
+                image;
+            }
+          }
+        );
+
+        let plannerJsonForExport =
+          plannerMessage
+            .planner_json;
+
+        // ถ้ามีลำดับ/เวลาที่คำนวณสดจาก scheduler
+        // ให้ overlay เฉพาะ itinerary ปัจจุบันก่อน export
+        // แต่ content + metadata ต้นทางยังมาจาก chat_messages
+        if (
+          liveRoutesByDay &&
+          Object.keys(
+            liveRoutesByDay
+          ).length > 0
+        ) {
+          plannerJsonForExport =
+            Object.entries(
+              liveRoutesByDay
+            )
+              .sort(
+                (
+                  [left],
+                  [right]
+                ) =>
+                  Number(left) -
+                  Number(right)
+              )
+              .flatMap(
+                (
+                  [
+                    dayIndex,
+                    items,
+                  ]
+                ) =>
+                  (
+                    items ??
+                    []
+                  ).map(
+                    (
+                      item: any,
+                      index: number
+                    ) => ({
+                      ...item,
+
+                      day:
+                        Number(
+                          dayIndex
+                        ) + 1,
+
+                      route_order:
+                        index + 1,
+
+                      order:
+                        index + 1,
+                    })
+                  )
+              );
+        }
+
+        const html =
+          buildChatMessageExportHtml(
+            {
+              content:
+                plannerMessage
+                  .content,
+
+              plannerJson:
+                plannerJsonForExport,
+
+              destination:
+                trip.destination ??
+                trip.title,
+
+              accommodation:
+                trip.accommodation,
+
+              createdAt:
+                plannerMessage
+                  .created_at,
+
+              imageMap,
+            }
+          );
+
+        const printWindow =
+          window.open(
+            "",
+            "_blank"
+          );
+
+        if (
+          printWindow
+        ) {
+          printWindow
+            .document
+            .open();
+
+          printWindow
+            .document
+            .write(
+              html
+            );
+
+          printWindow
+            .document
+            .close();
+
+          return;
+        }
+
+        console.warn(
+          "⚠️ EXPORT POPUP BLOCKED — FALLING BACK TO CURRENT PAGE PRINT"
+        );
+      }
     }
 
     const escapeHtml = (
