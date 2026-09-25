@@ -4751,10 +4751,18 @@ const sensors = useSensors(
     [plannerJson]
   );
 
+  const allDaysInitializedVersionRef =
+    useRef<string | null>(
+      null
+    );
+
   useEffect(() => {
     console.log(
       "🔄 PLANNER VERSION CHANGED → RESET LOCAL ROUTE CACHE"
     );
+
+    allDaysInitializedVersionRef.current =
+      null;
 
     setRoutePlaces([]);
     setRoutePlacesByDay({});
@@ -5228,6 +5236,183 @@ const buildRoutePlaces = (items: any[]) => {
       x.location?.longitude != null
   );
 };
+
+// =========================================================
+// INITIALIZE ROUTES FOR EVERY DAY
+//
+// เดิม routePlacesByDay จะมีเฉพาะวันที่ผู้ใช้กำลังเปิด
+// ทำให้ scheduler คำนวณเวลาแค่ Day แรก
+// รอบนี้รอให้ place/restaurant resolve ครบก่อน แล้ว seed ทุกวัน
+// เพียงครั้งเดียวต่อ plannerVersion
+// =========================================================
+useEffect(() => {
+  if (
+    allDaysInitializedVersionRef
+      .current ===
+    plannerVersion
+  ) {
+    return;
+  }
+
+  if (
+    days.length === 0
+  ) {
+    return;
+  }
+
+  const requiredPlaceIds =
+    Array.from(
+      new Set(
+        plannerItems
+          .map(
+            (item: any) =>
+              item?.place_id
+                ? String(
+                    item.place_id
+                  )
+                : null
+          )
+          .filter(Boolean)
+      )
+    ) as string[];
+
+  const requiredRestaurantIds =
+    Array.from(
+      new Set(
+        plannerItems
+          .map(
+            (item: any) =>
+              item
+                ?.restaurant_id
+                ? String(
+                    item
+                      .restaurant_id
+                  )
+                : null
+          )
+          .filter(Boolean)
+      )
+    ) as string[];
+
+  const allPlacesReady =
+    requiredPlaceIds.every(
+      id =>
+        livePlaces.some(
+          place =>
+            String(
+              place.att_id
+            ) ===
+            id
+        )
+    );
+
+  const allRestaurantsReady =
+    requiredRestaurantIds.every(
+      id =>
+        liveRestaurants.some(
+          restaurant =>
+            String(
+              restaurant.place_id
+            ) ===
+              id ||
+            String(
+              restaurant
+                .google_place_id
+            ) ===
+              id
+        )
+    );
+
+  if (
+    !allPlacesReady ||
+    !allRestaurantsReady
+  ) {
+    console.log(
+      "⏳ WAITING TO INITIALIZE ALL ITINERARY DAYS:",
+      {
+        allPlacesReady,
+        allRestaurantsReady,
+        requiredPlaces:
+          requiredPlaceIds.length,
+        loadedPlaces:
+          livePlaces.length,
+        requiredRestaurants:
+          requiredRestaurantIds.length,
+        loadedRestaurants:
+          liveRestaurants.length,
+      }
+    );
+
+    return;
+  }
+
+  const initialByDay:
+    Record<number, any[]> = {};
+
+  days.forEach(
+    (
+      dayData,
+      dayIndex
+    ) => {
+      initialByDay[
+        dayIndex
+      ] =
+        buildRoutePlaces(
+          dayData.items ??
+          []
+        );
+    }
+  );
+
+  allDaysInitializedVersionRef.current =
+    plannerVersion;
+
+  console.log(
+    "🕒 INITIALIZE ALL DAYS FOR SCHEDULER:",
+    Object.entries(
+      initialByDay
+    ).map(
+      ([
+        dayIndex,
+        items,
+      ]) => ({
+        day:
+          Number(
+            dayIndex
+          ) + 1,
+        stops:
+          items.length,
+      })
+    )
+  );
+
+  setRoutePlacesByDay(
+    initialByDay
+  );
+
+  if (
+    initialByDay[
+      selectedDay
+    ]
+  ) {
+    setRoutePlaces(
+      [
+        ...initialByDay[
+          selectedDay
+        ],
+      ]
+    );
+  }
+
+  onRouteChange?.(
+    initialByDay
+  );
+}, [
+  plannerVersion,
+  days,
+  livePlaces,
+  liveRestaurants,
+]);
 
 const getRoutePoint = (
   item: any
