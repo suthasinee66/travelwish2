@@ -30,55 +30,6 @@ function clampDuration(
   );
 }
 
-function parseClockMinutes(
-  value: unknown
-) {
-  const text =
-    String(
-      value ?? ""
-    ).trim();
-
-  const match =
-    text.match(
-      /^(\d{1,2}):(\d{2})$/
-    );
-
-  if (!match) {
-    return null;
-  }
-
-  const hours =
-    Number(
-      match[1]
-    );
-
-  const minutes =
-    Number(
-      match[2]
-    );
-
-  if (
-    !Number.isInteger(
-      hours
-    ) ||
-    !Number.isInteger(
-      minutes
-    ) ||
-    hours < 0 ||
-    hours > 23 ||
-    minutes < 0 ||
-    minutes > 59
-  ) {
-    return null;
-  }
-
-  return (
-    hours *
-    60 +
-    minutes
-  );
-}
-
 export function formatClockMinutes(
   value: number
 ) {
@@ -142,47 +93,6 @@ function itemDuration(
     item?.duration_minutes,
     90
   );
-}
-
-function itemConstraint(
-  item: any
-) {
-  if (
-    item?.type ===
-    "restaurant"
-  ) {
-    return {
-      mode:
-        item
-          ?.restaurant_time_constraint ??
-        item
-          ?.time_constraint ??
-        "flexible",
-
-      fixed:
-        item
-          ?.restaurant_fixed_start_time ??
-        item
-          ?.fixed_start_time ??
-        null,
-    };
-  }
-
-  return {
-    mode:
-      item
-        ?.place_time_constraint ??
-      item
-        ?.time_constraint ??
-      "flexible",
-
-    fixed:
-      item
-        ?.place_fixed_start_time ??
-      item
-        ?.fixed_start_time ??
-      null,
-  };
 }
 
 export function scheduleItineraryItems(
@@ -259,52 +169,8 @@ export function scheduleItineraryItems(
         cursor +=
           travelMinutes;
 
-        // period (Morning / Lunch / Afternoon / ...)
-        // เป็นเพียงคำแนะนำจาก AI เท่านั้น
-        // ไม่ใช้เป็นตัวล็อกเวลา เพราะผู้ใช้สามารถลากสลับลำดับได้
-        let waitMinutes =
-          0;
-
-        const constraint =
-          itemConstraint(
-            item
-          );
-
-        const fixedMinutes =
-          constraint.mode ===
-            "fixed"
-            ? parseClockMinutes(
-                constraint.fixed
-              )
-            : null;
-
-        let scheduleConflict =
-          false;
-
-        // ล็อกเวลาเฉพาะกรณีที่มีข้อจำกัดจริงเท่านั้น
-        // เช่น รอบกิจกรรม 10:30 หรือร้านที่จองไว้ 18:00
-        if (
-          fixedMinutes !==
-          null
-        ) {
-          if (
-            cursor >
-            fixedMinutes
-          ) {
-            // ถ้าลำดับใหม่ทำให้ไปไม่ทัน fixed time
-            // ห้ามย้อนเวลา ให้เริ่มตามเวลาที่ไปถึงจริงและแจ้ง conflict
-            scheduleConflict =
-              true;
-          } else {
-            waitMinutes =
-              fixedMinutes -
-              cursor;
-
-            cursor =
-              fixedMinutes;
-          }
-        }
-
+        // เวลาเป็น dynamic ทั้งหมด:
+        // ใช้ลำดับปัจจุบัน + เวลาเดินทาง + duration เท่านั้น
         const durationMinutes =
           itemDuration(
             item
@@ -341,12 +207,6 @@ export function scheduleItineraryItems(
 
           travel_from_previous_meters:
             travelDistanceMeters,
-
-          schedule_wait_minutes:
-            waitMinutes,
-
-          schedule_conflict:
-            scheduleConflict,
 
           schedule_travel_source:
             options
