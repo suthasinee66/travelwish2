@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   APIProvider,
   Marker,
-  Map,
+  Map as GoogleMap,
   useMap,
 } from "@vis.gl/react-google-maps";
 
@@ -805,7 +805,7 @@ const mapCenter = useMemo(() => {
     apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
     libraries={["geometry"]}
   >
-    <Map
+    <GoogleMap
       defaultCenter={mapCenter}
       defaultZoom={13}
       mapId="9d5ca48506fddf5eb0fea298"
@@ -873,7 +873,7 @@ const mapCenter = useMemo(() => {
           );
         }
       )}
-    </Map>
+    </GoogleMap>
   </APIProvider>
 
   {/* Map information overlay */}
