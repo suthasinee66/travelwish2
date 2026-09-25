@@ -18,6 +18,8 @@ import resolveAccommodationLinkRouter
   from "./api/resolveAccommodationLink.js";
 import enrichPlaceDetailRouter
   from "./api/enrichPlaceDetail.js";
+import routeTravelTimesRouter
+  from "./api/routeTravelTimes.js";
 
 
 const app = express();
@@ -59,6 +61,11 @@ app.use(
 app.use(
   "/api",
   enrichPlaceDetailRouter
+);
+
+app.use(
+  "/api",
+  routeTravelTimesRouter
 );
 
 // ============================================
