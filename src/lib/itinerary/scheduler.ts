@@ -3,17 +3,6 @@ export type ItineraryTravelLeg = {
   duration_minutes?: number | null;
 };
 
-const PERIOD_EARLIEST_MINUTES:
-  Record<string, number> = {
-    Breakfast: 8 * 60,
-    Morning: 9 * 60,
-    Lunch: 11 * 60 + 30,
-    Afternoon: 13 * 60,
-    Evening: 16 * 60 + 30,
-    Dinner: 18 * 60,
-    Night: 19 * 60 + 30,
-  };
-
 function clampDuration(
   value: unknown,
   fallback: number
@@ -129,27 +118,6 @@ export function formatClockMinutes(
       2,
       "0"
     )
-  );
-}
-
-function itemPeriod(
-  item: any
-) {
-  if (
-    item?.type ===
-    "restaurant"
-  ) {
-    return (
-      item
-        ?.restaurant_period ??
-      item?.period ??
-      null
-    );
-  }
-
-  return (
-    item?.period ??
-    null
   );
 }
 
@@ -291,43 +259,11 @@ export function scheduleItineraryItems(
         cursor +=
           travelMinutes;
 
-        const period =
-          itemPeriod(
-            item
-          );
-
-        const earliest =
-          period
-            ? PERIOD_EARLIEST_MINUTES[
-                String(
-                  period
-                )
-              ]
-            : null;
-
+        // period (Morning / Lunch / Afternoon / ...)
+        // เป็นเพียงคำแนะนำจาก AI เท่านั้น
+        // ไม่ใช้เป็นตัวล็อกเวลา เพราะผู้ใช้สามารถลากสลับลำดับได้
         let waitMinutes =
           0;
-
-        if (
-          Number.isFinite(
-            earliest
-          ) &&
-          cursor <
-            Number(
-              earliest
-            )
-        ) {
-          waitMinutes =
-            Number(
-              earliest
-            ) -
-            cursor;
-
-          cursor =
-            Number(
-              earliest
-            );
-        }
 
         const constraint =
           itemConstraint(
@@ -345,6 +281,8 @@ export function scheduleItineraryItems(
         let scheduleConflict =
           false;
 
+        // ล็อกเวลาเฉพาะกรณีที่มีข้อจำกัดจริงเท่านั้น
+        // เช่น รอบกิจกรรม 10:30 หรือร้านที่จองไว้ 18:00
         if (
           fixedMinutes !==
           null
@@ -353,12 +291,18 @@ export function scheduleItineraryItems(
             cursor >
             fixedMinutes
           ) {
+            // ถ้าลำดับใหม่ทำให้ไปไม่ทัน fixed time
+            // ห้ามย้อนเวลา ให้เริ่มตามเวลาที่ไปถึงจริงและแจ้ง conflict
             scheduleConflict =
               true;
-          }
+          } else {
+            waitMinutes =
+              fixedMinutes -
+              cursor;
 
-          cursor =
-            fixedMinutes;
+            cursor =
+              fixedMinutes;
+          }
         }
 
         const durationMinutes =
