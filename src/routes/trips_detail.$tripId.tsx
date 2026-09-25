@@ -20,6 +20,26 @@ import {
   MapPin,
 } from "lucide-react";
 
+const ALL_DAYS_COLORS = [
+  "#573d63",
+  "#5f7c73",
+  "#b06a6a",
+  "#6872a6",
+  "#b07a3b",
+  "#7a5c9e",
+  "#4f7d8a",
+  "#8a6f4d",
+];
+
+const getAllDaysColor = (
+  dayIndex: number
+) =>
+  ALL_DAYS_COLORS[
+    dayIndex %
+    ALL_DAYS_COLORS.length
+  ];
+
+
 export const Route = createFileRoute(
   "/trips_detail/$tripId"
 )({
@@ -505,11 +525,39 @@ const mapPlaces = useMemo(() => {
 }, [savedItems, liveRoutesByDay]);
 const selectedDayPlaces = useMemo(() => {
   if (selectedDay === "all") {
+    const countersByDay =
+      new Map<number, number>();
+
     return mapPlaces.map(
-      (item: any, index: number) => ({
-        ...item,
-        mapIndex: index + 1,
-      })
+      (item: any) => {
+        const day =
+          Number(item.day) || 1;
+
+        const currentIndex =
+          countersByDay.get(day) ?? 0;
+
+        countersByDay.set(
+          day,
+          currentIndex + 1
+        );
+
+        return {
+          ...item,
+
+          // โหมดทั้งหมดให้เหมือนหน้า Home:
+          // เลข marker เริ่มใหม่ทุกวัน
+          mapIndex:
+            currentIndex + 1,
+
+          mapColor:
+            getAllDaysColor(
+              Math.max(
+                0,
+                day - 1
+              )
+            ),
+        };
+      }
     );
   }
 
@@ -522,6 +570,7 @@ const selectedDayPlaces = useMemo(() => {
     (item: any, index: number) => ({
       ...item,
       mapIndex: index + 1,
+      mapColor: "#573d63",
     })
   );
 }, [mapPlaces, selectedDay]);
@@ -790,12 +839,21 @@ const mapCenter = useMemo(() => {
                   rounded-full
                   border-2
                   border-white
-                  bg-[#573d63]
                   text-xs
                   font-bold
                   text-white
                   shadow-[0_8px_18px_rgba(87,61,99,0.24)]
                 "
+                style={{
+                  backgroundColor:
+                    item.mapColor ??
+                    "#573d63",
+                }}
+                title={
+                  selectedDay === "all"
+                    ? `Day ${item.day} · จุดที่ ${item.mapIndex}`
+                    : `Day ${selectedDay} · จุดที่ ${item.mapIndex}`
+                }
               >
                 {item.mapIndex}
               </div>
