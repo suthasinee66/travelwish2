@@ -69,6 +69,8 @@ router.get(
             att_id,
             name_th,
             google_place_id,
+            latitude,
+            longitude,
             images
           `)
           .eq(
@@ -183,7 +185,7 @@ if (
                 GOOGLE_PLACES_API_KEY,
 
               "X-Goog-FieldMask":
-                "id,displayName,photos",
+                "id,displayName,location,photos",
             },
           }
         );
@@ -278,16 +280,76 @@ if (
       // 7. บันทึกลง attraction
       // =====================================================
 
+      const googleLatitude =
+        Number(
+          data?.location?.latitude
+        );
+
+      const googleLongitude =
+        Number(
+          data?.location?.longitude
+        );
+
+      const updatePayload = {
+        images,
+        updated_at:
+          new Date().toISOString(),
+      };
+
+      if (
+        Number.isFinite(
+          googleLatitude
+        ) &&
+        Number.isFinite(
+          googleLongitude
+        )
+      ) {
+        updatePayload.latitude =
+          googleLatitude;
+
+        updatePayload.longitude =
+          googleLongitude;
+
+        console.log(
+          "📍 UPDATE ATTRACTION COORDINATES:",
+          {
+            att_id:
+              attraction.att_id,
+            name:
+              attraction.name_th,
+            old_latitude:
+              attraction.latitude,
+            old_longitude:
+              attraction.longitude,
+            latitude:
+              googleLatitude,
+            longitude:
+              googleLongitude,
+          }
+        );
+      } else {
+        console.warn(
+          "⚠️ Google Places ไม่มีพิกัดที่ใช้งานได้:",
+          {
+            att_id:
+              attraction.att_id,
+            name:
+              attraction.name_th,
+            location:
+              data?.location ??
+              null,
+          }
+        );
+      }
+
       const {
         error: updateError,
       } =
         await supabase
           .from("attraction")
-          .update({
-            images,
-            updated_at:
-              new Date().toISOString(),
-          })
+          .update(
+            updatePayload
+          )
           .eq(
             "att_id",
             att_id
@@ -333,6 +395,20 @@ if (
           attraction.name_th,
 
         images,
+
+        latitude:
+          Number.isFinite(
+            googleLatitude
+          )
+            ? googleLatitude
+            : attraction.latitude,
+
+        longitude:
+          Number.isFinite(
+            googleLongitude
+          )
+            ? googleLongitude
+            : attraction.longitude,
 
       });
 
