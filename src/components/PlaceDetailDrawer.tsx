@@ -348,20 +348,6 @@ function getTitle(
   );
 }
 
-function getTypeLabel(
-  type: PlaceDetailTargetType
-) {
-  if (type === "restaurant") {
-    return "Restaurant";
-  }
-
-  if (type === "accommodation") {
-    return "Accommodation";
-  }
-
-  return "Attraction";
-}
-
 function getAddress(data: any) {
   const direct =
     data?.place_address ??
@@ -733,7 +719,6 @@ export default function PlaceDetailDrawer({
     "attraction";
 
   const title = getTitle(type, data);
-  const typeLabel = getTypeLabel(type);
   const images = getImages(data);
   const address = getAddress(data);
   const locationSummary =
@@ -1481,11 +1466,6 @@ export default function PlaceDetailDrawer({
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f6eaf7] px-3 py-1.5 text-xs font-semibold text-[#783c7c]">
-                <TypeIcon size={13} />
-                {typeLabel}
-              </span>
-
               {categoryChips.map((chip) => (
                 <span
                   key={chip}
