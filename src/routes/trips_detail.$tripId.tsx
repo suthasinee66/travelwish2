@@ -167,8 +167,6 @@ function TripsDetail() {
                 activities,
                 activity_summary,
                 notes,
-                time_constraint,
-                fixed_start_time,
 
                 attraction(
                   att_id,
@@ -322,14 +320,6 @@ function TripsDetail() {
 
           notes:
             item.notes ??
-            null,
-
-          time_constraint:
-            item.time_constraint ??
-            "flexible",
-
-          fixed_start_time:
-            item.fixed_start_time ??
             null,
 
           location: {
@@ -746,12 +736,6 @@ const mapCenter = useMemo(() => {
 
         notes:
           item.notes,
-
-        time_constraint:
-          item.time_constraint,
-
-        fixed_start_time:
-          item.fixed_start_time,
 
         location: item.location,
 
