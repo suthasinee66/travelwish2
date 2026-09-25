@@ -961,11 +961,21 @@ export default function PlaceDetailDrawer({
     getLocationSummary(data);
 
   const description =
-    data?.detail_th ??
-    data?.detail_en ??
-    data?.description ??
-    data?.highlight ??
-    "";
+    type === "restaurant"
+      ? (
+          data?.place_detail ??
+          data?.google_editorial_summary ??
+          data?.place_hilight ??
+          data?.description ??
+          ""
+        )
+      : (
+          data?.detail_th ??
+          data?.detail_en ??
+          data?.description ??
+          data?.highlight ??
+          ""
+        );
 
   const rating =
     data?.rating != null &&
@@ -1212,9 +1222,22 @@ export default function PlaceDetailDrawer({
       }
 
       if (type === "restaurant") {
+        if (
+          hasValue(
+            data?.food_type_label
+          )
+        ) {
+          values.push(
+            cleanText(
+              data.food_type_label
+            )
+          );
+        }
+
         if (hasValue(data?.place_type)) {
           values.push(
             cleanText(data.place_type)
+              .replaceAll("_", " ")
           );
         }
 
@@ -1298,6 +1321,95 @@ export default function PlaceDetailDrawer({
         ).format(new Date()),
       []
     );
+
+  const restaurantRecommendedFood =
+    type === "restaurant" &&
+    hasValue(
+      data?.place_recommend_food
+    )
+      ? String(
+          data.place_recommend_food
+        )
+      : null;
+
+  const restaurantFoodType =
+    type === "restaurant" &&
+    hasValue(
+      data?.food_type_label
+    )
+      ? String(
+          data.food_type_label
+        )
+      : null;
+
+  const restaurantPriceLevel =
+    type === "restaurant" &&
+    hasValue(
+      data?.google_price_level
+    )
+      ? String(
+          data.google_price_level
+        ).replaceAll("_", " ")
+      : null;
+
+  const restaurantHighlights =
+    type === "restaurant"
+      ? [
+          restaurantRecommendedFood
+            ? `เมนูแนะนำ: ${restaurantRecommendedFood}`
+            : null,
+          hasValue(data?.place_hilight)
+            ? String(data.place_hilight)
+            : null,
+          hasValue(
+            data?.place_nearby_location
+          )
+            ? `ใกล้ ${String(
+                data.place_nearby_location
+              )}`
+            : null,
+          rating != null &&
+          rating >= 4
+            ? `คะแนน ${rating.toFixed(1)} จากผู้ใช้`
+            : null,
+        ].filter(
+          (
+            value
+          ): value is string =>
+            Boolean(value)
+        )
+      : [];
+
+  const restaurantAmenities =
+    type === "restaurant"
+      ? [
+          hasValue(
+            data?.place_accessibility_detail
+          )
+            ? String(
+                data.place_accessibility_detail
+              )
+            : null,
+          hasValue(data?.place_payment)
+            ? String(data.place_payment)
+            : null,
+          hasValue(data?.place_credit)
+            ? `บัตรเครดิต: ${String(
+                data.place_credit
+              )}`
+            : null,
+          hasValue(data?.place_cash)
+            ? `เงินสด: ${String(
+                data.place_cash
+              )}`
+            : null,
+        ].filter(
+          (
+            value
+          ): value is string =>
+            Boolean(value)
+        )
+      : [];
 
   const TypeIcon =
     type === "restaurant"
@@ -1724,11 +1836,45 @@ export default function PlaceDetailDrawer({
               ))}
 
               {rating != null && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#efe5c8] bg-[#fff9e8] px-3 py-1.5 text-xs font-semibold text-[#77591d]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#efe5c8] bg-[#fff9e8] px-3 py-1.5 text-xs font-semibold text-[#77591d]">
                   <Star size={13} fill="currentColor" />
                   {rating.toFixed(1)}
+                  {reviewCount && (
+                    <span className="font-medium text-[#9a8150]">
+                      ({reviewCount})
+                    </span>
+                  )}
                 </span>
               )}
+
+              {type === "restaurant" &&
+                restaurantOpeningLabel && (
+                  <span
+                    className={`
+                      inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold
+                      ${(
+                        data?.open_now ??
+                        data
+                          ?.google_opening_hours
+                          ?.current
+                          ?.openNow
+                      ) === true
+                        ? "bg-emerald-50 text-emerald-700"
+                        : (
+                            data?.open_now ??
+                            data
+                              ?.google_opening_hours
+                              ?.current
+                              ?.openNow
+                          ) === false
+                          ? "bg-rose-50 text-rose-600"
+                          : "bg-[#f7f2f8] text-[#6f456f]"}
+                    `}
+                  >
+                    <Clock3 size={12} />
+                    {restaurantOpeningLabel}
+                  </span>
+                )}
             </div>
           </section>
 
@@ -1890,10 +2036,11 @@ export default function PlaceDetailDrawer({
             )}
           </section>
 
-          {(hasValue(description) ||
-            address ||
-            website ||
-            phone) && (
+          {type !== "restaurant" &&
+            (hasValue(description) ||
+              address ||
+              website ||
+              phone) && (
             <section className="mt-6 rounded-[18px] border border-[#eee7ef] bg-[#fcfafc] p-4">
               <h2 className="text-base font-bold text-[#30294a]">
                 เกี่ยวกับสถานที่
@@ -1969,117 +2116,281 @@ export default function PlaceDetailDrawer({
           )}
 
           {type === "restaurant" && (
-            <section className="mt-4 rounded-[18px] border border-[#eee7ef] bg-white p-4 shadow-[0_5px_18px_rgba(72,54,80,0.05)]">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5edf6] text-[#6f456f]">
-                    <Clock3 size={17} />
-                  </span>
-
-                  <div>
-                    <h2 className="text-base font-bold text-[#30294a]">
-                      เวลาเปิด–ปิด
+            <div className="mt-5 space-y-3.5">
+              {(address ||
+                website ||
+                phone ||
+                restaurantPriceLevel) && (
+                <section className="rounded-[20px] border border-[#eee7ef] bg-[#fcf9fd] p-4 shadow-[0_6px_20px_rgba(72,54,80,0.04)]">
+                  <div className="mb-3 flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4e8f6] text-[#773d7d]">
+                      <MapPin size={16} />
+                    </span>
+                    <h2 className="text-[16px] font-bold text-[#30294a]">
+                      เกี่ยวกับสถานที่
                     </h2>
-                    <p className="mt-0.5 text-[11px] text-[#8d7f91]">
-                      เวลาทำการของร้านตลอดทั้งสัปดาห์
-                    </p>
                   </div>
-                </div>
 
-                {restaurantOpeningLabel && (
-                  <span
-                    className={`
-                      inline-flex rounded-full px-3 py-1.5 text-[11px] font-bold
-                      ${(
-                        data?.open_now ??
-                        data
-                          ?.google_opening_hours
-                          ?.current
-                          ?.openNow
-                      ) === true
-                        ? "bg-emerald-50 text-emerald-700"
-                        : (
-                            data?.open_now ??
-                            data
-                              ?.google_opening_hours
-                              ?.current
-                              ?.openNow
-                          ) === false
-                          ? "bg-rose-50 text-rose-600"
-                          : "bg-[#f7f2f8] text-[#6f456f]"}
-                    `}
-                  >
-                    {restaurantOpeningLabel}
-                  </span>
-                )}
-              </div>
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    {address && (
+                      <InfoItem
+                        icon={<MapPin size={18} />}
+                        label="ที่อยู่"
+                        value={address}
+                        href={mapsUrl}
+                      />
+                    )}
 
-              {restaurantOpeningDescriptions.length > 0 ? (
-                <div className="mt-4 overflow-hidden rounded-[14px] border border-[#f0e9f1]">
-                  {restaurantOpeningDescriptions.map(
-                    (description, index) => {
-                      const {
-                        day,
-                        hours,
-                      } =
-                        splitOpeningDescription(
-                          description
-                        );
+                    {website && (
+                      <InfoItem
+                        icon={<Globe2 size={18} />}
+                        label="เว็บไซต์"
+                        value={String(
+                          websiteValue
+                        )}
+                        href={website}
+                      />
+                    )}
 
-                      const isToday =
-                        description.includes(
-                          restaurantTodayName
-                        );
+                    {phone && (
+                      <InfoItem
+                        icon={<Phone size={18} />}
+                        label="โทรศัพท์"
+                        value={String(phone)}
+                        href={`tel:${phone}`}
+                      />
+                    )}
 
-                      return (
-                        <div
-                          key={`${description}-${index}`}
-                          className={`
-                            grid grid-cols-[92px_minmax(0,1fr)] items-start gap-3
-                            border-b border-[#f2edf3] px-3.5 py-2.5 last:border-b-0
-                            ${isToday
-                              ? "bg-[#faf3fb]"
-                              : "bg-white"}
-                          `}
-                        >
-                          <div
-                            className={`
-                              text-[12px] font-bold
-                              ${isToday
-                                ? "text-[#6f456f]"
-                                : "text-[#51475a]"}
-                            `}
-                          >
-                            {day ||
-                              `วันที่ ${index + 1}`}
-                            {isToday && (
-                              <span className="ml-1 text-[9px] font-semibold text-[#9a6b9f]">
-                                วันนี้
-                              </span>
-                            )}
+                    {restaurantPriceLevel && (
+                      <div className="flex min-h-[72px] items-center gap-3 rounded-[14px] border border-[#eee7ef] bg-white px-3.5 py-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f7eef8] text-[#7a3f80]">
+                          <WalletCards size={17} />
+                        </span>
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-semibold text-[#9a8da0]">
+                            ราคาโดยประมาณ
                           </div>
-
-                          <div
-                            className={`
-                              text-[12px] leading-5
-                              ${isToday
-                                ? "font-semibold text-[#493c50]"
-                                : "text-[#756978]"}
-                            `}
-                          >
-                            {hours || "ไม่ระบุเวลา"}
+                          <div className="mt-0.5 text-[12px] font-semibold capitalize text-[#42384b]">
+                            {restaurantPriceLevel}
                           </div>
                         </div>
-                      );
-                    }
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              <section className="rounded-[20px] border border-[#eee7ef] bg-white p-4 shadow-[0_5px_18px_rgba(72,54,80,0.05)]">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5edf6] text-[#6f456f]">
+                      <Clock3 size={17} />
+                    </span>
+
+                    <div>
+                      <h2 className="text-[16px] font-bold text-[#30294a]">
+                        เวลาเปิด–ปิด
+                      </h2>
+                      <p className="mt-0.5 text-[10px] text-[#8d7f91]">
+                        เวลาทำการของร้านตลอดทั้งสัปดาห์
+                      </p>
+                    </div>
+                  </div>
+
+                  {restaurantOpeningLabel && (
+                    <span
+                      className={`
+                        inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold
+                        ${(
+                          data?.open_now ??
+                          data
+                            ?.google_opening_hours
+                            ?.current
+                            ?.openNow
+                        ) === true
+                          ? "bg-emerald-50 text-emerald-700"
+                          : (
+                              data?.open_now ??
+                              data
+                                ?.google_opening_hours
+                                ?.current
+                                ?.openNow
+                            ) === false
+                            ? "bg-rose-50 text-rose-600"
+                            : "bg-[#f7f2f8] text-[#6f456f]"}
+                      `}
+                    >
+                      <span className="h-2 w-2 rounded-full bg-current" />
+                      {restaurantOpeningLabel}
+                    </span>
                   )}
                 </div>
-              ) : (
-                <div className="mt-4 rounded-[14px] bg-[#faf7fa] px-3.5 py-3 text-[12px] text-[#8c7f90]">
-                  ยังไม่มีข้อมูลเวลาเปิด–ปิดของร้านนี้
-                </div>
+
+                {restaurantOpeningDescriptions.length > 0 ? (
+                  <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    {restaurantOpeningDescriptions.map(
+                      (description, index) => {
+                        const {
+                          day,
+                          hours,
+                        } =
+                          splitOpeningDescription(
+                            description
+                          );
+
+                        const isToday =
+                          description.includes(
+                            restaurantTodayName
+                          );
+
+                        return (
+                          <div
+                            key={`${description}-${index}`}
+                            className={`
+                              min-w-[112px] flex-1 rounded-[14px] border px-3 py-3 text-center
+                              ${isToday
+                                ? "border-[#ecd6ef] bg-[#f8e9fa]"
+                                : "border-[#eee8ef] bg-white"}
+                            `}
+                          >
+                            {isToday && (
+                              <div className="mb-1 text-[9px] font-bold text-[#9b55a1]">
+                                วันนี้
+                              </div>
+                            )}
+                            <div
+                              className={`
+                                text-[10px] font-semibold
+                                ${isToday
+                                  ? "text-[#7a3f80]"
+                                  : "text-[#766a7b]"}
+                              `}
+                            >
+                              {day ||
+                                `วันที่ ${index + 1}`}
+                            </div>
+                            <div
+                              className={`
+                                mt-1.5 text-[11px] font-bold leading-4
+                                ${isToday
+                                  ? "text-[#5e2964]"
+                                  : "text-[#49404f]"}
+                              `}
+                            >
+                              {hours ||
+                                "ไม่ระบุเวลา"}
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-[14px] bg-[#faf7fa] px-3.5 py-3 text-[11px] text-[#8c7f90]">
+                    ยังไม่มีข้อมูลเวลาเปิด–ปิดของร้านนี้
+                  </div>
+                )}
+              </section>
+
+              {hasValue(description) && (
+                <section className="rounded-[20px] border border-[#eee7ef] bg-white p-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4e8f6] text-[#773d7d]">
+                      <Utensils size={15} />
+                    </span>
+                    <h2 className="text-[16px] font-bold text-[#30294a]">
+                      เกี่ยวกับร้าน
+                    </h2>
+                  </div>
+
+                  <p
+                    className={`
+                      mt-3 whitespace-pre-line text-[12px] leading-6 text-[#625767]
+                      ${!descriptionExpanded &&
+                      longDescription
+                        ? "line-clamp-3"
+                        : ""}
+                    `}
+                  >
+                    {String(description)}
+                  </p>
+
+                  {longDescription && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDescriptionExpanded(
+                          (value) => !value
+                        )
+                      }
+                      className="mt-1.5 text-[11px] font-semibold text-[#6f456f]"
+                    >
+                      {descriptionExpanded
+                        ? "ย่อรายละเอียด"
+                        : "อ่านเพิ่มเติม"}
+                    </button>
+                  )}
+                </section>
               )}
-            </section>
+
+              {restaurantHighlights.length > 0 && (
+                <section className="rounded-[20px] border border-[#eee7ef] bg-white p-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4e8f6] text-[#773d7d]">
+                      <Sparkles size={15} />
+                    </span>
+                    <h2 className="text-[16px] font-bold text-[#30294a]">
+                      จุดเด่น
+                    </h2>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {restaurantHighlights.map(
+                      (highlight) => (
+                        <div
+                          key={highlight}
+                          className="flex min-h-[54px] items-center gap-2.5 rounded-[14px] bg-[#faf5fb] px-3 py-2.5 text-[11px] font-medium leading-5 text-[#5f5264]"
+                        >
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#7b4381] shadow-sm">
+                            <Sparkles size={14} />
+                          </span>
+                          <span>
+                            {highlight}
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {restaurantAmenities.length > 0 && (
+                <section className="rounded-[20px] border border-[#eee7ef] bg-white p-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4e8f6] text-[#773d7d]">
+                      <WalletCards size={15} />
+                    </span>
+                    <h2 className="text-[16px] font-bold text-[#30294a]">
+                      สิ่งอำนวยความสะดวก
+                    </h2>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {restaurantAmenities.map(
+                      (amenity) => (
+                        <span
+                          key={amenity}
+                          className="inline-flex items-center gap-2 rounded-full bg-[#faf5fb] px-3 py-2 text-[10px] font-medium text-[#625568]"
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#8b5591]" />
+                          {amenity}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </section>
+              )}
+            </div>
           )}
 
           {type === "attraction" && (
@@ -2761,31 +3072,38 @@ export default function PlaceDetailDrawer({
               "max(10px, env(safe-area-inset-bottom))",
           }}
         >
-          <div className="mx-auto grid w-full max-w-[930px] grid-cols-1 gap-2 sm:grid-cols-2">
-            <button
-              type="button"
-              disabled={
-                !record ||
-                !onAddToTrip ||
-                type !== "attraction"
-              }
-              onClick={() => {
-                if (
-                  record &&
-                  onAddToTrip &&
-                  type === "attraction"
-                ) {
-                  onAddToTrip({
-                    type,
-                    data: record,
-                  });
+          <div
+            className={`
+              mx-auto grid w-full max-w-[930px] grid-cols-1 gap-2
+              ${type === "attraction"
+                ? "sm:grid-cols-2"
+                : ""}
+            `}
+          >
+            {type === "attraction" && (
+              <button
+                type="button"
+                disabled={
+                  !record ||
+                  !onAddToTrip
                 }
-              }}
-              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[16px] bg-[#f4ebf6] px-5 text-sm font-semibold text-[#6e3b74] transition hover:bg-[#ebdef0] disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Plus size={17} />
-              เพิ่มสถานที่นี้ลงในทริป
-            </button>
+                onClick={() => {
+                  if (
+                    record &&
+                    onAddToTrip
+                  ) {
+                    onAddToTrip({
+                      type,
+                      data: record,
+                    });
+                  }
+                }}
+                className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-[16px] bg-[#f4ebf6] px-5 text-sm font-semibold text-[#6e3b74] transition hover:bg-[#ebdef0] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Plus size={17} />
+                เพิ่มสถานที่นี้ลงในทริป
+              </button>
+            )}
 
             {mapsUrl ? (
               <a
