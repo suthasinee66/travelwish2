@@ -854,6 +854,224 @@ function buildPayload(
 }
 
 router.post(
+  "/refresh-place-coordinates",
+  async (req, res) => {
+    try {
+      const {
+        type = "attraction",
+        id = null,
+        google_place_id = null,
+        name = null,
+        province = null,
+      } = req.body ?? {};
+
+      if (
+        ![
+          "attraction",
+          "restaurant",
+          "accommodation",
+        ].includes(type)
+      ) {
+        return res
+          .status(400)
+          .json({
+            error:
+              "Invalid place coordinate type",
+          });
+      }
+
+      if (!GOOGLE_PLACES_API_KEY) {
+        return res
+          .status(503)
+          .json({
+            error:
+              "GOOGLE_PLACES_API_KEY is not configured",
+          });
+      }
+
+      const config =
+        entityConfig(type);
+
+      const existing =
+        await findExisting(
+          type,
+          id,
+          google_place_id
+        );
+
+      if (!existing) {
+        return res
+          .status(404)
+          .json({
+            error:
+              "ไม่พบรายการในฐานข้อมูลสำหรับอัปเดตพิกัด",
+          });
+      }
+
+      const resolvedName =
+        firstName(
+          existing,
+          config.nameFields,
+          name
+        );
+
+      const resolvedProvince =
+        cleanText(
+          province ??
+          existing?.[
+            config.provinceField
+          ]
+        );
+
+      const directGooglePlaceId =
+        cleanText(
+          google_place_id ??
+          existing?.google_place_id ??
+          (
+            type === "restaurant"
+              ? existing?.place_id
+              : null
+          )
+        );
+
+      let place = null;
+
+      if (directGooglePlaceId) {
+        try {
+          place =
+            await getPlaceDetails(
+              directGooglePlaceId
+            );
+        } catch (error) {
+          console.warn(
+            "⚠️ COORDINATE REFRESH BY PLACE ID FAILED:",
+            error?.message ??
+            error
+          );
+        }
+      }
+
+      if (
+        !place &&
+        resolvedName
+      ) {
+        place =
+          await searchPlace(
+            resolvedName,
+            resolvedProvince
+          );
+      }
+
+      const latitude =
+        Number(
+          place?.location?.latitude
+        );
+
+      const longitude =
+        Number(
+          place?.location?.longitude
+        );
+
+      if (
+        !place?.id ||
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude)
+      ) {
+        return res
+          .status(404)
+          .json({
+            error:
+              "ไม่พบพิกัดล่าสุดจาก Google Places",
+          });
+      }
+
+      const primaryKeyValue =
+        existing?.[
+          config.primaryKey
+        ];
+
+      if (!primaryKeyValue) {
+        return res
+          .status(422)
+          .json({
+            error:
+              "ไม่สามารถระบุรายการที่จะอัปเดตพิกัดได้",
+          });
+      }
+
+      const updatePayload = {
+        latitude,
+        longitude,
+        google_place_id:
+          place.id,
+      };
+
+      const {
+        data: saved,
+        error: saveError,
+      } =
+        await supabase
+          .from(config.table)
+          .update(updatePayload)
+          .eq(
+            config.primaryKey,
+            primaryKeyValue
+          )
+          .select("*")
+          .single();
+
+      if (saveError) {
+        console.error(
+          "❌ REFRESH PLACE COORDINATES SAVE ERROR:",
+          saveError
+        );
+
+        return res
+          .status(500)
+          .json({
+            error:
+              "บันทึกพิกัดล่าสุดไม่สำเร็จ",
+            details:
+              saveError.message,
+          });
+      }
+
+      console.log(
+        "📍 PLACE COORDINATES UPDATED:",
+        {
+          type,
+          id:
+            primaryKeyValue,
+          google_place_id:
+            place.id,
+          latitude,
+          longitude,
+        }
+      );
+
+      return res.json({
+        success: true,
+        type,
+        entity: saved,
+      });
+    } catch (error) {
+      console.error(
+        "❌ REFRESH PLACE COORDINATES ERROR:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          error:
+            error?.message ??
+            "ไม่สามารถอัปเดตพิกัดล่าสุดได้",
+        });
+    }
+  }
+);
+
+router.post(
   "/enrich-place-detail",
   async (req, res) => {
     try {
