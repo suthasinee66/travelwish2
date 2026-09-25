@@ -3031,6 +3031,10 @@ const saveTripToSupabase = async () => {
 
     const tripPayload = {
       title: tripTitle.trim(),
+
+      source_session_id:
+        chatId ??
+        null,
       destination:
         tripInput?.destination ||
         tripInput?.province ||
@@ -4134,9 +4138,14 @@ const saveEditedPlan = async () => {
           (item: any, index: number) => {
 
             selectedPlaces.push({
+              ...item,
+
               day: dayIndex + 1,
 
               order: index + 1,
+
+              route_order:
+                index + 1,
 
               type: item.type,
 
@@ -4186,15 +4195,23 @@ const saveEditedPlan = async () => {
           (item: any, index: number) => {
 
             selectedPlaces.push({
+              ...item,
 
               day: dayIndex + 1,
 
               order: index + 1,
 
+              route_order:
+                item.route_order ??
+                index + 1,
+
               type:
-                item.restaurant_id
-                  ? "restaurant"
-                  : "place",
+                item.type ??
+                (
+                  item.restaurant_id
+                    ? "restaurant"
+                    : "place"
+                ),
 
               place_id:
                 item.place_id
@@ -4207,11 +4224,18 @@ const saveEditedPlan = async () => {
                   : null,
 
               place_name:
-                item.place_name ?? null,
+                item.place_name ??
+                item.name ??
+                null,
 
               restaurant_name:
-                item.restaurant_name ?? null,
-
+                item.restaurant_name ??
+                (
+                  item.type === "restaurant"
+                    ? item.name
+                    : null
+                ) ??
+                null,
             });
 
           }
