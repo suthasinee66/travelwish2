@@ -362,6 +362,75 @@ function hasRestaurantOpeningHours(
   );
 }
 
+function getMissingRestaurantDetailFields(
+  entity
+) {
+  const missing = [];
+
+  if (
+    !(
+      entity?.place_name_th ??
+      entity?.place_name_en
+    )
+  ) {
+    missing.push("name");
+  }
+
+  if (!entity?.place_address) {
+    missing.push("address");
+  }
+
+  if (!hasValidCoordinates(entity)) {
+    missing.push("coordinates");
+  }
+
+  if (!hasUsefulImages(entity?.images)) {
+    missing.push("images");
+  }
+
+  if (!entity?.google_place_id) {
+    missing.push("google_place_id");
+  }
+
+  if (!entity?.google_maps_uri) {
+    missing.push("google_maps_uri");
+  }
+
+  if (
+    !(
+      entity?.place_type ??
+      entity?.google_primary_type
+    )
+  ) {
+    missing.push("type");
+  }
+
+  if (entity?.rating == null) {
+    missing.push("rating");
+  }
+
+  if (
+    entity?.user_ratings_total ==
+    null
+  ) {
+    missing.push(
+      "user_ratings_total"
+    );
+  }
+
+  if (
+    !hasRestaurantOpeningHours(
+      entity
+    )
+  ) {
+    missing.push(
+      "opening_hours"
+    );
+  }
+
+  return missing;
+}
+
 function hasRestaurantDetailDisplayData(
   entity
 ) {
@@ -951,10 +1020,44 @@ router.post(
 
       if (directGooglePlaceId) {
         try {
+          if (type === "restaurant") {
+            console.log(
+              "🌐 GOOGLE PLACES API CALL [Place Details]",
+              {
+                place_id:
+                  existing?.place_id ??
+                  id ??
+                  null,
+                google_place_id:
+                  directGooglePlaceId,
+                name:
+                  resolvedName,
+                missing_fields:
+                  getMissingRestaurantDetailFields(
+                    existing ?? {}
+                  ),
+              }
+            );
+          }
+
           place =
             await getPlaceDetails(
               directGooglePlaceId
             );
+
+          if (type === "restaurant") {
+            console.log(
+              "✅ GOOGLE PLACES API RESPONSE [Place Details]",
+              {
+                google_place_id:
+                  place?.id ??
+                  directGooglePlaceId,
+                name:
+                  place?.displayName?.text ??
+                  resolvedName,
+              }
+            );
+          }
         } catch (error) {
           console.warn(
             "⚠️ PLACE DETAIL BY ID FAILED:",
@@ -967,11 +1070,44 @@ router.post(
         !place &&
         resolvedName
       ) {
+        if (type === "restaurant") {
+          console.log(
+            "🌐 GOOGLE PLACES API CALL [Text Search]",
+            {
+              place_id:
+                existing?.place_id ??
+                id ??
+                null,
+              name:
+                resolvedName,
+              province:
+                resolvedProvince,
+              missing_fields:
+                getMissingRestaurantDetailFields(
+                  existing ?? {}
+                ),
+            }
+          );
+        }
+
         place =
           await searchPlace(
             resolvedName,
             resolvedProvince
           );
+
+        if (type === "restaurant") {
+          console.log(
+            "✅ GOOGLE PLACES API RESPONSE [Text Search]",
+            {
+              google_place_id:
+                place?.id ?? null,
+              name:
+                place?.displayName?.text ??
+                resolvedName,
+            }
+          );
+        }
       }
 
       if (!place?.id) {
@@ -1039,6 +1175,28 @@ router.post(
             details:
               saveError.message,
           });
+      }
+
+      if (type === "restaurant") {
+        console.log(
+          "💾 RESTAURANT DETAIL SAVED TO SUPABASE",
+          {
+            place_id:
+              saved?.place_id ??
+              null,
+            google_place_id:
+              saved?.google_place_id ??
+              null,
+            name:
+              saved?.place_name_th ??
+              saved?.place_name_en ??
+              null,
+            remaining_missing_fields:
+              getMissingRestaurantDetailFields(
+                saved ?? {}
+              ),
+          }
+        );
       }
 
       return res.json({
