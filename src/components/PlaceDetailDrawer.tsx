@@ -143,24 +143,12 @@ function hasRestaurantDetailDisplayData(
 function restaurantNeedsDetailFetch(
   value: any
 ) {
-  if (
-    hasRestaurantDetailDisplayData(
-      value
-    )
-  ) {
-    return false;
-  }
-
-  // เคยเรียก Google Detail แล้วและบันทึก snapshot ล่าสุดไว้แล้ว
-  // ถ้าบาง field ไม่มีจาก Google จริง ๆ จะไม่ยิงซ้ำทุกครั้งที่เปิด
-  if (
-    value?.google_last_synced_at &&
-    value?.google_place_data
-  ) {
-    return false;
-  }
-
-  return true;
+  // ตัดสินจากข้อมูลที่หน้า Detail ต้องใช้จริง
+  // ไม่ถือว่า google_last_synced_at / google_place_data
+  // อย่างเดียวแปลว่าข้อมูลครบ
+  return !hasRestaurantDetailDisplayData(
+    value
+  );
 }
 
 async function enrichPlaceDetailIfNeeded(
