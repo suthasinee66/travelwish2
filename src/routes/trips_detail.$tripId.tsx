@@ -4,7 +4,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   APIProvider,
-  AdvancedMarker,
+  Marker,
   Map,
   useMap,
 } from "@vis.gl/react-google-maps";
@@ -815,49 +815,61 @@ const mapCenter = useMemo(() => {
     >
         <DayMapUpdater places={selectedDayPlaces} />
       {selectedDayPlaces.map(
-  (item: any) => {
+        (item: any) => {
           const key =
-  item.type === "restaurant"
-    ? `restaurant-${item.restaurant_id}-${item.day}`
-    : `place-${item.att_id}-${item.day}`;
+            item.type === "restaurant"
+              ? `restaurant-${item.restaurant_id}-${item.day}`
+              : `place-${item.att_id}-${item.day}`;
+
+          const markerColor =
+            selectedDay === "all"
+              ? item.mapColor ??
+                getAllDaysColor(
+                  Math.max(
+                    0,
+                    Number(item.day) - 1
+                  )
+                )
+              : "#573d63";
 
           return (
-            <AdvancedMarker
+            <Marker
               key={key}
               position={{
-                lat: Number(item.location.latitude),
-                lng: Number(item.location.longitude),
+                lat: Number(
+                  item.location.latitude
+                ),
+                lng: Number(
+                  item.location.longitude
+                ),
               }}
-            >
-              <div
-                className="
-                  flex
-                  h-9
-                  w-9
-                  items-center
-                  justify-center
-                  rounded-full
-                  border-2
-                  border-white
-                  text-xs
-                  font-bold
-                  text-white
-                  shadow-[0_8px_18px_rgba(87,61,99,0.24)]
-                "
-                style={{
-                  backgroundColor:
-                    item.mapColor ??
-                    "#573d63",
-                }}
-                title={
-                  selectedDay === "all"
-                    ? `Day ${item.day} · จุดที่ ${item.mapIndex}`
-                    : `Day ${selectedDay} · จุดที่ ${item.mapIndex}`
-                }
-              >
-                {item.mapIndex}
-              </div>
-            </AdvancedMarker>
+              icon={{
+                url:
+                  "data:image/svg+xml;charset=UTF-8," +
+                  encodeURIComponent(
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">' +
+                    `<circle cx="16" cy="16" r="14" fill="${markerColor}" stroke="#ffffff" stroke-width="2"/>` +
+                    "</svg>"
+                  ),
+              }}
+              label={{
+                text:
+                  String(
+                    item.mapIndex
+                  ),
+                color:
+                  "#ffffff",
+                fontWeight:
+                  "700",
+                fontSize:
+                  "14px",
+              }}
+              title={
+                selectedDay === "all"
+                  ? `Day ${item.day} · จุดที่ ${item.mapIndex}`
+                  : `Day ${selectedDay} · จุดที่ ${item.mapIndex}`
+              }
+            />
           );
         }
       )}
