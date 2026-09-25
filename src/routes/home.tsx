@@ -3310,6 +3310,48 @@ const saveTripToSupabase = async () => {
                       String(placeId),
                     restaurant_id:
                       null,
+
+                    period:
+                      item.period ??
+                      null,
+
+                    duration_minutes:
+                      Number(
+                        item.place_duration_minutes ??
+                        item.duration_minutes ??
+                        90
+                      ),
+
+                    activities:
+                      Array.isArray(
+                        item.place_activities ??
+                        item.activities
+                      )
+                        ? (
+                            item.place_activities ??
+                            item.activities
+                          )
+                        : [],
+
+                    activity_summary:
+                      item.place_activity_summary ??
+                      item.activity_summary ??
+                      null,
+
+                    notes:
+                      item.place_notes ??
+                      item.notes ??
+                      null,
+
+                    time_constraint:
+                      item.place_time_constraint ??
+                      item.time_constraint ??
+                      "flexible",
+
+                    fixed_start_time:
+                      item.place_fixed_start_time ??
+                      item.fixed_start_time ??
+                      null,
                   });
                 }
 
@@ -3333,6 +3375,49 @@ const saveTripToSupabase = async () => {
                       String(
                         item.restaurant_id
                       ),
+
+                    period:
+                      item.restaurant_period ??
+                      item.period ??
+                      null,
+
+                    duration_minutes:
+                      Number(
+                        item.restaurant_duration_minutes ??
+                        item.duration_minutes ??
+                        75
+                      ),
+
+                    activities:
+                      Array.isArray(
+                        item.restaurant_activities ??
+                        item.activities
+                      )
+                        ? (
+                            item.restaurant_activities ??
+                            item.activities
+                          )
+                        : [],
+
+                    activity_summary:
+                      item.restaurant_activity_summary ??
+                      item.activity_summary ??
+                      null,
+
+                    notes:
+                      item.restaurant_notes ??
+                      item.notes ??
+                      null,
+
+                    time_constraint:
+                      item.restaurant_time_constraint ??
+                      item.time_constraint ??
+                      "flexible",
+
+                    fixed_start_time:
+                      item.restaurant_fixed_start_time ??
+                      item.fixed_start_time ??
+                      null,
                   });
                 }
 
