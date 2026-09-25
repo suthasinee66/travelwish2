@@ -1333,57 +1333,108 @@ const mapCenter = useMemo(() => {
                       null;
 
                     const timeLabel =
-                      period
+                      item?.start_time &&
+                      item?.end_time
                         ? (
-                            periodTimeLabels[
-                              String(
-                                period
-                              )
-                            ] ??
-                            String(period)
+                            String(
+                              item.start_time
+                            ) +
+                            "–" +
+                            String(
+                              item.end_time
+                            )
                           )
-                        : "STOP " +
-                          (index + 1);
+                        : period
+                          ? (
+                              periodTimeLabels[
+                                String(
+                                  period
+                                )
+                              ] ??
+                              String(period)
+                            )
+                          : "STOP " +
+                            (index + 1);
 
-                    const lat =
-                      Number(
-                        item?.location
-                          ?.latitude ??
-                        item?.latitude
-                      );
+                    const activitySummary =
+                      item?.activity_summary ??
+                      (
+                        isRestaurant
+                          ? item
+                              ?.restaurant_activity_summary
+                          : item
+                              ?.place_activity_summary
+                      ) ??
+                      name;
 
-                    const lng =
-                      Number(
-                        item?.location
-                          ?.longitude ??
-                        item?.longitude
-                      );
+                    const activities =
+                      Array.isArray(
+                        item?.activities
+                      )
+                        ? item.activities
+                        : (
+                            isRestaurant
+                              ? item
+                                  ?.restaurant_activities
+                              : item
+                                  ?.place_activities
+                          );
+
+                    const activityText =
+                      Array.isArray(
+                        activities
+                      ) &&
+                      activities.length > 0
+                        ? (
+                            activitySummary +
+                            " · " +
+                            activities
+                              .slice(
+                                0,
+                                2
+                              )
+                              .join(" / ")
+                          )
+                        : activitySummary;
 
                     const note =
-                      isRestaurant
-                        ? "ร้านอาหาร"
-                        : (
-                            Number.isFinite(
-                              lat
-                            ) &&
-                            Number.isFinite(
-                              lng
-                            )
-                          )
-                          ? lat.toFixed(
-                              4
+                      item?.notes ??
+                      (
+                        isRestaurant
+                          ? item
+                              ?.restaurant_notes
+                          : item
+                              ?.place_notes
+                      ) ??
+                      (
+                        Number(
+                          item
+                            ?.scheduled_duration_minutes ??
+                          item
+                            ?.duration_minutes
+                        ) > 0
+                          ? "ประมาณ " +
+                            String(
+                              Number(
+                                item
+                                  ?.scheduled_duration_minutes ??
+                                item
+                                  ?.duration_minutes
+                              )
                             ) +
-                            ", " +
-                            lng.toFixed(
-                              4
-                            )
+                            " นาที"
                           : (
                               item
                                 ?.province ??
                               trip
                                 .destination ??
-                              "สถานที่ท่องเที่ยว"
-                            );
+                              (
+                                isRestaurant
+                                  ? "ร้านอาหาร"
+                                  : "สถานที่ท่องเที่ยว"
+                              )
+                            )
+                      );
 
                     return (
                       '<tr>' +
@@ -1392,11 +1443,15 @@ const mapCenter = useMemo(() => {
                         timeLabel
                       ) +
                       "</td>" +
-                      '<td class="activity-cell">' +
+                      '<td class="activity-cell"><strong>' +
                       escapeHtml(
                         name
                       ) +
-                      "</td>" +
+                      '</strong><div class="activity-detail">' +
+                      escapeHtml(
+                        activityText
+                      ) +
+                      "</div></td>" +
                       '<td class="notes-cell">' +
                       escapeHtml(
                         note
