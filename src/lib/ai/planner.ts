@@ -1082,9 +1082,9 @@ ${JSON.stringify(tripData, null, 2)}
 - เลือกเฉพาะสถานที่หรือประสบการณ์ที่มีชื่อจริงและตรวจสอบต่อกับ Google Places ได้
 - ให้ความสำคัญกับ trend ที่เข้ากับ preference/personality ของผู้ใช้
 - ไม่ต้องเลือกสถานที่เพียงเพราะดัง ถ้าไม่เข้ากับผู้ใช้
-- ต้องคืนสถานที่ 30 รายการตาม JSON schema
+- ต้องคืนสถานที่ 15 รายการตาม JSON schema
 - ห้ามอ้างอิงหรือเดาอันดับจาก TDMC เพราะรอบนี้คุณไม่ได้รับข้อมูล TDMC
-- หลีกเลี่ยงชื่อซ้ำภายใน 30 รายการ
+- หลีกเลี่ยงชื่อซ้ำภายใน 15 รายการ
 - ตอบตาม JSON schema เท่านั้น
 `;
 
@@ -1147,7 +1147,7 @@ try {
                             trend &&
                             trend.name
                     )
-                    .slice(0, 30)
+                    .slice(0, 15)
         };
     }
 
@@ -1171,7 +1171,7 @@ const aiDiscoveryProposals =
             ? liveTrendContext.trends
             : []
     )
-        .slice(0, 30)
+        .slice(0, 15)
         .map(
             (
                 trend: any,
@@ -1333,10 +1333,10 @@ const aiDiscoveryCandidates =
             }
         )
         .filter(Boolean)
-        .slice(0, 30);
+        .slice(0, 15);
 
 console.log(
-    `🤖 AI DISCOVERY VERIFIED = ${aiDiscoveryCandidates.length}/30`
+    `🤖 AI DISCOVERY VERIFIED = ${aiDiscoveryCandidates.length}/15`
 );
 
 const ranked =
@@ -1468,7 +1468,7 @@ const prompt = `
 โดยใช้ข้อมูลผู้ใช้ทั้งหมดจริง ๆ ไม่ใช่แค่เลือกตาม ranking
 
 คุณจะได้รับ candidate จาก 2 ระบบที่ทำงานแยกจากกันก่อนหน้านี้:
-1. AI DISCOVERY 30 — AI รอบแรกหาโดยใช้ข้อมูลผู้ใช้ + ข้อมูลสดจากเว็บ โดยไม่เห็น TDMC
+1. AI DISCOVERY 15 — AI รอบแรกหาโดยใช้ข้อมูลผู้ใช้ + ข้อมูลสดจากเว็บ โดยไม่เห็น TDMC
 2. TDMC TOP 30 — Recommendation Algorithm จัดอันดับจากฐานข้อมูลโดยไม่ใช้ผล AI Discovery
 
 รอบนี้คือ FINAL DECISION
@@ -1520,7 +1520,7 @@ ${JSON.stringify(tripData, null, 2)}
 - ต้องปรับ attraction / restaurant / route ให้เข้ากับที่พักที่ locked แทน
 
 ==================================================
-3. COMBINED CANDIDATE POOL — AI 30 + TDMC 30
+3. COMBINED CANDIDATE POOL — AI 15 + TDMC 30
 ==================================================
 
 AI DISCOVERY:
@@ -1534,9 +1534,9 @@ TDMC:
 - source = "tdmc"
 
 จำนวนเป้าหมาย:
-- AI Discovery = 30
+- AI Discovery = 15
 - TDMC = 30
-- รวมสูงสุด = 60 candidates
+- รวมสูงสุด = 45 candidates
 
 ${JSON.stringify(combinedCandidatePool)}
 
