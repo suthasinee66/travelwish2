@@ -1058,7 +1058,7 @@ if (!isGuest) {
 const trendResearchPrompt = `
 คุณคือ TravelWish Independent Discovery AI
 
-แนะนำสถานที่ 30 แห่งในจังหวัด ${tripData.province}
+แนะนำสถานที่ 15 แห่งในจังหวัด ${tripData.province}
 จากข้อมูลผู้ใช้และข้อมูลสดจากเว็บ โดยคุณยังไม่เห็นผลจาก TDMC หรือ Recommendation Algorithm
 
 สถานที่อาจเป็นแลนด์มาร์ก คาเฟ่ ย่าน ตลาด จุดถ่ายรูป
@@ -2589,6 +2589,10 @@ let accommodationRecommendationReason:
     string | null =
     null;
 
+let fallbackAccommodationCandidate:
+    any | null =
+    null;
+
 if (!plannerAccommodation) {
     try {
         const {
@@ -2899,6 +2903,33 @@ if (!plannerAccommodation) {
                     24
                 );
 
+        fallbackAccommodationCandidate =
+            accommodationCandidates[0] ??
+            null;
+
+        console.log(
+            "🏨 ACCOMMODATION CANDIDATES:",
+            {
+                count:
+                    accommodationCandidates.length,
+
+                fallback:
+                    fallbackAccommodationCandidate
+                        ? {
+                            id:
+                                fallbackAccommodationCandidate.id,
+
+                            name:
+                                fallbackAccommodationCandidate.name,
+
+                            route_center_distance_km:
+                                fallbackAccommodationCandidate
+                                    .route_center_distance_km
+                        }
+                        : null
+            }
+        );
+
         if (
             accommodationCandidates
                 .length >
@@ -2971,7 +3002,11 @@ ${JSON.stringify(
             const accommodationRaw =
                 await generateWithSelectedModel(
                     selectedModel,
-                    accommodationPrompt
+                    accommodationPrompt,
+                    {
+                        responseMode:
+                            "accommodation_json"
+                    }
                 );
 
             const accommodationCleaned =
@@ -3012,6 +3047,13 @@ ${JSON.stringify(
                             hotel.id ===
                             chosenId
                     );
+
+            if (!chosen) {
+                console.warn(
+                    "⚠️ AI ACCOMMODATION ID NOT FOUND IN CANDIDATES:",
+                    chosenId
+                );
+            }
 
             if (chosen) {
                 const rawHotel =
@@ -3207,6 +3249,62 @@ ${JSON.stringify(
         console.warn(
             "⚠️ AI ACCOMMODATION RECOMMENDATION FAILED:",
             error
+        );
+    }
+
+    if (
+        !plannerAccommodation &&
+        fallbackAccommodationCandidate
+    ) {
+        const fallbackHotel =
+            fallbackAccommodationCandidate.raw;
+
+        plannerAccommodation = {
+            id:
+                String(
+                    fallbackHotel.acc_id
+                ),
+
+            name:
+                fallbackHotel.acc_name_th ??
+                fallbackHotel.acc_name_en ??
+                fallbackAccommodationCandidate.name ??
+                "ที่พัก",
+
+            address:
+                fallbackHotel.acc_address ??
+                null,
+
+            latitude:
+                Number(
+                    fallbackHotel.latitude
+                ),
+
+            longitude:
+                Number(
+                    fallbackHotel.longitude
+                ),
+
+            source:
+                "algorithm_fallback",
+
+            locked:
+                false,
+
+            images:
+                Array.isArray(
+                    fallbackHotel.images
+                )
+                    ? fallbackHotel.images
+                    : []
+        };
+
+        accommodationRecommendationReason =
+            "ใช้ที่พักสำรองที่อยู่ใกล้ศูนย์กลางเส้นทางมากที่สุด เนื่องจากบริการ AI เลือกที่พักไม่ตอบกลับสำเร็จ";
+
+        console.warn(
+            "🏨 ACCOMMODATION FALLBACK SELECTED:",
+            plannerAccommodation
         );
     }
 }
