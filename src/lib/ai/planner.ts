@@ -30,6 +30,105 @@ const API_URL =
         )
     ).replace(/\/$/, "");
 
+type CoordinateRefreshTarget = {
+    type: "attraction" | "restaurant" | "accommodation";
+    id: string;
+    name?: string | null;
+};
+
+async function refreshPlaceCoordinatesOnce(
+    target: CoordinateRefreshTarget,
+    province: string,
+    refreshedKeys: Set<string>
+) {
+    if (!API_URL || !target?.id) {
+        return null;
+    }
+
+    const key =
+        `${target.type}:${String(target.id)}`;
+
+    if (refreshedKeys.has(key)) {
+        return null;
+    }
+
+    // Mark before the request so the same place is never refreshed
+    // more than once during a single planner generation.
+    refreshedKeys.add(key);
+
+    try {
+        const response =
+            await fetch(
+                `${API_URL}/api/refresh-place-coordinates`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        type:
+                            target.type,
+
+                        id:
+                            String(target.id),
+
+                        name:
+                            target.name ??
+                            null,
+
+                        province
+                    })
+                }
+            );
+
+        if (!response.ok) {
+            console.warn(
+                "⚠️ COORDINATE REFRESH HTTP ERROR:",
+                {
+                    key,
+                    status:
+                        response.status,
+                    error:
+                        await response.text()
+                }
+            );
+
+            return null;
+        }
+
+        const data =
+            await response.json();
+
+        console.log(
+            "📍 COORDINATES REFRESHED:",
+            {
+                key,
+                latitude:
+                    data?.entity?.latitude ??
+                    null,
+                longitude:
+                    data?.entity?.longitude ??
+                    null
+            }
+        );
+
+        return data?.entity ?? null;
+    } catch (error) {
+        console.warn(
+            "⚠️ COORDINATE REFRESH FAILED:",
+            {
+                key,
+                error
+            }
+        );
+
+        return null;
+    }
+}
+
 function normalizePhysicalPlaceName(
     value: unknown
 ) {
@@ -1954,6 +2053,57 @@ const selectedRestaurantIds =
         )
     ];
 
+const refreshedCoordinateKeys =
+    new Set<string>();
+
+// Refreshพิกัดจาก Google Places ทุกครั้งที่สร้างแผน
+// แต่แต่ละสถานที่/ร้านอาหารจะ refresh เพียงครั้งเดียวต่อรอบ planner
+// เพื่อให้ Route Optimization ใช้ latitude/longitude ล่าสุด
+for (
+    const item
+    of selectedPlaces
+) {
+    if (item?.place_id) {
+        await refreshPlaceCoordinatesOnce(
+            {
+                type:
+                    "attraction",
+
+                id:
+                    String(
+                        item.place_id
+                    ),
+
+                name:
+                    item.place_name ??
+                    null
+            },
+            tripData.province,
+            refreshedCoordinateKeys
+        );
+    }
+
+    if (item?.restaurant_id) {
+        await refreshPlaceCoordinatesOnce(
+            {
+                type:
+                    "restaurant",
+
+                id:
+                    String(
+                        item.restaurant_id
+                    ),
+
+                name:
+                    item.restaurant_name ??
+                    null
+            },
+            tripData.province,
+            refreshedCoordinateKeys
+        );
+    }
+}
+
 const [
     selectedAttractionResult,
     selectedRestaurantResult
@@ -2741,6 +2891,54 @@ ${JSON.stringify(
             "⚠️ AI ACCOMMODATION RECOMMENDATION FAILED:",
             error
         );
+    }
+}
+
+// ไม่ว่าที่พักจะมาจากผู้ใช้หรือ AI ให้ refresh พิกัดล่าสุดก่อนจัด route
+// และไม่ยิงซ้ำถ้าที่พักนี้ถูก refresh แล้วใน planner รอบเดียวกัน
+if (
+    plannerAccommodation?.id
+) {
+    const refreshedAccommodation =
+        await refreshPlaceCoordinatesOnce(
+            {
+                type:
+                    "accommodation",
+
+                id:
+                    String(
+                        plannerAccommodation.id
+                    ),
+
+                name:
+                    plannerAccommodation.name ??
+                    null
+            },
+            tripData.province,
+            refreshedCoordinateKeys
+        );
+
+    if (refreshedAccommodation) {
+        plannerAccommodation = {
+            ...plannerAccommodation,
+
+            latitude:
+                Number(
+                    refreshedAccommodation.latitude ??
+                    plannerAccommodation.latitude
+                ),
+
+            longitude:
+                Number(
+                    refreshedAccommodation.longitude ??
+                    plannerAccommodation.longitude
+                ),
+
+            google_place_id:
+                refreshedAccommodation.google_place_id ??
+                plannerAccommodation.google_place_id ??
+                null
+        };
     }
 }
 
