@@ -884,6 +884,141 @@ const mapCenter = useMemo(() => {
         0
       );
 
+
+    const coverImages =
+      Array.from(
+        new Set(
+          currentItems
+            .flatMap(
+              day =>
+                day.items
+            )
+            .flatMap(
+              (item: any) =>
+                Array.isArray(
+                  item?.images
+                )
+                  ? item.images
+                  : Array.isArray(
+                      item?.place_data
+                        ?.images
+                    )
+                    ? item.place_data
+                        .images
+                    : []
+            )
+            .filter(
+              (
+                value
+              ): value is string =>
+                typeof value ===
+                  "string" &&
+                value.trim().length >
+                  0
+            )
+        )
+      ).slice(
+        0,
+        4
+      );
+
+    const coverImageHtml =
+      coverImages.length > 0
+        ? coverImages
+            .map(
+              (
+                image,
+                index
+              ) =>
+                '<figure class="cover-photo cover-photo-' +
+                (index + 1) +
+                '"><img src="' +
+                escapeHtml(image) +
+                '" alt="" /></figure>'
+            )
+            .join("")
+        : '<div class="cover-photo-placeholder">✈<span>' +
+          escapeHtml(
+            trip.destination ??
+            "Travel"
+          ) +
+          "</span></div>";
+
+    const coverDaysHtml =
+      currentItems
+        .map(
+          (
+            dayData,
+            dayIndex
+          ) => {
+            const color =
+              getAllDaysColor(
+                dayIndex
+              );
+
+            const rows =
+              dayData.items
+                .map(
+                  (
+                    item: any,
+                    index: number
+                  ) => {
+                    const name =
+                      item?.name ??
+                      item?.place_name ??
+                      item?.place_name_th ??
+                      item?.restaurant_name ??
+                      item?.restaurant_name_th ??
+                      item?.place_data
+                        ?.name_th ??
+                      item?.place_data
+                        ?.place_name_th ??
+                      "สถานที่";
+
+                    const period =
+                      item?.period ??
+                      item?.time_period ??
+                      "จุดที่ " +
+                        (index + 1);
+
+                    return (
+                      '<div class="cover-stop">' +
+                      '<span class="cover-period">' +
+                      escapeHtml(period) +
+                      "</span>" +
+                      '<span class="cover-stop-dash">–</span>' +
+                      '<strong class="cover-stop-name">' +
+                      escapeHtml(name) +
+                      "</strong>" +
+                      "</div>"
+                    );
+                  }
+                )
+                .join("");
+
+            return (
+              '<section class="cover-day">' +
+              '<div class="cover-day-label" style="background:' +
+              color +
+              '">Day ' +
+              dayData.day +
+              "</div>" +
+              '<div class="cover-day-body">' +
+              '<div class="cover-flight">' +
+              '<div class="cover-plane">✈</div>' +
+              '<div class="cover-line"></div>' +
+              '<div class="cover-dot"></div>' +
+              "</div>" +
+              '<div class="cover-stops">' +
+              rows +
+              "</div>" +
+              "</div>" +
+              "</section>"
+            );
+          }
+        )
+        .join("");
+
     const daySections =
       currentItems
         .map(
@@ -1334,102 +1469,570 @@ const mapCenter = useMemo(() => {
       text-align: center;
     }
 
+
+    @page {
+      size: A4 portrait;
+      margin: 8mm;
+    }
+
+    .export-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 18px;
+      background: rgba(38, 30, 40, 0.96);
+      color: white;
+      box-shadow: 0 10px 30px rgba(34, 24, 36, 0.18);
+      backdrop-filter: blur(18px);
+    }
+
+    .export-toolbar-title {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .export-toolbar-subtitle {
+      margin-top: 2px;
+      color: rgba(255,255,255,.68);
+      font-size: 11px;
+    }
+
+    .export-toolbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .export-toolbar button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 15px;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .export-close {
+      background: white;
+      color: #514655;
+    }
+
+    .export-pdf {
+      background: #f7b916;
+      color: white;
+      box-shadow: 0 8px 20px rgba(247,185,22,.25);
+    }
+
+    .poster-cover {
+      position: relative;
+      min-height: 1080px;
+      overflow: hidden;
+      padding: 52px 48px 44px;
+      background: #fffefb;
+    }
+
+    .poster-cover::before,
+    .poster-cover::after {
+      content: "";
+      position: absolute;
+      width: 210px;
+      height: 160px;
+      border: 2px dashed #1f1d20;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .poster-cover::before {
+      left: -110px;
+      top: 30px;
+      transform: rotate(20deg);
+      border-right-color: transparent;
+      border-bottom-color: transparent;
+    }
+
+    .poster-cover::after {
+      right: -120px;
+      top: 36px;
+      transform: rotate(-14deg);
+      border-left-color: transparent;
+      border-bottom-color: transparent;
+    }
+
+    .poster-plane-top {
+      position: absolute;
+      left: 104px;
+      top: 18px;
+      z-index: 4;
+      font-size: 34px;
+      transform: rotate(-20deg);
+    }
+
+    .poster-flag {
+      position: absolute;
+      right: 86px;
+      top: 184px;
+      z-index: 4;
+      font-size: 24px;
+    }
+
+    .poster-head {
+      position: relative;
+      z-index: 5;
+      text-align: center;
+    }
+
+    .poster-title-row {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .poster-travel {
+      padding: 6px 24px 9px;
+      border-radius: 15px;
+      background: linear-gradient(180deg,#ffc62b,#f7b916);
+      color: white;
+      font-size: 56px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -.055em;
+    }
+
+    .poster-itinerary {
+      font-family: Georgia, "Times New Roman", serif;
+      color: #332f31;
+      font-size: 50px;
+      line-height: 1;
+      font-style: italic;
+      font-weight: 600;
+      letter-spacing: -.04em;
+    }
+
+    .poster-tagline {
+      margin-top: 20px;
+      color: #393538;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: .11em;
+    }
+
+    .poster-trip-title {
+      margin-top: 12px;
+      color: #7c727c;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .poster-grid {
+      position: relative;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: minmax(0,1.08fr) minmax(300px,.92fr);
+      gap: 26px;
+      margin-top: 40px;
+    }
+
+    .poster-left {
+      position: relative;
+      min-height: 760px;
+    }
+
+    .poster-collage {
+      position: relative;
+      min-height: 640px;
+    }
+
+    .cover-photo {
+      position: absolute;
+      margin: 0;
+      padding: 11px 11px 27px;
+      background: white;
+      border: 1px solid #eeeae4;
+      box-shadow: 0 14px 34px rgba(48,41,50,.17);
+      transform-origin: center;
+    }
+
+    .cover-photo img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .cover-photo-1 {
+      z-index: 3;
+      width: 84%;
+      height: 308px;
+      left: 0;
+      top: 12px;
+      transform: rotate(7deg);
+    }
+
+    .cover-photo-2 {
+      z-index: 4;
+      width: 78%;
+      height: 290px;
+      left: 72px;
+      top: 326px;
+      transform: rotate(10deg);
+    }
+
+    .cover-photo-3 {
+      z-index: 2;
+      width: 63%;
+      height: 270px;
+      left: -26px;
+      top: 374px;
+      transform: rotate(-9deg);
+    }
+
+    .cover-photo-4 {
+      z-index: 1;
+      width: 61%;
+      height: 235px;
+      left: 92px;
+      top: 555px;
+      transform: rotate(4deg);
+    }
+
+    .cover-photo-placeholder {
+      height: 520px;
+      border-radius: 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(145deg,#f6edf7,#fff5d9);
+      color: #5b3a61;
+      font-size: 60px;
+    }
+
+    .cover-photo-placeholder span {
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .poster-plane-overlay {
+      position: absolute;
+      z-index: 8;
+      left: -26px;
+      top: 270px;
+      width: 112%;
+      text-align: center;
+      color: #1f1b20;
+      font-size: 86px;
+      line-height: 1;
+      transform: rotate(6deg);
+      text-shadow: 0 10px 22px rgba(0,0,0,.10);
+      pointer-events: none;
+    }
+
+    .poster-meta {
+      position: absolute;
+      z-index: 10;
+      left: 10px;
+      right: 8px;
+      bottom: 0;
+      padding: 15px 16px;
+      border-radius: 18px;
+      border: 1px solid #ece4ed;
+      background: rgba(255,255,255,.95);
+      box-shadow: 0 13px 35px rgba(55,45,59,.10);
+    }
+
+    .poster-destination {
+      color: #473a4b;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .poster-meta-line {
+      margin-top: 6px;
+      color: #847985;
+      font-size: 10px;
+      line-height: 1.65;
+    }
+
+    .poster-hotel {
+      margin-top: 7px;
+      padding-top: 7px;
+      border-top: 1px solid #eee7ef;
+      color: #655969;
+      font-size: 10px;
+      line-height: 1.55;
+    }
+
+    .cover-days {
+      min-width: 0;
+      padding-top: 2px;
+    }
+
+    .cover-day {
+      position: relative;
+      margin-bottom: 23px;
+      padding-top: 46px;
+    }
+
+    .cover-day-label {
+      position: absolute;
+      top: 0;
+      left: 46px;
+      min-width: 112px;
+      padding: 8px 18px;
+      border-radius: 11px;
+      color: white;
+      font-size: 17px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .cover-day-body {
+      display: grid;
+      grid-template-columns: 34px minmax(0,1fr);
+      gap: 13px;
+    }
+
+    .cover-flight {
+      position: relative;
+      min-height: 112px;
+    }
+
+    .cover-plane {
+      position: relative;
+      z-index: 2;
+      font-size: 27px;
+      line-height: 1;
+    }
+
+    .cover-line {
+      position: absolute;
+      top: 27px;
+      bottom: 7px;
+      left: 12px;
+      border-left: 2px dotted #272327;
+    }
+
+    .cover-dot {
+      position: absolute;
+      left: 8px;
+      bottom: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #221e22;
+    }
+
+    .cover-stops {
+      min-width: 0;
+      padding-top: 1px;
+    }
+
+    .cover-stop {
+      display: grid;
+      grid-template-columns: 74px 11px minmax(0,1fr);
+      gap: 3px;
+      margin-bottom: 7px;
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .cover-period {
+      color: #716771;
+      font-weight: 700;
+    }
+
+    .cover-stop-dash {
+      color: #aaa1aa;
+    }
+
+    .cover-stop-name {
+      color: #312c31;
+      font-weight: 700;
+    }
+
+    .details-heading {
+      margin: 24px 0 14px;
+      padding: 0 4px;
+      color: #433746;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    @media (max-width: 760px) {
+      .poster-cover {
+        min-height: auto;
+        padding: 34px 22px;
+      }
+
+      .poster-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .poster-left {
+        min-height: 680px;
+      }
+
+      .poster-travel {
+        font-size: 42px;
+      }
+
+      .poster-itinerary {
+        font-size: 40px;
+      }
+    }
+
     @media print {
       body {
         background: white;
       }
 
+      .export-toolbar {
+        display: none !important;
+      }
+
       .page {
         max-width: none;
+      }
+
+      .poster-cover {
+        min-height: 277mm;
+        box-shadow: none;
+        page-break-after: always;
+      }
+
+      .day-section {
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
     }
   </style>
 </head>
 <body>
+  <header class="export-toolbar">
+    <div>
+      <div class="export-toolbar-title">
+        Preview แผนการเดินทาง
+      </div>
+      <div class="export-toolbar-subtitle">
+        ตรวจสอบข้อมูล แล้วกด Save as PDF เพื่อเก็บไว้ดูแบบ Offline
+      </div>
+    </div>
+
+    <div class="export-toolbar-actions">
+      <button
+        class="export-close"
+        onclick="window.close()"
+      >
+        ปิด
+      </button>
+
+      <button
+        class="export-pdf"
+        onclick="window.print()"
+      >
+        Save as PDF
+      </button>
+    </div>
+  </header>
+
   <main class="page">
-    <section class="hero">
-      <div class="eyebrow">
-        TravelWish Offline Itinerary
-      </div>
+    <section class="poster-cover">
+      <div class="poster-plane-top">✈</div>
+      <div class="poster-flag">⚑</div>
 
-      <div class="title">
-        ${escapeHtml(
-          trip.title ??
-          "My Trip"
-        )}
-      </div>
-
-      <div class="destination">
-        📍 ${escapeHtml(
-          trip.destination ??
-          "Thailand"
-        )}
-      </div>
-
-      <div class="meta-grid">
-        <div class="meta-card">
-          <div class="meta-label">
-            วันเดินทาง
-          </div>
-          <div class="meta-value">
-            ${escapeHtml(
-              dateRange ||
-              `${currentItems.length} วัน`
-            )}
-          </div>
+      <header class="poster-head">
+        <div class="poster-title-row">
+          <span class="poster-travel">Travel</span>
+          <span class="poster-itinerary">Itinerary</span>
         </div>
 
-        <div class="meta-card">
-          <div class="meta-label">
-            ผู้เดินทาง
-          </div>
-          <div class="meta-value">
-            ${escapeHtml(
-              trip.people ||
-              "ไม่ระบุ"
-            )}
-          </div>
+        <div class="poster-tagline">
+          EXPLORE • FOOD • VIEWS
         </div>
 
-        <div class="meta-card">
-          <div class="meta-label">
-            จุดในแผน
-          </div>
-          <div class="meta-value">
-            ${totalStops} จุด
-          </div>
+        <div class="poster-trip-title">
+          ${escapeHtml(
+            trip.title ??
+            "My Trip"
+          )}
         </div>
-      </div>
-    </section>
+      </header>
 
-    ${
-      accommodation
-        ? `
-          <section class="hotel">
-            <div class="hotel-label">
-              ที่พักหลัก
-            </div>
-            <div class="hotel-name">
+      <div class="poster-grid">
+        <section class="poster-left">
+          <div class="poster-collage">
+            ${coverImageHtml}
+          </div>
+
+          <div class="poster-plane-overlay">
+            ✈
+          </div>
+
+          <div class="poster-meta">
+            <div class="poster-destination">
               ${escapeHtml(
-                accommodation.name ??
-                "ที่พัก"
+                trip.destination ??
+                "Thailand"
               )}
             </div>
+
+            <div class="poster-meta-line">
+              ${
+                dateRange
+                  ? escapeHtml(
+                      dateRange
+                    )
+                  : `${currentItems.length} วัน`
+              }
+              · ${totalStops} จุด
+              ${
+                trip.people
+                  ? ` · ${escapeHtml(
+                      trip.people
+                    )}`
+                  : ""
+              }
+            </div>
+
             ${
-              accommodation.address
+              accommodation
                 ? `
-                  <div class="hotel-address">
+                  <div class="poster-hotel">
+                    <strong>ที่พัก:</strong>
                     ${escapeHtml(
-                      accommodation.address
+                      accommodation.name ??
+                      "ที่พัก"
                     )}
+                    ${
+                      accommodation.address
+                        ? ` · ${escapeHtml(
+                            accommodation.address
+                          )}`
+                        : ""
+                    }
                   </div>
                 `
                 : ""
             }
-          </section>
-        `
-        : ""
-    }
+          </div>
+        </section>
+
+        <section class="cover-days">
+          ${coverDaysHtml}
+        </section>
+      </div>
+    </section>
+
+    <div class="details-heading">
+      รายละเอียดแผนการเดินทาง
+    </div>
 
     ${daySections}
 
@@ -1438,17 +2041,6 @@ const mapCenter = useMemo(() => {
     </div>
   </main>
 
-  <script>
-    window.addEventListener(
-      "load",
-      () => {
-        setTimeout(
-          () => window.print(),
-          500
-        );
-      }
-    );
-  </script>
 </body>
 </html>
     `;
@@ -1456,8 +2048,7 @@ const mapCenter = useMemo(() => {
     const printWindow =
       window.open(
         "",
-        "_blank",
-        "noopener,noreferrer"
+        "_blank"
       );
 
     if (!printWindow) {
