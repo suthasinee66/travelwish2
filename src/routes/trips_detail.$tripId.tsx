@@ -17,6 +17,7 @@ import PlaceDetailDrawer, {
 import { TripPlanPanel } from "./home";
 import {
   ArrowLeft,
+  Download,
   MapPin,
 } from "lucide-react";
 
@@ -703,6 +704,772 @@ const mapCenter = useMemo(() => {
     ),
   };
 
+  const exportTripOffline = () => {
+    if (
+      typeof window === "undefined" ||
+      !trip
+    ) {
+      return;
+    }
+
+    const escapeHtml = (
+      value: unknown
+    ) =>
+      String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    const formatDate = (
+      value: unknown
+    ) => {
+      if (!value) return null;
+
+      const date =
+        new Date(String(value));
+
+      if (
+        Number.isNaN(
+          date.getTime()
+        )
+      ) {
+        return String(value);
+      }
+
+      return new Intl.DateTimeFormat(
+        "th-TH",
+        {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }
+      ).format(date);
+    };
+
+    const currentItems =
+      liveRoutesByDay
+        ? Object.entries(
+            liveRoutesByDay
+          )
+            .sort(
+              ([a], [b]) =>
+                Number(a) -
+                Number(b)
+            )
+            .map(
+              (
+                [dayIndex, items]
+              ) => ({
+                day:
+                  Number(dayIndex) + 1,
+                title:
+                  trip.trip_days?.[
+                    Number(dayIndex)
+                  ]?.title ??
+                  `Day ${
+                    Number(dayIndex) + 1
+                  }`,
+                items:
+                  (items ?? []).map(
+                    (
+                      item: any,
+                      index: number
+                    ) => ({
+                      ...item,
+                      exportIndex:
+                        index + 1,
+                    })
+                  ),
+              })
+            )
+        : (
+            trip.trip_days ?? []
+          ).map(
+            (day: any) => ({
+              day:
+                Number(
+                  day.day_number
+                ),
+              title:
+                day.title ??
+                `Day ${day.day_number}`,
+              items:
+                (
+                  day.trip_items ?? []
+                ).map(
+                  (
+                    item: any,
+                    index: number
+                  ) => {
+                    const isRestaurant =
+                      item.item_type ===
+                      "restaurant";
+
+                    const place =
+                      isRestaurant
+                        ? item.restaurant
+                        : item.attraction;
+
+                    return {
+                      ...item,
+                      type:
+                        isRestaurant
+                          ? "restaurant"
+                          : "place",
+                      exportIndex:
+                        index + 1,
+                      name:
+                        isRestaurant
+                          ? (
+                              place?.place_name_th ??
+                              place?.place_name_en ??
+                              "ร้านอาหาร"
+                            )
+                          : (
+                              place?.name_th ??
+                              place?.name_en ??
+                              "สถานที่ท่องเที่ยว"
+                            ),
+                      images:
+                        place?.images ??
+                        [],
+                      province:
+                        place?.province ??
+                        trip.destination ??
+                        "",
+                      location: {
+                        latitude:
+                          Number(
+                            place?.latitude
+                          ),
+                        longitude:
+                          Number(
+                            place?.longitude
+                          ),
+                      },
+                    };
+                  }
+                ),
+            })
+          );
+
+    const accommodation =
+      trip.accommodation &&
+      typeof trip.accommodation ===
+        "object"
+        ? trip.accommodation
+        : null;
+
+    const dateRange = [
+      formatDate(
+        trip.start_date
+      ),
+      formatDate(
+        trip.end_date
+      ),
+    ]
+      .filter(Boolean)
+      .join(" – ");
+
+    const totalStops =
+      currentItems.reduce(
+        (
+          sum,
+          day
+        ) =>
+          sum +
+          day.items.length,
+        0
+      );
+
+    const daySections =
+      currentItems
+        .map(
+          (
+            dayData,
+            dayIndex
+          ) => {
+            const color =
+              getAllDaysColor(
+                dayIndex
+              );
+
+            const stops =
+              dayData.items
+                .map(
+                  (
+                    item: any,
+                    index: number
+                  ) => {
+                    const name =
+                      item.name ??
+                      item.place_name ??
+                      item.place_name_th ??
+                      item.restaurant_name ??
+                      item.restaurant_name_th ??
+                      item.place_data
+                        ?.name_th ??
+                      item.place_data
+                        ?.place_name_th ??
+                      "สถานที่";
+
+                    const images =
+                      Array.isArray(
+                        item.images
+                      )
+                        ? item.images
+                        : Array.isArray(
+                            item.place_data
+                              ?.images
+                          )
+                          ? item.place_data
+                              .images
+                          : [];
+
+                    const image =
+                      images[0] ??
+                      null;
+
+                    const isRestaurant =
+                      item.type ===
+                        "restaurant" ||
+                      Boolean(
+                        item.restaurant_id
+                      );
+
+                    const lat =
+                      Number(
+                        item.location
+                          ?.latitude ??
+                        item.latitude
+                      );
+
+                    const lng =
+                      Number(
+                        item.location
+                          ?.longitude ??
+                        item.longitude
+                      );
+
+                    const coordinates =
+                      Number.isFinite(lat) &&
+                      Number.isFinite(lng)
+                        ? `${lat.toFixed(
+                            6
+                          )}, ${lng.toFixed(
+                            6
+                          )}`
+                        : null;
+
+                    const period =
+                      item.period ??
+                      null;
+
+                    return `
+                      <div class="stop">
+                        <div
+                          class="stop-number"
+                          style="background:${color}"
+                        >
+                          ${index + 1}
+                        </div>
+
+                        <div class="stop-image">
+                          ${
+                            image
+                              ? `<img src="${escapeHtml(
+                                  image
+                                )}" alt="" />`
+                              : `<div class="image-placeholder">${isRestaurant ? "🍽" : "📍"}</div>`
+                          }
+                        </div>
+
+                        <div class="stop-content">
+                          <div class="stop-topline">
+                            <span class="stop-type">
+                              ${isRestaurant ? "ร้านอาหาร" : "สถานที่ท่องเที่ยว"}
+                            </span>
+                            ${
+                              period
+                                ? `<span class="period">${escapeHtml(
+                                    period
+                                  )}</span>`
+                                : ""
+                            }
+                          </div>
+
+                          <div class="stop-name">
+                            ${escapeHtml(
+                              name
+                            )}
+                          </div>
+
+                          ${
+                            coordinates
+                              ? `<div class="coords">พิกัด: ${coordinates}</div>`
+                              : ""
+                          }
+                        </div>
+                      </div>
+                    `;
+                  }
+                )
+                .join("");
+
+            return `
+              <section class="day-section">
+                <div class="day-heading">
+                  <span
+                    class="day-dot"
+                    style="background:${color}"
+                  ></span>
+                  <div>
+                    <div class="day-title">
+                      Day ${dayData.day}
+                    </div>
+                    <div class="day-subtitle">
+                      ${escapeHtml(
+                        dayData.title ??
+                        ""
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="timeline">
+                  ${stops}
+                </div>
+              </section>
+            `;
+          }
+        )
+        .join("");
+
+    const html = `
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(
+    trip.title ??
+    "TravelWish Trip"
+  )}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family:
+        "Noto Sans Thai",
+        "Segoe UI",
+        Tahoma,
+        sans-serif;
+      color: #30283a;
+      background: #f7f2f8;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+      background: white;
+      min-height: 100vh;
+    }
+
+    .hero {
+      padding: 34px 34px 28px;
+      border-radius: 28px;
+      background:
+        linear-gradient(
+          135deg,
+          #5b3a61 0%,
+          #76527d 55%,
+          #a077a6 100%
+        );
+      color: white;
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero:after {
+      content: "";
+      position: absolute;
+      width: 210px;
+      height: 210px;
+      border-radius: 999px;
+      right: -70px;
+      top: -80px;
+      background:
+        rgba(255,255,255,.10);
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      opacity: .82;
+      font-weight: 700;
+    }
+
+    .title {
+      margin-top: 8px;
+      font-size: 30px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .destination {
+      margin-top: 8px;
+      font-size: 14px;
+      opacity: .92;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .meta-card {
+      padding: 12px 14px;
+      border-radius: 15px;
+      background:
+        rgba(255,255,255,.12);
+      border:
+        1px solid
+        rgba(255,255,255,.16);
+    }
+
+    .meta-label {
+      font-size: 9px;
+      opacity: .75;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .meta-value {
+      margin-top: 3px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .hotel {
+      margin-bottom: 24px;
+      padding: 16px 18px;
+      border-radius: 20px;
+      background: #faf7fb;
+      border: 1px solid #e9dfeb;
+    }
+
+    .hotel-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #8f7994;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .hotel-name {
+      margin-top: 4px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #4c3652;
+    }
+
+    .hotel-address {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #76697a;
+      line-height: 1.6;
+    }
+
+    .day-section {
+      break-inside: avoid;
+      page-break-inside: avoid;
+      margin-bottom: 26px;
+      border: 1px solid #eee6f0;
+      border-radius: 22px;
+      padding: 18px;
+      background: #fff;
+    }
+
+    .day-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #eee8ef;
+    }
+
+    .day-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+    }
+
+    .day-title {
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .day-subtitle {
+      margin-top: 2px;
+      font-size: 11px;
+      color: #8a7d8e;
+    }
+
+    .timeline {
+      margin-top: 4px;
+    }
+
+    .stop {
+      display: grid;
+      grid-template-columns:
+        34px 72px minmax(0,1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 13px 0;
+      border-bottom:
+        1px solid #f0ebf1;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .stop:last-child {
+      border-bottom: 0;
+    }
+
+    .stop-number {
+      width: 30px;
+      height: 30px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow:
+        0 4px 10px
+        rgba(67,48,75,.12);
+    }
+
+    .stop-image {
+      width: 72px;
+      height: 56px;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #f2edf3;
+    }
+
+    .stop-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .image-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .stop-topline {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 3px;
+    }
+
+    .stop-type,
+    .period {
+      font-size: 9px;
+      font-weight: 700;
+      color: #806985;
+    }
+
+    .period {
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #f4edf6;
+    }
+
+    .stop-name {
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.45;
+      color: #3d3143;
+    }
+
+    .coords {
+      margin-top: 3px;
+      font-size: 9px;
+      color: #9a8e9d;
+    }
+
+    .footer {
+      margin-top: 28px;
+      padding: 15px 0 4px;
+      border-top: 1px solid #eee8ef;
+      color: #9a8e9d;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+
+      .page {
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">
+        TravelWish Offline Itinerary
+      </div>
+
+      <div class="title">
+        ${escapeHtml(
+          trip.title ??
+          "My Trip"
+        )}
+      </div>
+
+      <div class="destination">
+        📍 ${escapeHtml(
+          trip.destination ??
+          "Thailand"
+        )}
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-card">
+          <div class="meta-label">
+            วันเดินทาง
+          </div>
+          <div class="meta-value">
+            ${escapeHtml(
+              dateRange ||
+              `${currentItems.length} วัน`
+            )}
+          </div>
+        </div>
+
+        <div class="meta-card">
+          <div class="meta-label">
+            ผู้เดินทาง
+          </div>
+          <div class="meta-value">
+            ${escapeHtml(
+              trip.people ||
+              "ไม่ระบุ"
+            )}
+          </div>
+        </div>
+
+        <div class="meta-card">
+          <div class="meta-label">
+            จุดในแผน
+          </div>
+          <div class="meta-value">
+            ${totalStops} จุด
+          </div>
+        </div>
+      </div>
+    </section>
+
+    ${
+      accommodation
+        ? `
+          <section class="hotel">
+            <div class="hotel-label">
+              ที่พักหลัก
+            </div>
+            <div class="hotel-name">
+              ${escapeHtml(
+                accommodation.name ??
+                "ที่พัก"
+              )}
+            </div>
+            ${
+              accommodation.address
+                ? `
+                  <div class="hotel-address">
+                    ${escapeHtml(
+                      accommodation.address
+                    )}
+                  </div>
+                `
+                : ""
+            }
+          </section>
+        `
+        : ""
+    }
+
+    ${daySections}
+
+    <div class="footer">
+      Exported from TravelWish · เก็บไฟล์ PDF นี้ไว้สำหรับดูแผนการเดินทางแบบ Offline
+    </div>
+  </main>
+
+  <script>
+    window.addEventListener(
+      "load",
+      () => {
+        setTimeout(
+          () => window.print(),
+          500
+        );
+      }
+    );
+  </script>
+</body>
+</html>
+    `;
+
+    const printWindow =
+      window.open(
+        "",
+        "_blank",
+        "noopener,noreferrer"
+      );
+
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   // =========================================================
   // RENDER
   // =========================================================
@@ -773,7 +1540,7 @@ const mapCenter = useMemo(() => {
     <ArrowLeft size={19} />
   </button>
 
-  <div className="mx-auto min-w-0 max-w-[72%] text-center">
+  <div className="mx-auto min-w-0 max-w-[58%] text-center">
     <h1 className="truncate text-xl font-bold text-[#40364b]">
       {trip.title}
     </h1>
@@ -795,6 +1562,37 @@ const mapCenter = useMemo(() => {
       )}
     </div>
   </div>
+
+  <button
+    type="button"
+    onClick={exportTripOffline}
+    className="
+      absolute
+      right-6
+      inline-flex
+      h-10
+      items-center
+      gap-2
+      rounded-xl
+      border
+      border-[#dfd4e1]
+      bg-[#fffdfb]
+      px-3.5
+      text-xs
+      font-semibold
+      text-[#5f4967]
+      shadow-[0_5px_14px_rgba(87,61,99,0.06)]
+      transition
+      hover:bg-[#f3eaf5]
+      active:scale-95
+    "
+    title="Export แผนการเดินทางสำหรับดู Offline"
+  >
+    <Download size={16} />
+    <span className="hidden xl:inline">
+      Export Offline
+    </span>
+  </button>
 </header>
 
         {/* ---------------------------------------------------
