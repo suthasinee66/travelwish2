@@ -922,42 +922,120 @@ const mapCenter = useMemo(() => {
           }
         );
 
-        let plannerJsonForExport =
-          plannerMessage
-            .planner_json;
+        // =====================================================
+        // EXPORT MERGE STRATEGY
+        //
+        // 1) liveRoutesByDay = ข้อมูลล่าสุดจาก drag/scheduler
+        //    แต่บางครั้งมีเพียงวันที่ผู้ใช้กำลังเปิดอยู่
+        // 2) chat_messages.planner_json = แผน AI ต้นฉบับ
+        // 3) plannerJson จาก saved trip = fallback สุดท้าย
+        //
+        // ห้ามเอา liveRoutesByDay วันเดียวไปแทนทั้งทริป
+        // =====================================================
 
-        // ถ้ามีลำดับ/เวลาที่คำนวณสดจาก scheduler
-        // ให้ overlay เฉพาะ itinerary ปัจจุบันก่อน export
-        // แต่ content + metadata ต้นทางยังมาจาก chat_messages
-        if (
-          liveRoutesByDay &&
-          Object.keys(
-            liveRoutesByDay
-          ).length > 0
-        ) {
-          plannerJsonForExport =
-            Object.entries(
-              liveRoutesByDay
-            )
-              .sort(
-                (
-                  [left],
-                  [right]
-                ) =>
-                  Number(left) -
-                  Number(right)
+        const chatPlannerItems =
+          Array.isArray(
+            plannerMessage
+              .planner_json
+          )
+            ? plannerMessage
+                .planner_json
+            : Array.isArray(
+                plannerMessage
+                  .planner_json
+                  ?.selectedPlaces
               )
-              .flatMap(
-                (
-                  [
-                    dayIndex,
-                    items,
-                  ]
-                ) =>
+              ? plannerMessage
+                  .planner_json
+                  .selectedPlaces
+              : [];
+
+        const savedPlannerItems =
+          Array.isArray(
+            plannerJson
+              ?.selectedPlaces
+          )
+            ? plannerJson
+                .selectedPlaces
+            : [];
+
+        const totalDayNumbers =
+          Array.from(
+            new Set(
+              [
+                ...(
+                  trip.trip_days ??
+                  []
+                ).map(
                   (
-                    items ??
-                    []
-                  ).map(
+                    day: any
+                  ) =>
+                    Number(
+                      day.day_number
+                    )
+                ),
+
+                ...chatPlannerItems
+                  .map(
+                    (
+                      item: any
+                    ) =>
+                      Number(
+                        item?.day
+                      )
+                  )
+                  .filter(
+                    Number.isFinite
+                  ),
+
+                ...savedPlannerItems
+                  .map(
+                    (
+                      item: any
+                    ) =>
+                      Number(
+                        item?.day
+                      )
+                  )
+                  .filter(
+                    Number.isFinite
+                  ),
+              ].filter(
+                Number.isFinite
+              )
+            )
+          )
+            .sort(
+              (
+                left,
+                right
+              ) =>
+                left -
+                right
+            );
+
+        const plannerJsonForExport =
+          totalDayNumbers
+            .flatMap(
+              (
+                dayNumber
+              ) => {
+                const dayIndex =
+                  dayNumber - 1;
+
+                const liveItems =
+                  liveRoutesByDay?.[
+                    dayIndex
+                  ];
+
+                if (
+                  Array.isArray(
+                    liveItems
+                  ) &&
+                  liveItems.length >
+                    0
+                ) {
+                  return liveItems.map(
                     (
                       item: any,
                       index: number
@@ -965,9 +1043,23 @@ const mapCenter = useMemo(() => {
                       ...item,
 
                       day:
-                        Number(
-                          dayIndex
-                        ) + 1,
+                        dayNumber,
+
+                      title:
+                        item.title ??
+                        trip.trip_days
+                          ?.find(
+                            (
+                              day: any
+                            ) =>
+                              Number(
+                                day
+                                  .day_number
+                              ) ===
+                              dayNumber
+                          )
+                          ?.title ??
+                        null,
 
                       route_order:
                         index + 1,
@@ -975,9 +1067,131 @@ const mapCenter = useMemo(() => {
                       order:
                         index + 1,
                     })
+                  );
+                }
+
+                const chatDayItems =
+                  chatPlannerItems
+                    .filter(
+                      (
+                        item: any
+                      ) =>
+                        Number(
+                          item?.day
+                        ) ===
+                        dayNumber
+                    );
+
+                if (
+                  chatDayItems.length >
+                  0
+                ) {
+                  return chatDayItems;
+                }
+
+                return savedPlannerItems
+                  .filter(
+                    (
+                      item: any
+                    ) =>
+                      Number(
+                        item?.day
+                      ) ===
+                      dayNumber
                   )
-              );
-        }
+                  .map(
+                    (
+                      item: any,
+                      index: number
+                    ) => ({
+                      ...item,
+
+                      day:
+                        dayNumber,
+
+                      title:
+                        item.title ??
+                        trip.trip_days
+                          ?.find(
+                            (
+                              day: any
+                            ) =>
+                              Number(
+                                day
+                                  .day_number
+                              ) ===
+                              dayNumber
+                          )
+                          ?.title ??
+                        null,
+
+                      route_order:
+                        item.route_order ??
+                        item.sort_order ??
+                        index + 1,
+
+                      order:
+                        item.order ??
+                        index + 1,
+                    })
+                  );
+              }
+            );
+
+        console.log(
+          "📄 EXPORT DAY MERGE:",
+          totalDayNumbers.map(
+            dayNumber => ({
+              day:
+                dayNumber,
+
+              live:
+                liveRoutesByDay?.[
+                  dayNumber - 1
+                ]?.length ??
+                0,
+
+              chat:
+                chatPlannerItems
+                  .filter(
+                    (
+                      item: any
+                    ) =>
+                      Number(
+                        item?.day
+                      ) ===
+                      dayNumber
+                  )
+                  .length,
+
+              saved:
+                savedPlannerItems
+                  .filter(
+                    (
+                      item: any
+                    ) =>
+                      Number(
+                        item?.day
+                      ) ===
+                      dayNumber
+                  )
+                  .length,
+
+              export:
+                plannerJsonForExport
+                  .filter(
+                    (
+                      item: any
+                    ) =>
+                      Number(
+                        item?.day
+                      ) ===
+                      dayNumber
+                  )
+                  .length,
+            })
+          )
+        );
 
         const html =
           buildChatMessageExportHtml(
@@ -999,6 +1213,14 @@ const mapCenter = useMemo(() => {
               createdAt:
                 plannerMessage
                   .created_at,
+
+              startDate:
+                trip.start_date ??
+                null,
+
+              endDate:
+                trip.end_date ??
+                null,
 
               imageMap,
             }
