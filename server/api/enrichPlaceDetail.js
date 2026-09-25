@@ -299,6 +299,40 @@ async function searchPlace(
     )[0]?.place ?? null;
 }
 
+function hasUsefulImages(value) {
+  return (
+    Array.isArray(value) &&
+    value.some(
+      (item) =>
+        typeof item === "string" &&
+        item.trim().length > 0
+    )
+  );
+}
+
+function hasValidCoordinates(entity) {
+  return (
+    Number.isFinite(
+      Number(entity?.latitude)
+    ) &&
+    Number.isFinite(
+      Number(entity?.longitude)
+    )
+  );
+}
+
+function hasCompleteGoogleSnapshot(
+  entity
+) {
+  return Boolean(
+    entity?.google_place_id &&
+    entity?.google_last_synced_at &&
+    entity?.google_place_data &&
+    hasValidCoordinates(entity) &&
+    hasUsefulImages(entity?.images)
+  );
+}
+
 function entityConfig(type) {
   if (type === "restaurant") {
     return {
@@ -714,6 +748,23 @@ router.post(
           id,
           google_place_id
         );
+
+      if (
+        existing &&
+        hasCompleteGoogleSnapshot(
+          existing
+        )
+      ) {
+        return res.json({
+          success: true,
+          cached: true,
+          skipped_google_api: true,
+          type,
+          entity: existing,
+          google_place_data:
+            existing.google_place_data,
+        });
+      }
 
       const resolvedName =
         firstName(
