@@ -1193,14 +1193,14 @@ export default function PlaceDetailDrawer({
     relatedData.similarPlaces,
   ]);
 
-  const categoryChips =
+  const travel_typeChips =
     useMemo(() => {
       const values: string[] = [];
 
       if (type === "attraction") {
-        if (Array.isArray(data?.category)) {
+        if (Array.isArray(data?.travel_type)) {
           values.push(
-            ...data.category
+            ...data.travel_type
               .filter(hasValue)
               .map(String)
           );
@@ -1826,7 +1826,7 @@ export default function PlaceDetailDrawer({
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              {categoryChips.map((chip) => (
+              {travel_typeChips.map((chip) => (
                 <span
                   key={chip}
                   className="rounded-full border border-[#ece5ee] bg-[#fbf9fc] px-3 py-1.5 text-xs font-medium text-[#6f6274]"
@@ -2161,21 +2161,6 @@ export default function PlaceDetailDrawer({
                       />
                     )}
 
-                    {restaurantPriceLevel && (
-                      <div className="flex min-h-[72px] items-center gap-3 rounded-[14px] border border-[#eee7ef] bg-white px-3.5 py-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#f7eef8] text-[#7a3f80]">
-                          <WalletCards size={17} />
-                        </span>
-                        <div className="min-w-0">
-                          <div className="text-[10px] font-semibold text-[#9a8da0]">
-                            ราคาโดยประมาณ
-                          </div>
-                          <div className="mt-0.5 text-[12px] font-semibold capitalize text-[#42384b]">
-                            {restaurantPriceLevel}
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </section>
               )}
@@ -2333,36 +2318,6 @@ export default function PlaceDetailDrawer({
                 </section>
               )}
 
-              {restaurantHighlights.length > 0 && (
-                <section className="rounded-[20px] border border-[#eee7ef] bg-white p-4">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4e8f6] text-[#773d7d]">
-                      <Sparkles size={15} />
-                    </span>
-                    <h2 className="text-[16px] font-bold text-[#30294a]">
-                      จุดเด่น
-                    </h2>
-                  </div>
-
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {restaurantHighlights.map(
-                      (highlight) => (
-                        <div
-                          key={highlight}
-                          className="flex min-h-[54px] items-center gap-2.5 rounded-[14px] bg-[#faf5fb] px-3 py-2.5 text-[11px] font-medium leading-5 text-[#5f5264]"
-                        >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[#7b4381] shadow-sm">
-                            <Sparkles size={14} />
-                          </span>
-                          <span>
-                            {highlight}
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </section>
-              )}
 
               {restaurantAmenities.length > 0 && (
                 <section className="rounded-[20px] border border-[#eee7ef] bg-white p-4">
@@ -2515,13 +2470,6 @@ export default function PlaceDetailDrawer({
                             place?.travel_type
                           )
                             ? place.travel_type
-                            : []
-                        ),
-                        ...(
-                          Array.isArray(
-                            place?.category
-                          )
-                            ? place.category
                             : []
                         ),
                       ]
