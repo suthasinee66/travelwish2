@@ -138,22 +138,100 @@ function formatOpeningTime(
   ).format(date);
 }
 
+function getRestaurantOpeningDescriptions(
+  restaurant: any
+) {
+  const candidates = [
+    restaurant
+      ?.google_opening_hours
+      ?.regular
+      ?.weekdayDescriptions,
+    restaurant
+      ?.google_opening_hours
+      ?.current
+      ?.weekdayDescriptions,
+    restaurant
+      ?.regular_opening_hours
+      ?.weekdayDescriptions,
+    restaurant
+      ?.current_opening_hours
+      ?.weekdayDescriptions,
+    restaurant
+      ?.weekday_descriptions,
+  ];
+
+  const descriptions =
+    candidates.find(
+      (value) =>
+        Array.isArray(value) &&
+        value.some(hasValue)
+    );
+
+  if (!Array.isArray(descriptions)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      descriptions
+        .filter(hasValue)
+        .map((value) =>
+          String(value).trim()
+        )
+    )
+  );
+}
+
+function splitOpeningDescription(
+  description: string
+) {
+  const match =
+    description.match(
+      /^([^:：]+)[:：]\s*(.*)$/
+    );
+
+  if (!match) {
+    return {
+      day: "",
+      hours: description,
+    };
+  }
+
+  return {
+    day: match[1].trim(),
+    hours: match[2].trim(),
+  };
+}
+
 function getRestaurantOpeningLabel(
   restaurant: any
 ) {
+  const currentOpeningHours =
+    restaurant
+      ?.current_opening_hours ??
+    restaurant
+      ?.google_opening_hours
+      ?.current ??
+    null;
+
   const isOpen =
-    restaurant?.open_now;
+    restaurant?.open_now ??
+    currentOpeningHours?.openNow;
 
   const nextClose =
     formatOpeningTime(
       restaurant
-        ?.next_close_time
+        ?.next_close_time ??
+      currentOpeningHours
+        ?.nextCloseTime
     );
 
   const nextOpen =
     formatOpeningTime(
       restaurant
-        ?.next_open_time
+        ?.next_open_time ??
+      currentOpeningHours
+        ?.nextOpenTime
     );
 
   if (isOpen === true) {
@@ -169,13 +247,9 @@ function getRestaurantOpeningLabel(
   }
 
   const weekdayDescriptions =
-    Array.isArray(
+    getRestaurantOpeningDescriptions(
       restaurant
-        ?.weekday_descriptions
-    )
-      ? restaurant
-          .weekday_descriptions
-      : [];
+    );
 
   if (
     weekdayDescriptions.length > 0
@@ -192,7 +266,7 @@ function getRestaurantOpeningLabel(
 
     const todayDescription =
       weekdayDescriptions.find(
-        (description: any) =>
+        (description) =>
           String(description)
             .trim()
             .startsWith(
@@ -200,7 +274,7 @@ function getRestaurantOpeningLabel(
             )
       ) ??
       weekdayDescriptions.find(
-        (description: any) =>
+        (description) =>
           String(description)
             .includes(
               todayName
@@ -968,6 +1042,42 @@ export default function PlaceDetailDrawer({
       ).slice(0, 3);
     }, [data, type]);
 
+  const restaurantOpeningDescriptions =
+    useMemo(
+      () =>
+        type === "restaurant"
+          ? getRestaurantOpeningDescriptions(
+              data
+            )
+          : [],
+      [data, type]
+    );
+
+  const restaurantOpeningLabel =
+    useMemo(
+      () =>
+        type === "restaurant"
+          ? getRestaurantOpeningLabel(
+              data
+            )
+          : null,
+      [data, type]
+    );
+
+  const restaurantTodayName =
+    useMemo(
+      () =>
+        new Intl.DateTimeFormat(
+          "th-TH",
+          {
+            weekday: "long",
+            timeZone:
+              "Asia/Bangkok",
+          }
+        ).format(new Date()),
+      []
+    );
+
   const TypeIcon =
     type === "restaurant"
       ? Utensils
@@ -1625,6 +1735,120 @@ export default function PlaceDetailDrawer({
                       href={`tel:${phone}`}
                     />
                   )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {type === "restaurant" && (
+            <section className="mt-4 rounded-[18px] border border-[#eee7ef] bg-white p-4 shadow-[0_5px_18px_rgba(72,54,80,0.05)]">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f5edf6] text-[#6f456f]">
+                    <Clock3 size={17} />
+                  </span>
+
+                  <div>
+                    <h2 className="text-base font-bold text-[#30294a]">
+                      เวลาเปิด–ปิด
+                    </h2>
+                    <p className="mt-0.5 text-[11px] text-[#8d7f91]">
+                      เวลาทำการของร้านตลอดทั้งสัปดาห์
+                    </p>
+                  </div>
+                </div>
+
+                {restaurantOpeningLabel && (
+                  <span
+                    className={`
+                      inline-flex rounded-full px-3 py-1.5 text-[11px] font-bold
+                      ${(
+                        data?.open_now ??
+                        data
+                          ?.google_opening_hours
+                          ?.current
+                          ?.openNow
+                      ) === true
+                        ? "bg-emerald-50 text-emerald-700"
+                        : (
+                            data?.open_now ??
+                            data
+                              ?.google_opening_hours
+                              ?.current
+                              ?.openNow
+                          ) === false
+                          ? "bg-rose-50 text-rose-600"
+                          : "bg-[#f7f2f8] text-[#6f456f]"}
+                    `}
+                  >
+                    {restaurantOpeningLabel}
+                  </span>
+                )}
+              </div>
+
+              {restaurantOpeningDescriptions.length > 0 ? (
+                <div className="mt-4 overflow-hidden rounded-[14px] border border-[#f0e9f1]">
+                  {restaurantOpeningDescriptions.map(
+                    (description, index) => {
+                      const {
+                        day,
+                        hours,
+                      } =
+                        splitOpeningDescription(
+                          description
+                        );
+
+                      const isToday =
+                        description.includes(
+                          restaurantTodayName
+                        );
+
+                      return (
+                        <div
+                          key={`${description}-${index}`}
+                          className={`
+                            grid grid-cols-[92px_minmax(0,1fr)] items-start gap-3
+                            border-b border-[#f2edf3] px-3.5 py-2.5 last:border-b-0
+                            ${isToday
+                              ? "bg-[#faf3fb]"
+                              : "bg-white"}
+                          `}
+                        >
+                          <div
+                            className={`
+                              text-[12px] font-bold
+                              ${isToday
+                                ? "text-[#6f456f]"
+                                : "text-[#51475a]"}
+                            `}
+                          >
+                            {day ||
+                              `วันที่ ${index + 1}`}
+                            {isToday && (
+                              <span className="ml-1 text-[9px] font-semibold text-[#9a6b9f]">
+                                วันนี้
+                              </span>
+                            )}
+                          </div>
+
+                          <div
+                            className={`
+                              text-[12px] leading-5
+                              ${isToday
+                                ? "font-semibold text-[#493c50]"
+                                : "text-[#756978]"}
+                            `}
+                          >
+                            {hours || "ไม่ระบุเวลา"}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-[14px] bg-[#faf7fa] px-3.5 py-3 text-[12px] text-[#8c7f90]">
+                  ยังไม่มีข้อมูลเวลาเปิด–ปิดของร้านนี้
                 </div>
               )}
             </section>
