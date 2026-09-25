@@ -330,7 +330,8 @@ app.post("/api/ai", async (req, res) => {
       ],
 
       temperature:
-        responseMode === "planner_json"
+        responseMode === "planner_json" ||
+        responseMode === "accommodation_json"
           ? 0.1
           : responseMode === "trend_context"
             ? 0.15
@@ -341,10 +342,15 @@ app.post("/api/ai", async (req, res) => {
           ? 12000
           : responseMode === "trend_context"
             ? 10000
-            : 12000,
+            : responseMode === "accommodation_json"
+              ? 800
+              : 12000,
     };
 
-    if (responseMode === "planner_json") {
+    if (
+      responseMode === "planner_json" ||
+      responseMode === "accommodation_json"
+    ) {
       requestPayload.reasoning = {
         effort: "low"
       };
@@ -447,6 +453,35 @@ app.post("/api/ai", async (req, res) => {
               "province",
               "researched_at",
               "trends"
+            ]
+          }
+        }
+      };
+    }
+
+    if (responseMode === "accommodation_json") {
+      requestPayload.response_format = {
+        type: "json_schema",
+        json_schema: {
+          name: "travelwish_accommodation_choice",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              accommodation_id: {
+                type: "string",
+                minLength: 1
+              },
+              reason: {
+                type: "string",
+                minLength: 1,
+                maxLength: 400
+              }
+            },
+            required: [
+              "accommodation_id",
+              "reason"
             ]
           }
         }
