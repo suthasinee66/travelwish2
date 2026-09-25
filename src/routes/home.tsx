@@ -3460,16 +3460,6 @@ const saveTripToSupabase = async () => {
                       item.place_notes ??
                       item.notes ??
                       null,
-
-                    time_constraint:
-                      item.place_time_constraint ??
-                      item.time_constraint ??
-                      "flexible",
-
-                    fixed_start_time:
-                      item.place_fixed_start_time ??
-                      item.fixed_start_time ??
-                      null,
                   });
                 }
 
@@ -3525,16 +3515,6 @@ const saveTripToSupabase = async () => {
                     notes:
                       item.restaurant_notes ??
                       item.notes ??
-                      null,
-
-                    time_constraint:
-                      item.restaurant_time_constraint ??
-                      item.time_constraint ??
-                      "flexible",
-
-                    fixed_start_time:
-                      item.restaurant_fixed_start_time ??
-                      item.fixed_start_time ??
                       null,
                   });
                 }
@@ -5630,12 +5610,6 @@ const routeScheduleSignature =
                       item.period
                     )
                   : item.period,
-
-              fixed:
-                item.type ===
-                  "restaurant"
-                  ? item.restaurant_fixed_start_time
-                  : item.place_fixed_start_time,
             })
           ),
       }),
