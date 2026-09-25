@@ -684,6 +684,92 @@ async function loadImages(
   );
 }
 
+function hasCompleteCachedAttraction(
+  attraction
+) {
+  if (!attraction) {
+    return false;
+  }
+
+  const latitude =
+    Number(
+      attraction.latitude
+    );
+
+  const longitude =
+    Number(
+      attraction.longitude
+    );
+
+  const hasCoordinates =
+    Number.isFinite(
+      latitude
+    ) &&
+    Number.isFinite(
+      longitude
+    );
+
+  const hasGooglePlaceId =
+    Boolean(
+      cleanText(
+        attraction.google_place_id
+      )
+    );
+
+  const hasImages =
+    Array.isArray(
+      attraction.images
+    ) &&
+    attraction.images.some(
+      image =>
+        typeof image ===
+          "string" &&
+        image.trim().length >
+          0
+    );
+
+  return (
+    hasCoordinates &&
+    hasGooglePlaceId &&
+    hasImages
+  );
+}
+
+async function findExistingAttractionByName(
+  name,
+  province
+) {
+  const {
+    data,
+    error,
+  } =
+    await supabase
+      .from("attraction")
+      .select("*")
+      .eq(
+        "province",
+        province
+      )
+      .ilike(
+        "name_th",
+        name
+      )
+      .limit(1)
+      .maybeSingle();
+
+  if (error) {
+    console.warn(
+      "⚠️ LOOKUP EXISTING ATTRACTION BY NAME FAILED:",
+      error
+    );
+  }
+
+  return (
+    data ??
+    null
+  );
+}
+
 async function findExistingAttraction(
   attId,
   name,
@@ -748,10 +834,86 @@ router.post(
           });
       }
 
+      // CACHE-FIRST:
+      // เช็ก Supabase ก่อน เพื่อไม่ยิง Google Places ซ้ำ
+      // ถ้ามีข้อมูลสำคัญครบแล้วให้ใช้ข้อมูลเดิมทันที
+      const cachedByName =
+        await findExistingAttractionByName(
+          name,
+          province
+        );
+
+      if (
+        hasCompleteCachedAttraction(
+          cachedByName
+        )
+      ) {
+        console.log(
+          "⚡ AI PLACE CACHE HIT:",
+          {
+            name:
+              cachedByName.name_th,
+            att_id:
+              cachedByName.att_id,
+            google_place_id:
+              cachedByName.google_place_id
+          }
+        );
+
+        return res.json({
+          success: true,
+          cached: true,
+          verified: {
+            title:
+              cachedByName.name_th,
+            address:
+              null,
+            latitude:
+              Number(
+                cachedByName.latitude
+              ),
+            longitude:
+              Number(
+                cachedByName.longitude
+              ),
+            external_place_id:
+              cachedByName.google_place_id,
+            rating:
+              cachedByName.avg_rating ??
+              null,
+            reviews:
+              cachedByName.visitor_count ??
+              null,
+          },
+          attraction:
+            cachedByName,
+        });
+      }
+
       if (
         !GOOGLE_PLACES_API_KEY &&
         !SERP_API_KEY
       ) {
+        if (cachedByName) {
+          console.warn(
+            "⚠️ PLACE CACHE INCOMPLETE BUT NO EXTERNAL PROVIDER — RETURNING PARTIAL CACHE:",
+            {
+              name:
+                cachedByName.name_th,
+              att_id:
+                cachedByName.att_id
+            }
+          );
+
+          return res.json({
+            success: true,
+            cached: true,
+            partial: true,
+            attraction:
+              cachedByName,
+          });
+        }
+
         return res
           .status(500)
           .json({
@@ -759,6 +921,13 @@ router.post(
               "No place verification provider is configured",
           });
       }
+
+      console.log(
+        cachedByName
+          ? "♻️ AI PLACE CACHE INCOMPLETE — ENRICH WITH EXTERNAL API:"
+          : "🌐 AI PLACE CACHE MISS — VERIFY WITH EXTERNAL API:",
+        name
+      );
 
       const verifiedPlace =
         await searchPlace(
@@ -835,6 +1004,7 @@ router.post(
         )}`;
 
       const existing =
+        cachedByName ??
         await findExistingAttraction(
           attId,
           title,
@@ -844,12 +1014,27 @@ router.post(
       const isNewAIAttraction =
         !existing;
 
+      const existingImages =
+        Array.isArray(
+          existing?.images
+        )
+          ? existing.images.filter(
+              image =>
+                typeof image ===
+                  "string" &&
+                image.trim().length >
+                  0
+            )
+          : [];
+
       const images =
-        await loadImages(
-          verifiedPlace,
-          title,
-          province
-        );
+        existingImages.length > 0
+          ? existingImages
+          : await loadImages(
+              verifiedPlace,
+              title,
+              province
+            );
 
       const categories =
         asTextArray(
