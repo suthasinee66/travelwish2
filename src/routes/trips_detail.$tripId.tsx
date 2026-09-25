@@ -158,6 +158,13 @@ function TripsDetail() {
                 att_id,
                 restaurant_id,
                 sort_order,
+                period,
+                duration_minutes,
+                activities,
+                activity_summary,
+                notes,
+                time_constraint,
+                fixed_start_time,
 
                 attraction(
                   att_id,
@@ -283,6 +290,43 @@ function TripsDetail() {
           sort_order: Number(
             item.sort_order ?? 0
           ),
+
+          period:
+            item.period ??
+            null,
+
+          duration_minutes:
+            Number(
+              item.duration_minutes ??
+              (
+                isRestaurant
+                  ? 75
+                  : 90
+              )
+            ),
+
+          activities:
+            Array.isArray(
+              item.activities
+            )
+              ? item.activities
+              : [],
+
+          activity_summary:
+            item.activity_summary ??
+            null,
+
+          notes:
+            item.notes ??
+            null,
+
+          time_constraint:
+            item.time_constraint ??
+            "flexible",
+
+          fixed_start_time:
+            item.fixed_start_time ??
+            null,
 
           location: {
             latitude: Number(
@@ -683,6 +727,27 @@ const mapCenter = useMemo(() => {
 
         sort_order:
           item.sort_order,
+
+        period:
+          item.period,
+
+        duration_minutes:
+          item.duration_minutes,
+
+        activities:
+          item.activities,
+
+        activity_summary:
+          item.activity_summary,
+
+        notes:
+          item.notes,
+
+        time_constraint:
+          item.time_constraint,
+
+        fixed_start_time:
+          item.fixed_start_time,
 
         location: item.location,
 
