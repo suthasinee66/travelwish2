@@ -33,6 +33,149 @@ import {
   type PlaceDetailRelatedData,
 } from "@/lib/travel/loadPlaceDetailData";
 
+const API_URL = (
+  import.meta.env.VITE_API_URL ||
+  (
+    import.meta.env.DEV
+      ? "http://localhost:5000"
+      : ""
+  )
+).replace(/\/$/, "");
+
+function hasUsefulImages(value: any) {
+  return (
+    Array.isArray(value) &&
+    value.some(
+      (item) =>
+        typeof item === "string" &&
+        item.trim().length > 0
+    )
+  );
+}
+
+function hasValidCoordinates(
+  value: any
+) {
+  return (
+    Number.isFinite(
+      Number(value?.latitude)
+    ) &&
+    Number.isFinite(
+      Number(value?.longitude)
+    )
+  );
+}
+
+function hasCompleteGoogleSnapshot(
+  value: any
+) {
+  return Boolean(
+    value?.google_place_id &&
+    value?.google_last_synced_at &&
+    value?.google_place_data &&
+    hasValidCoordinates(value) &&
+    hasUsefulImages(
+      value?.images
+    )
+  );
+}
+
+async function enrichPlaceDetailIfNeeded(
+  target: PlaceDetailTarget,
+  existing: any
+) {
+  if (
+    !API_URL ||
+    hasCompleteGoogleSnapshot(
+      existing
+    )
+  ) {
+    return existing;
+  }
+
+  const name =
+    getTitle(
+      target.type,
+      existing
+    );
+
+  const province =
+    existing?.province ??
+    existing?.province_name_th ??
+    null;
+
+  const id =
+    target.type === "attraction"
+      ? existing?.att_id ??
+        target.data?.att_id
+      : target.type === "restaurant"
+        ? existing?.place_id ??
+          target.data?.place_id ??
+          target.data?.restaurant_id
+        : existing?.acc_id ??
+          target.data?.acc_id ??
+          target.data?.id;
+
+  const googlePlaceId =
+    existing?.google_place_id ??
+    target.data?.google_place_id ??
+    (
+      target.type === "restaurant"
+        ? existing?.place_id ??
+          target.data?.place_id
+        : null
+    );
+
+  if (
+    !id &&
+    !googlePlaceId &&
+    !name
+  ) {
+    return existing;
+  }
+
+  const response =
+    await fetch(
+      `${API_URL}/api/enrich-place-detail`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          type: target.type,
+          id:
+            id != null
+              ? String(id)
+              : null,
+          google_place_id:
+            googlePlaceId != null
+              ? String(
+                  googlePlaceId
+                )
+              : null,
+          name,
+          province,
+        }),
+      }
+    );
+
+  if (!response.ok) {
+    return existing;
+  }
+
+  const result =
+    await response.json();
+
+  return result?.entity
+    ? {
+        ...existing,
+        ...result.entity,
+      }
+    : existing;
+}
+
 export type PlaceDetailTargetType =
   | "attraction"
   | "restaurant"
@@ -655,9 +798,29 @@ export default function PlaceDetailDrawer({
     setLoading(true);
 
     loadFullRecord(target)
-      .then((data) => {
+      .then(async (data) => {
+        if (!active) {
+          return;
+        }
+
+        setRecord(data);
+
+        if (
+          hasCompleteGoogleSnapshot(
+            data
+          )
+        ) {
+          return;
+        }
+
+        const enriched =
+          await enrichPlaceDetailIfNeeded(
+            target,
+            data
+          );
+
         if (active) {
-          setRecord(data);
+          setRecord(enriched);
         }
       })
       .catch((error) => {
@@ -1258,7 +1421,13 @@ export default function PlaceDetailDrawer({
       const fullRecord =
         await loadFullRecord(nextTarget);
 
-      setRecord(fullRecord);
+      const enriched =
+        await enrichPlaceDetailIfNeeded(
+          nextTarget,
+          fullRecord
+        );
+
+      setRecord(enriched);
     } catch (error) {
       console.warn(
         "OPEN RELATED ATTRACTION ERROR:",
@@ -1291,7 +1460,13 @@ export default function PlaceDetailDrawer({
       const fullRecord =
         await loadFullRecord(nextTarget);
 
-      setRecord(fullRecord);
+      const enriched =
+        await enrichPlaceDetailIfNeeded(
+          nextTarget,
+          fullRecord
+        );
+
+      setRecord(enriched);
     } catch (error) {
       console.warn(
         "OPEN RELATED RESTAURANT ERROR:",
