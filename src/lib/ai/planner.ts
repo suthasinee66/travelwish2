@@ -1750,9 +1750,12 @@ ${JSON.stringify(combinedCandidatePool)}
 - ใช้ suitable_duration, activity, highlight, detail_th และประเภทสถานที่เป็นข้อมูลตั้งต้น
 - ถ้ามี suitable_duration ให้ยึดข้อมูลนั้นเป็นหลัก
 - ถ้าไม่มี ให้ประเมินระยะเวลาที่สมเหตุสมผล
-- place_activities ต้องเป็นกิจกรรมที่ทำได้จริงในสถานที่นั้น 1-4 ข้อ
-- place_activity_summary เป็นข้อความสั้นสำหรับแสดงในการ์ด/Export
-- place_notes เป็นคำแนะนำสั้น ๆ ที่ยังใช้ได้แม้ลำดับ route เปลี่ยน
+- place_duration_minutes ห้าม null และห้ามหาย
+- place_activities ต้องเป็น array ที่มีอย่างน้อย 1 รายการ และไม่เกิน 4 รายการ
+- place_activities ห้ามเป็น [] และห้ามใช้คำกว้าง ๆ อย่าง "เที่ยวชม" เพียงอย่างเดียว
+- place_activity_summary ต้องมีข้อความอย่างน้อย 1 ประโยค ห้าม null
+- place_notes ต้องมีข้อความสั้น ๆ ที่ยังใช้ได้แม้ลำดับ route เปลี่ยน ห้าม null
+- ข้อมูลทั้งหมดต้องถูกสร้างในรอบ Final Selection นี้เลย ห้ามปล่อยให้ระบบไปเติมภายหลัง
 - ห้ามใส่ข้อเท็จจริงเฉพาะ เช่น ราคา/เวลาเปิดปิด หากไม่มีข้อมูลรองรับ
 
 time constraint:
@@ -1762,10 +1765,12 @@ time constraint:
 - ห้ามเดา fixed time
 
 สำหรับร้านอาหาร:
-- restaurant_duration_minutes เป็นระยะเวลาที่คาดว่าจะใช้กับมื้อนั้น
+- restaurant_duration_minutes เป็นระยะเวลาที่คาดว่าจะใช้กับมื้อนั้น และห้าม null เมื่อมี restaurant_id หรือ proposed_restaurant_key
 - restaurant_period แยกจาก period ของ attraction ได้ เช่น Lunch หรือ Dinner
-- restaurant_activities / restaurant_activity_summary อธิบายประสบการณ์อาหารแบบสั้น
-- restaurant_notes เก็บคำแนะนำที่ไม่ผูกกับเวลานาฬิกา
+- restaurant_activities ต้องมีอย่างน้อย 1 รายการเมื่อมีร้านอาหาร ห้ามเป็น []
+- restaurant_activity_summary ต้องมีข้อความเมื่อมีร้านอาหาร ห้าม null
+- restaurant_notes ต้องมีข้อความสั้น ๆ ที่ไม่ผูกกับเวลานาฬิกาเมื่อมีร้านอาหาร ห้าม null
+- ข้อมูลร้านอาหารทั้งหมดต้องถูกสร้างในรอบ Final Selection นี้เลย
 - restaurant_time_constraint = "flexible" และ restaurant_fixed_start_time = null เป็นค่าเริ่มต้น
 - ใช้ fixed เฉพาะเมื่อมีข้อมูลการจองหรือเวลาที่ผู้ใช้ยืนยันจริง
 
@@ -1889,6 +1894,87 @@ try {
     ) {
         throw new Error(
             "Planner JSON does not match expected structure"
+        );
+    }
+
+    const incompleteActivityMetadata =
+        result.selectedPlaces.filter(
+            (item: any) => {
+                const missingPlaceMetadata =
+                    !Number.isFinite(
+                        Number(
+                            item?.place_duration_minutes
+                        )
+                    ) ||
+                    Number(
+                        item?.place_duration_minutes
+                    ) <= 0 ||
+                    !Array.isArray(
+                        item?.place_activities
+                    ) ||
+                    item.place_activities
+                        .length === 0 ||
+                    !String(
+                        item?.place_activity_summary ??
+                        ""
+                    ).trim() ||
+                    !String(
+                        item?.place_notes ??
+                        ""
+                    ).trim();
+
+                const hasRestaurant =
+                    Boolean(
+                        item?.restaurant_id
+                    ) ||
+                    Boolean(
+                        item?.proposed_restaurant_key
+                    );
+
+                const missingRestaurantMetadata =
+                    hasRestaurant &&
+                    (
+                        !Number.isFinite(
+                            Number(
+                                item?.restaurant_duration_minutes
+                            )
+                        ) ||
+                        Number(
+                            item?.restaurant_duration_minutes
+                        ) <= 0 ||
+                        !Array.isArray(
+                            item?.restaurant_activities
+                        ) ||
+                        item.restaurant_activities
+                            .length === 0 ||
+                        !String(
+                            item?.restaurant_activity_summary ??
+                            ""
+                        ).trim() ||
+                        !String(
+                            item?.restaurant_notes ??
+                            ""
+                        ).trim()
+                    );
+
+                return (
+                    missingPlaceMetadata ||
+                    missingRestaurantMetadata
+                );
+            }
+        );
+
+    if (
+        incompleteActivityMetadata.length >
+        0
+    ) {
+        console.error(
+            "❌ PLANNER ACTIVITY METADATA INCOMPLETE:",
+            incompleteActivityMetadata
+        );
+
+        throw new Error(
+            "Planner JSON is missing required activity metadata"
         );
     }
 
@@ -2035,7 +2121,9 @@ const selectedWithActivityMetadata =
             place_duration_minutes:
                 clampDurationMinutes(
                     item.place_duration_minutes,
-                    90
+                    Number(
+                        item.place_duration_minutes
+                    )
                 ),
 
             place_activities:
@@ -2045,17 +2133,13 @@ const selectedWithActivityMetadata =
 
             place_activity_summary:
                 String(
-                    item.place_activity_summary ??
-                    ""
-                ).trim() ||
-                null,
+                    item.place_activity_summary
+                ).trim(),
 
             place_notes:
                 String(
-                    item.place_notes ??
-                    ""
-                ).trim() ||
-                null,
+                    item.place_notes
+                ).trim(),
 
             place_time_constraint:
                 item.place_time_constraint ===
@@ -2086,7 +2170,9 @@ const selectedWithActivityMetadata =
                 item.proposed_restaurant_key
                     ? clampDurationMinutes(
                         item.restaurant_duration_minutes,
-                        75
+                        Number(
+                            item.restaurant_duration_minutes
+                        )
                     )
                     : null,
 
