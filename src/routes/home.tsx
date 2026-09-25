@@ -89,6 +89,10 @@ import {
   resetTrip
 } from "@/lib/ai/chat";
 import {
+  estimateTravelLegs,
+  scheduleItineraryItems,
+} from "@/lib/itinerary/scheduler";
+import {
   detectTripPlanEdit,
   applyTripPlanEdit
 } from "@/lib/ai/tripEditor";
@@ -1965,6 +1969,37 @@ function SortablePlaceItem({
               {item.period}
             </div>
           )}
+
+          {item.start_time &&
+            item.end_time && (
+              <div
+                className="
+                  mt-1
+                  flex
+                  flex-wrap
+                  items-center
+                  gap-x-2
+                  gap-y-0.5
+                  text-[11px]
+                  font-medium
+                  text-[#6f456f]
+                "
+              >
+                <span>
+                  {item.start_time}–{item.end_time}
+                </span>
+
+                {Number(
+                  item.scheduled_duration_minutes
+                ) > 0 && (
+                  <span className="text-[#9a8da0]">
+                    {Number(
+                      item.scheduled_duration_minutes
+                    )} นาที
+                  </span>
+                )}
+              </div>
+            )}
 
         </div>
 
@@ -5090,6 +5125,439 @@ const buildRoutePlaces = (items: any[]) => {
       x.location?.longitude != null
   );
 };
+
+const getRoutePoint = (
+  item: any
+) => {
+  const latitude =
+    Number(
+      item?.location?.latitude ??
+      item?.latitude
+    );
+
+  const longitude =
+    Number(
+      item?.location?.longitude ??
+      item?.longitude
+    );
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
+    return null;
+  }
+
+  return {
+    latitude,
+    longitude,
+  };
+};
+
+const scheduleRouteItemsWithTravelTime =
+  async (
+    items: any[],
+    hotel = selectedHotel
+  ) => {
+    if (
+      !Array.isArray(items) ||
+      items.length === 0
+    ) {
+      return [];
+    }
+
+    const itemPoints =
+      items
+        .map(getRoutePoint)
+        .filter(Boolean) as Array<{
+          latitude: number;
+          longitude: number;
+        }>;
+
+    if (
+      itemPoints.length !==
+      items.length
+    ) {
+      return items;
+    }
+
+    const hotelPoint =
+      hotel
+        ? getRoutePoint({
+            location: {
+              latitude:
+                hotel.latitude,
+              longitude:
+                hotel.longitude,
+            },
+          })
+        : null;
+
+    const points = [
+      ...(hotelPoint
+        ? [hotelPoint]
+        : []),
+      ...itemPoints,
+      ...(hotelPoint
+        ? [hotelPoint]
+        : []),
+    ];
+
+    let legs =
+      estimateTravelLegs(
+        points
+      );
+
+    let travelSource =
+      "estimated";
+
+    const apiUrl =
+      (
+        import.meta.env.VITE_API_URL ||
+        (
+          import.meta.env.DEV
+            ? "http://localhost:5000"
+            : ""
+        )
+      ).replace(
+        /\/$/,
+        ""
+      );
+
+    if (
+      apiUrl &&
+      points.length >= 2
+    ) {
+      try {
+        const response =
+          await fetch(
+            `${apiUrl}/api/route-travel-times`,
+            {
+              method:
+                "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  points,
+                }),
+            }
+          );
+
+        if (response.ok) {
+          const data =
+            await response.json();
+
+          if (
+            Array.isArray(
+              data?.legs
+            ) &&
+            data.legs.length ===
+              points.length - 1
+          ) {
+            legs =
+              data.legs;
+
+            travelSource =
+              data.source ??
+              "google_routes";
+          }
+        } else {
+          console.warn(
+            "⚠️ ROUTE TIME API FAILED:",
+            response.status
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "⚠️ ROUTE TIME REQUEST FAILED — USING ESTIMATE:",
+          error
+        );
+      }
+    }
+
+    return scheduleItineraryItems(
+      items,
+      legs,
+      {
+        dayStartMinutes:
+          9 * 60,
+
+        hasAccommodationOrigin:
+          Boolean(
+            hotelPoint
+          ),
+
+        travelSource,
+      }
+    );
+  };
+
+const routeScheduleSignature =
+  useMemo(
+    () =>
+      JSON.stringify({
+        day:
+          selectedDay,
+
+        hotel:
+          selectedHotel
+            ? [
+                selectedHotel.acc_id ??
+                  null,
+                selectedHotel.latitude ??
+                  null,
+                selectedHotel.longitude ??
+                  null,
+              ]
+            : null,
+
+        items:
+          routePlaces.map(
+            (item: any) => ({
+              type:
+                item.type,
+
+              id:
+                item.type ===
+                  "restaurant"
+                  ? item.restaurant_id
+                  : item.place_id,
+
+              duration:
+                item.type ===
+                  "restaurant"
+                  ? item.restaurant_duration_minutes
+                  : item.place_duration_minutes,
+
+              period:
+                item.type ===
+                  "restaurant"
+                  ? (
+                      item.restaurant_period ??
+                      item.period
+                    )
+                  : item.period,
+
+              fixed:
+                item.type ===
+                  "restaurant"
+                  ? item.restaurant_fixed_start_time
+                  : item.place_fixed_start_time,
+            })
+          ),
+      }),
+    [
+      selectedDay,
+      selectedHotel?.acc_id,
+      selectedHotel?.latitude,
+      selectedHotel?.longitude,
+      routePlaces,
+    ]
+  );
+
+useEffect(() => {
+  if (
+    routePlaces.length === 0
+  ) {
+    return;
+  }
+
+  let active =
+    true;
+
+  const run =
+    async () => {
+      const scheduled =
+        await scheduleRouteItemsWithTravelTime(
+          routePlaces,
+          selectedHotel
+        );
+
+      if (!active) {
+        return;
+      }
+
+      setRoutePlaces(
+        scheduled
+      );
+
+      setRoutePlacesByDay(
+        (previous: any) => ({
+          ...previous,
+          [selectedDay]:
+            scheduled,
+        })
+      );
+
+      onRouteChange?.({
+        ...routePlacesByDay,
+        [selectedDay]:
+          scheduled,
+      });
+    };
+
+  void run();
+
+  return () => {
+    active =
+      false;
+  };
+}, [
+  routeScheduleSignature,
+]);
+
+const allDaysScheduleSignature =
+  useMemo(
+    () =>
+      JSON.stringify(
+        Object.entries(
+          routePlacesByDay
+        ).map(
+          ([
+            dayIndex,
+            items,
+          ]) => ({
+            dayIndex,
+
+            items:
+              (
+                Array.isArray(items)
+                  ? items
+                  : []
+              ).map(
+                (item: any) => ({
+                  type:
+                    item.type,
+
+                  id:
+                    item.type ===
+                      "restaurant"
+                      ? item.restaurant_id
+                      : item.place_id,
+
+                  duration:
+                    item.type ===
+                      "restaurant"
+                      ? item.restaurant_duration_minutes
+                      : item.place_duration_minutes,
+
+                  period:
+                    item.type ===
+                      "restaurant"
+                      ? (
+                          item.restaurant_period ??
+                          item.period
+                        )
+                      : item.period,
+                })
+              ),
+          })
+        )
+      ),
+    [
+      routePlacesByDay,
+    ]
+  );
+
+useEffect(() => {
+  const entries =
+    Object.entries(
+      routePlacesByDay
+    ).filter(
+      (
+        [, items]
+      ) =>
+        Array.isArray(items) &&
+        items.length > 0
+    );
+
+  if (
+    entries.length === 0
+  ) {
+    return;
+  }
+
+  let active =
+    true;
+
+  const run =
+    async () => {
+      const scheduledEntries =
+        await Promise.all(
+          entries.map(
+            async (
+              [
+                dayIndex,
+                items,
+              ]
+            ) => [
+              Number(dayIndex),
+              await scheduleRouteItemsWithTravelTime(
+                items as any[],
+                selectedHotel
+              ),
+            ] as const
+          )
+        );
+
+      if (!active) {
+        return;
+      }
+
+      const nextByDay = {
+        ...routePlacesByDay,
+      };
+
+      scheduledEntries.forEach(
+        ([
+          dayIndex,
+          items,
+        ]) => {
+          nextByDay[
+            dayIndex
+          ] =
+            items;
+        }
+      );
+
+      setRoutePlacesByDay(
+        nextByDay
+      );
+
+      if (
+        nextByDay[
+          selectedDay
+        ]
+      ) {
+        setRoutePlaces(
+          nextByDay[
+            selectedDay
+          ]
+        );
+      }
+
+      onRouteChange?.(
+        nextByDay
+      );
+    };
+
+  void run();
+
+  return () => {
+    active =
+      false;
+  };
+}, [
+  allDaysScheduleSignature,
+  selectedHotel?.acc_id,
+  selectedHotel?.latitude,
+  selectedHotel?.longitude,
+]);
 
 const applyRouteMode = (
   mode: ItineraryRouteMode,
