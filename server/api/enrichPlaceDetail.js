@@ -398,19 +398,10 @@ function hasCompleteGoogleSnapshot(
   type
 ) {
   if (type === "restaurant") {
-    if (
-      hasRestaurantDetailDisplayData(
-        entity
-      )
-    ) {
-      return true;
-    }
-
-    // Google เคยถูกเรียกและ snapshot ถูกบันทึกแล้ว:
-    // อย่ายิงซ้ำทุกครั้ง หาก field บางอย่างไม่มีจาก Google จริง
-    return Boolean(
-      entity?.google_last_synced_at &&
-      entity?.google_place_data
+    // ร้านอาหารต้องครบตาม field ที่หน้า Detail ใช้จริง
+    // การมี timestamp + raw snapshot อย่างเดียวไม่ถือว่าครบ
+    return hasRestaurantDetailDisplayData(
+      entity
     );
   }
 
@@ -855,6 +846,79 @@ router.post(
           google_place_data:
             existing.google_place_data,
         });
+      }
+
+      if (
+        type === "restaurant" &&
+        existing?.google_place_data
+      ) {
+        try {
+          const recoveredPayload =
+            buildPayload(
+              type,
+              existing,
+              existing.google_place_data,
+              {
+                id,
+                name:
+                  firstName(
+                    existing,
+                    config.nameFields,
+                    name
+                  ),
+                province:
+                  cleanText(
+                    province ??
+                    existing?.[
+                      config.provinceField
+                    ]
+                  ),
+              }
+            );
+
+          const {
+            data: recovered,
+            error: recoverError,
+          } =
+            await supabase
+              .from(config.table)
+              .upsert(
+                recoveredPayload,
+                {
+                  onConflict:
+                    config.primaryKey,
+                }
+              )
+              .select("*")
+              .single();
+
+          if (
+            !recoverError &&
+            recovered &&
+            hasRestaurantDetailDisplayData(
+              recovered
+            )
+          ) {
+            return res.json({
+              success: true,
+              cached: true,
+              recovered_from_snapshot:
+                true,
+              skipped_google_api:
+                true,
+              type,
+              entity: recovered,
+              google_place_data:
+                recovered.google_place_data,
+            });
+          }
+        } catch (error) {
+          console.warn(
+            "⚠️ RESTAURANT SNAPSHOT RECOVERY FAILED:",
+            error?.message ??
+            error
+          );
+        }
       }
 
       const resolvedName =
