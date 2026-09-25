@@ -322,6 +322,58 @@ function normalizeUrl(value: any) {
   return `https://${url}`;
 }
 
+function formatWebsiteDisplay(
+  value: any
+) {
+  const normalized =
+    normalizeUrl(value);
+
+  if (!normalized) {
+    return "";
+  }
+
+  try {
+    const url =
+      new URL(normalized);
+
+    const host =
+      url.hostname.replace(
+        /^www\./i,
+        ""
+      );
+
+    const segments =
+      url.pathname
+        .split("/")
+        .filter(Boolean);
+
+    if (
+      segments.length === 0
+    ) {
+      return host;
+    }
+
+    const shortPath =
+      segments
+        .slice(0, 2)
+        .join("/");
+
+    const label =
+      `${host}/${shortPath}`;
+
+    return label.length > 42
+      ? `${host}/…`
+      : label;
+  } catch {
+    const text =
+      String(value).trim();
+
+    return text.length > 42
+      ? `${text.slice(0, 39)}…`
+      : text;
+  }
+}
+
 function formatOpeningTime(
   value: any
 ) {
@@ -1003,6 +1055,11 @@ export default function PlaceDetailDrawer({
 
   const website =
     normalizeUrl(websiteValue);
+
+  const websiteDisplay =
+    formatWebsiteDisplay(
+      websiteValue
+    );
 
   const latitude = Number(
     data?.latitude ??
@@ -2095,9 +2152,9 @@ export default function PlaceDetailDrawer({
                     <InfoItem
                       icon={<Globe2 size={18} />}
                       label="เว็บไซต์"
-                      value={String(
-                        websiteValue
-                      )}
+                      value={
+                        websiteDisplay
+                      }
                       href={website}
                     />
                   )}
