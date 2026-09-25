@@ -659,21 +659,6 @@ app.post("/api/ai", async (req, res) => {
                       minLength: 1
                     },
 
-                    place_time_constraint: {
-                      type: "string",
-                      enum: [
-                        "flexible",
-                        "fixed"
-                      ]
-                    },
-
-                    place_fixed_start_time: {
-                      anyOf: [
-                        { type: "string" },
-                        { type: "null" }
-                      ]
-                    },
-
                     proposed_place_key: {
                       anyOf: [
                         { type: "string" },
@@ -756,26 +741,6 @@ app.post("/api/ai", async (req, res) => {
                       ]
                     },
 
-                    restaurant_time_constraint: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          enum: [
-                            "flexible",
-                            "fixed"
-                          ]
-                        },
-                        { type: "null" }
-                      ]
-                    },
-
-                    restaurant_fixed_start_time: {
-                      anyOf: [
-                        { type: "string" },
-                        { type: "null" }
-                      ]
-                    },
-
                     proposed_restaurant_key: {
                       anyOf: [
                         { type: "string" },
@@ -794,8 +759,6 @@ app.post("/api/ai", async (req, res) => {
                     "place_activities",
                     "place_activity_summary",
                     "place_notes",
-                    "place_time_constraint",
-                    "place_fixed_start_time",
                     "proposed_place_key",
                     "fallback_place_id",
                     "restaurant_source",
@@ -806,8 +769,6 @@ app.post("/api/ai", async (req, res) => {
                     "restaurant_activities",
                     "restaurant_activity_summary",
                     "restaurant_notes",
-                    "restaurant_time_constraint",
-                    "restaurant_fixed_start_time",
                     "proposed_restaurant_key"
                   ]
                 }
