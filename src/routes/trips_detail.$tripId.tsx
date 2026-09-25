@@ -123,6 +123,7 @@ function TripsDetail() {
             end_date,
             people,
             budget,
+            accommodation,
             created_at,
 
             trip_days(
@@ -371,6 +372,57 @@ function TripsDetail() {
 
       endDate:
         trip.end_date || null,
+
+      accommodation:
+        trip.accommodation &&
+        typeof trip.accommodation ===
+          "object"
+          ? {
+              id:
+                trip.accommodation.id ??
+                null,
+
+              name:
+                trip.accommodation.name ??
+                "ที่พัก",
+
+              address:
+                trip.accommodation.address ??
+                null,
+
+              latitude:
+                trip.accommodation.latitude ??
+                null,
+
+              longitude:
+                trip.accommodation.longitude ??
+                null,
+
+              images:
+                Array.isArray(
+                  trip.accommodation.images
+                )
+                  ? trip.accommodation.images
+                  : [],
+
+              source:
+                trip.accommodation.source ??
+                "travelwish",
+
+              source_url:
+                trip.accommodation.source_url ??
+                null,
+
+              booking_provider:
+                trip.accommodation
+                  .booking_provider ??
+                null,
+
+              locked:
+                trip.accommodation.locked ??
+                true,
+            }
+          : null,
     };
   }, [trip]);
 
