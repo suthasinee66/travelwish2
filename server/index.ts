@@ -456,26 +456,18 @@ app.post(
         });
       }
 
-      const routesKey =
-        process.env
-          .GOOGLE_ROUTES_API_KEY ||
-        process.env
-          .GOOGLE_MAPS_API_KEY ||
-        "";
-
-      const weatherKey =
-        process.env
-          .GOOGLE_WEATHER_API_KEY ||
+      // ใช้ Google Maps Platform API key ตัวเดียว
+      // สำหรับ Routes API + Weather API
+      const googleMapsApiKey =
         process.env
           .GOOGLE_MAPS_API_KEY ||
-        routesKey ||
         "";
 
       const legs: any[] = [];
       const weather: any[] = [];
 
       if (
-        routesKey &&
+        googleMapsApiKey &&
         points.length >= 2
       ) {
         const routeJobs =
@@ -535,7 +527,7 @@ app.post(
                           "Content-Type":
                             "application/json",
                           "X-Goog-Api-Key":
-                            routesKey,
+                            googleMapsApiKey,
                           "X-Goog-FieldMask":
                             "routes.duration,routes.staticDuration,routes.distanceMeters",
                         },
@@ -641,7 +633,7 @@ app.post(
         );
       }
 
-      if (weatherKey) {
+      if (googleMapsApiKey) {
         const weatherJobs =
           points.map(
             async (
@@ -654,7 +646,7 @@ app.post(
                     {
                       params: {
                         key:
-                          weatherKey,
+                          googleMapsApiKey,
                         "location.latitude":
                           point.latitude,
                         "location.longitude":
