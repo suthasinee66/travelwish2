@@ -4725,7 +4725,10 @@ const sensors = useSensors(
           day: item.day,
           period: item.period,
           place_id: item.place_id,
-          restaurant_id: item.restaurant_id
+          restaurant_id: item.restaurant_id,
+          day_start_time:
+            item.day_start_time ??
+            null
         }))
       ),
     [plannerJson]
@@ -5422,10 +5425,58 @@ const getRoutePoint = (
   };
 };
 
+const parseItineraryStartMinutes = (
+  value: unknown
+) => {
+  const match =
+    String(
+      value ?? ""
+    )
+      .trim()
+      .match(
+        /^(\d{1,2}):(\d{2})$/
+      );
+
+  if (!match) {
+    return null;
+  }
+
+  const hours =
+    Number(
+      match[1]
+    );
+
+  const minutes =
+    Number(
+      match[2]
+    );
+
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
+
+  return (
+    hours * 60 +
+    minutes
+  );
+};
+
 const scheduleRouteItemsWithTravelTime =
   async (
     items: any[],
-    hotel = selectedHotel
+    hotel = selectedHotel,
+    dayStartTime:
+      string |
+      null |
+      undefined =
+        null
   ) => {
     if (
       !Array.isArray(items) ||
@@ -5555,6 +5606,12 @@ const scheduleRouteItemsWithTravelTime =
         dayStartMinutes:
           9 * 60,
 
+        firstItemStartMinutes:
+          parseItineraryStartMinutes(
+            dayStartTime
+          ) ??
+          undefined,
+
         hasAccommodationOrigin:
           Boolean(
             hotelPoint
@@ -5571,6 +5628,13 @@ const routeScheduleSignature =
       JSON.stringify({
         day:
           selectedDay,
+
+        dayStartTime:
+          days[
+            selectedDay
+          ]?.items?.[0]
+            ?.day_start_time ??
+          null,
 
         hotel:
           selectedHotel
@@ -5637,7 +5701,12 @@ useEffect(() => {
       const scheduled =
         await scheduleRouteItemsWithTravelTime(
           routePlaces,
-          selectedHotel
+          selectedHotel,
+          days[
+            selectedDay
+          ]?.items?.[0]
+            ?.day_start_time ??
+            null
         );
 
       if (!active) {
@@ -5686,6 +5755,15 @@ const allDaysScheduleSignature =
           ]) => ({
             dayIndex,
 
+            dayStartTime:
+              days[
+                Number(
+                  dayIndex
+                )
+              ]?.items?.[0]
+                ?.day_start_time ??
+              null,
+
             items:
               (
                 Array.isArray(items)
@@ -5723,6 +5801,7 @@ const allDaysScheduleSignature =
       ),
     [
       routePlacesByDay,
+      days,
     ]
   );
 
@@ -5761,7 +5840,14 @@ useEffect(() => {
               Number(dayIndex),
               await scheduleRouteItemsWithTravelTime(
                 items as any[],
-                selectedHotel
+                selectedHotel,
+                days[
+                  Number(
+                    dayIndex
+                  )
+                ]?.items?.[0]
+                  ?.day_start_time ??
+                  null
               ),
             ] as const
           )
