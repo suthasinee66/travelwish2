@@ -1398,19 +1398,33 @@ export function buildChatMessageExportHtml(
       A4 compact mode: itineraries up to 3 days are composed to fit
       on one A4 page so the preview and saved PDF stay visually aligned.
     */
+    .sheet--one-page {
+      height: 297mm;
+      display: grid;
+      grid-template-rows:
+        auto
+        minmax(0, 1fr)
+        auto;
+      padding:
+        10mm
+        10mm
+        8mm
+        16mm;
+    }
+
     .sheet--one-page .header-card {
       grid-template-columns:
-        42mm
+        44mm
         minmax(0, 1fr);
-      gap: 4mm;
-      min-height: 40mm;
+      gap: 4.5mm;
+      min-height: 45mm;
       padding: 4mm;
       border-radius: 5mm;
     }
 
     .sheet--one-page .header-image,
     .sheet--one-page .header-placeholder {
-      min-height: 32mm;
+      min-height: 37mm;
     }
 
     .sheet--one-page .header-copy {
@@ -1421,26 +1435,26 @@ export function buildChatMessageExportHtml(
     }
 
     .sheet--one-page .header-copy h1 {
-      font-size: 28px;
+      font-size: 31px;
       line-height: 1;
     }
 
     .sheet--one-page .trip-length {
       margin-top: 2mm;
-      font-size: 16px;
+      font-size: 18px;
       line-height: 1.08;
     }
 
     .sheet--one-page .header-line {
-      width: 18mm;
-      height: .7mm;
+      width: 20mm;
+      height: .8mm;
       margin-top: 2.5mm;
     }
 
     .sheet--one-page .trip-title {
       margin-top: 2mm;
-      font-size: 8px;
-      line-height: 1.35;
+      font-size: 9.5px;
+      line-height: 1.4;
     }
 
     .sheet--one-page .header-dates {
@@ -1448,26 +1462,38 @@ export function buildChatMessageExportHtml(
       gap:
         1mm
         4mm;
-      font-size: 7.5px;
+      font-size: 8.5px;
     }
 
     .sheet--one-page .days {
+      min-height: 0;
       margin-top: 5mm;
+      display: grid;
       gap: 4mm;
     }
 
+    .sheet--one-page.sheet--days-3 .days {
+      grid-template-rows:
+        repeat(
+          3,
+          minmax(0, 1fr)
+        );
+    }
+
     .sheet--one-page .day-card {
+      height: 100%;
+      min-height: 0;
       grid-template-columns:
-        42mm
+        44mm
         minmax(0, 1fr);
-      min-height: 49mm;
       border-radius: 5mm;
     }
 
     .sheet--one-page .day-image,
     .sheet--one-page .day-image-grid,
     .sheet--one-page .image-placeholder {
-      min-height: 49mm;
+      height: 100%;
+      min-height: 0;
     }
 
     .sheet--one-page .day-image-grid {
@@ -1480,63 +1506,63 @@ export function buildChatMessageExportHtml(
     }
 
     .sheet--one-page .day-badge {
-      right: 2mm;
-      bottom: 2mm;
+      right: 2.2mm;
+      bottom: 2.2mm;
     }
 
     .sheet--one-page .day-badge span {
-      font-size: 10px;
+      font-size: 11px;
     }
 
     .sheet--one-page .day-badge strong {
-      font-size: 24px;
+      font-size: 27px;
     }
 
     .sheet--one-page .day-table-wrap {
       padding:
-        2.5mm
         3mm
-        2.5mm;
+        3.4mm
+        2.8mm;
       overflow: visible;
     }
 
     .sheet--one-page .day-title {
-      margin-bottom: 1.4mm;
-      font-size: 7.5px;
-      line-height: 1.2;
+      margin-bottom: 1.6mm;
+      font-size: 9px;
+      line-height: 1.25;
     }
 
     .sheet--one-page th {
       padding:
         0
         1.4mm
-        1.2mm;
-      font-size: 7px;
+        1.3mm;
+      font-size: 8.4px;
       letter-spacing: .025em;
     }
 
     .sheet--one-page td {
       padding:
-        1.15mm
+        1.45mm
         1.4mm;
-      font-size: 6.9px;
-      line-height: 1.22;
+      font-size: 8.1px;
+      line-height: 1.28;
     }
 
     .sheet--one-page .activity-cell span {
-      margin-top: .5mm;
-      font-size: 6.2px;
-      line-height: 1.2;
+      margin-top: .55mm;
+      font-size: 7.2px;
+      line-height: 1.25;
     }
 
     .sheet--one-page .notes-cell {
-      font-size: 6.5px;
-      line-height: 1.22;
+      font-size: 7.5px;
+      line-height: 1.28;
     }
 
     .sheet--one-page .footer {
       margin-top: 3mm;
-      font-size: 6.8px;
+      font-size: 7.4px;
     }
 
     @media (
@@ -1699,101 +1725,127 @@ export function buildChatMessageExportHtml(
       .sheet--one-page {
         height: 297mm !important;
         min-height: 297mm !important;
+        display: grid !important;
+        grid-template-rows:
+          auto
+          minmax(0, 1fr)
+          auto !important;
         padding:
           10mm
           10mm
-          9mm
+          8mm
           16mm !important;
         overflow: hidden !important;
       }
 
       .sheet--one-page .side-label {
         left: 4mm !important;
-        top: 116mm !important;
-        font-size: 9mm !important;
+        top: 145mm !important;
+        font-size: 9.5mm !important;
       }
 
       .sheet--one-page .header-card {
         grid-template-columns:
-          40mm
+          44mm
           minmax(0, 1fr) !important;
-        gap: 3.5mm !important;
-        min-height: 38mm !important;
-        padding: 3.5mm !important;
+        gap: 4.5mm !important;
+        min-height: 45mm !important;
+        padding: 4mm !important;
       }
 
       .sheet--one-page .header-image,
       .sheet--one-page .header-placeholder {
-        min-height: 31mm !important;
+        min-height: 37mm !important;
       }
 
       .sheet--one-page .header-copy h1 {
-        font-size: 25px !important;
+        font-size: 31px !important;
       }
 
       .sheet--one-page .trip-length {
-        font-size: 14px !important;
+        font-size: 18px !important;
+      }
+
+      .sheet--one-page .trip-title {
+        font-size: 9.5px !important;
+        line-height: 1.4 !important;
+      }
+
+      .sheet--one-page .header-dates {
+        font-size: 8.5px !important;
       }
 
       .sheet--one-page .days {
-        margin-top: 4mm !important;
-        gap: 3.5mm !important;
+        min-height: 0 !important;
+        margin-top: 5mm !important;
+        gap: 4mm !important;
+      }
+
+      .sheet--one-page.sheet--days-3 .days {
+        grid-template-rows:
+          repeat(
+            3,
+            minmax(0, 1fr)
+          ) !important;
       }
 
       .sheet--one-page .day-card {
+        height: 100% !important;
+        min-height: 0 !important;
         grid-template-columns:
-          40mm
+          44mm
           minmax(0, 1fr) !important;
-        min-height: 47mm !important;
       }
 
       .sheet--one-page .day-image,
       .sheet--one-page .day-image-grid,
       .sheet--one-page .image-placeholder {
-        min-height: 47mm !important;
+        height: 100% !important;
+        min-height: 0 !important;
       }
 
       .sheet--one-page .day-table-wrap {
         padding:
-          2.2mm
-          2.8mm
-          2.2mm !important;
+          3mm
+          3.4mm
+          2.8mm !important;
       }
 
       .sheet--one-page .day-title {
-        font-size: 7.2px !important;
-        margin-bottom: 1mm !important;
+        font-size: 9px !important;
+        line-height: 1.25 !important;
+        margin-bottom: 1.6mm !important;
       }
 
       .sheet--one-page th {
         padding:
           0
-          1.2mm
-          1mm !important;
-        font-size: 6.7px !important;
+          1.4mm
+          1.3mm !important;
+        font-size: 8.4px !important;
       }
 
       .sheet--one-page td {
         padding:
-          .95mm
-          1.2mm !important;
-        font-size: 6.5px !important;
-        line-height: 1.18 !important;
+          1.45mm
+          1.4mm !important;
+        font-size: 8.1px !important;
+        line-height: 1.28 !important;
       }
 
       .sheet--one-page .activity-cell span {
-        font-size: 5.9px !important;
-        line-height: 1.16 !important;
+        font-size: 7.2px !important;
+        line-height: 1.25 !important;
       }
 
       .sheet--one-page .notes-cell {
-        font-size: 6.1px !important;
-        line-height: 1.18 !important;
+        font-size: 7.5px !important;
+        line-height: 1.28 !important;
       }
 
       .sheet--one-page .footer {
-        margin-top: 2.5mm !important;
-        font-size: 6.4px !important;
+        margin-top: 3mm !important;
+        font-size: 7.4px !important;
       }
 
       .day-image-item {
@@ -1816,7 +1868,7 @@ export function buildChatMessageExportHtml(
     </button>
   </div>
 
-  <main class="sheet${dayNumbers.length <= 3 ? " sheet--one-page" : ""}">
+  <main class="sheet${dayNumbers.length <= 3 ? " sheet--one-page" : ""} sheet--days-${dayNumbers.length}">
     <div class="side-label">
       ITINERARY PLAN
     </div>
