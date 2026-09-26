@@ -1456,21 +1456,23 @@ export function buildChatMessageExportHtml(
     }
 
     @page {
-      size:
-        A4
-        portrait;
+      size: 210mm 297mm;
       margin: 0;
     }
 
     @media print {
       html,
       body {
+        width: 210mm !important;
+        min-width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
         background:
           var(--navy);
-      }
-
-      body {
-        padding: 0;
+        -webkit-print-color-adjust:
+          exact;
+        print-color-adjust:
+          exact;
       }
 
       .toolbar {
@@ -1480,14 +1482,18 @@ export function buildChatMessageExportHtml(
       }
 
       .sheet {
-        width: 210mm;
-        min-height: 297mm;
+        width: 210mm !important;
+        min-width: 210mm !important;
+        max-width: 210mm !important;
+        min-height: 297mm !important;
+        margin: 0 !important;
         padding:
           14mm
           12mm
           14mm
-          20mm;
-        box-shadow: none;
+          20mm !important;
+        overflow: visible !important;
+        box-shadow: none !important;
         -webkit-print-color-adjust:
           exact;
         print-color-adjust:
@@ -1496,7 +1502,8 @@ export function buildChatMessageExportHtml(
 
       .header-card,
       .day-card {
-        break-inside: avoid;
+        break-inside: avoid-page;
+        page-break-inside: avoid;
       }
 
       .day-card {
