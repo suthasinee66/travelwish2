@@ -69,6 +69,9 @@ import Sidebar from "@/components/Sidebar";
 import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
 import GuestPreferenceModal from "@/components/GuestPreferenceModal";
 import PlaceDetailDrawer, { type PlaceDetailTarget } from "@/components/PlaceDetailDrawer";
+import LiveTripStatus, {
+  TrafficLayerController,
+} from "@/components/LiveTripStatus";
 import {
   getGuestPreferences,
   isGuestUser,
@@ -3071,6 +3074,10 @@ const ActiveRouteIcon =
   activeRouteMode.icon;
 const [showSaveTripModal, setShowSaveTripModal] = useState(false);
 const [tripTitle, setTripTitle] = useState("");
+const [
+  liveTrafficEnabled,
+  setLiveTrafficEnabled,
+] = useState(true);
 const [appAlert, setAppAlert] = useState<{
   type: "success" | "error" | "info";
   title: string;
@@ -6702,6 +6709,74 @@ console.log(
     lng: Number(x.location.longitude)
   }))
 );
+
+const liveTripPoints =
+  useMemo(
+    () => {
+      const dayPlaces =
+        routePlaces.filter(
+          (place: any) =>
+            Number.isFinite(
+              Number(
+                place?.location
+                  ?.latitude
+              )
+            ) &&
+            Number.isFinite(
+              Number(
+                place?.location
+                  ?.longitude
+              )
+            )
+        );
+
+      const points: any[] =
+        [];
+
+      if (
+        selectedHotelRouteStop
+      ) {
+        points.push({
+          id:
+            selectedHotelRouteStop
+              .hotel_id,
+          name:
+            selectedHotelRouteStop
+              .name,
+          location:
+            selectedHotelRouteStop
+              .location,
+        });
+      }
+
+      points.push(
+        ...dayPlaces
+      );
+
+      if (
+        selectedHotelRouteStop &&
+        dayPlaces.length > 0
+      ) {
+        points.push({
+          id:
+            `${selectedHotelRouteStop.hotel_id}-return`,
+          name:
+            selectedHotelRouteStop
+              .name,
+          location:
+            selectedHotelRouteStop
+              .location,
+        });
+      }
+
+      return points;
+    },
+    [
+      routePlaces,
+      selectedHotelRouteStop,
+    ]
+  );
+
   const markerCenter =
 selectedHotelRouteStop
 ?
@@ -7276,6 +7351,11 @@ mapCenter;
           disableDefaultUI={false}
         >
           <MapUpdater center={markerCenter} />
+          <TrafficLayerController
+            enabled={
+              liveTrafficEnabled
+            }
+          />
 
           {selectedHotelRouteStop && (
             <Marker
@@ -7387,6 +7467,16 @@ mapCenter;
       </APIProvider>
     </div>
   )}
+
+  <LiveTripStatus
+    points={liveTripPoints}
+    trafficEnabled={
+      liveTrafficEnabled
+    }
+    onTrafficEnabledChange={
+      setLiveTrafficEnabled
+    }
+  />
 
   {/* HEADER */}
       <div>
