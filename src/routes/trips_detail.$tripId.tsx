@@ -14,6 +14,9 @@ import Sidebar from "@/components/Sidebar";
 import PlaceDetailDrawer, {
   type PlaceDetailTarget,
 } from "@/components/PlaceDetailDrawer";
+import LiveTripStatus, {
+  TrafficLayerController,
+} from "@/components/LiveTripStatus";
 import { TripPlanPanel } from "./home";
 import {
   buildChatMessageExportHtml,
@@ -97,6 +100,10 @@ function TripsDetail() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | "all">("all");
+  const [
+    liveTrafficEnabled,
+    setLiveTrafficEnabled,
+  ] = useState(true);
   const [liveRoutesByDay, setLiveRoutesByDay] = useState<Record<number, any[]> | null>(null);
   const [
     placeDetailTarget,
@@ -613,6 +620,95 @@ const selectedDayPlaces = useMemo(() => {
     })
   );
 }, [mapPlaces, selectedDay]);
+
+const liveTripPoints = useMemo(() => {
+  const currentDayPlaces =
+    selectedDay === "all"
+      ? mapPlaces.filter(
+          (item: any) =>
+            Number(item.day) === 1
+        )
+      : selectedDayPlaces;
+
+  const points: any[] = [];
+
+  const accommodation =
+    trip?.accommodation;
+
+  const hotelLat =
+    Number(
+      accommodation?.latitude
+    );
+
+  const hotelLng =
+    Number(
+      accommodation?.longitude
+    );
+
+  if (
+    Number.isFinite(hotelLat) &&
+    Number.isFinite(hotelLng)
+  ) {
+    points.push({
+      id:
+        accommodation?.id ??
+        "saved-hotel",
+      name:
+        accommodation?.name ??
+        "ที่พัก",
+      latitude:
+        hotelLat,
+      longitude:
+        hotelLng,
+    });
+  }
+
+  points.push(
+    ...currentDayPlaces.map(
+      (item: any) => ({
+        id:
+          item.restaurant_id ??
+          item.att_id ??
+          item.place_id ??
+          item.id,
+        name:
+          item.place_data
+            ?.place_name_th ??
+          item.place_data
+            ?.name_th ??
+          item.name ??
+          "สถานที่",
+        location:
+          item.location,
+      })
+    )
+  );
+
+  if (
+    Number.isFinite(hotelLat) &&
+    Number.isFinite(hotelLng) &&
+    currentDayPlaces.length > 0
+  ) {
+    points.push({
+      id: "saved-hotel-return",
+      name:
+        accommodation?.name ??
+        "ที่พัก",
+      latitude:
+        hotelLat,
+      longitude:
+        hotelLng,
+    });
+  }
+
+  return points;
+}, [
+  mapPlaces,
+  selectedDay,
+  selectedDayPlaces,
+  trip?.accommodation,
+]);
+
   // =========================================================
   // MAP CENTER
   // =========================================================
@@ -2417,6 +2513,11 @@ const mapCenter = useMemo(() => {
       disableDefaultUI={false}
     >
         <DayMapUpdater places={selectedDayPlaces} />
+        <TrafficLayerController
+          enabled={
+            liveTrafficEnabled
+          }
+        />
       {selectedDayPlaces.map(
         (item: any) => {
           const key =
@@ -2478,6 +2579,19 @@ const mapCenter = useMemo(() => {
       )}
     </GoogleMap>
   </APIProvider>
+
+  <div className="absolute bottom-4 left-4 z-20 w-[min(360px,calc(100%-2rem))]">
+    <LiveTripStatus
+      points={liveTripPoints}
+      trafficEnabled={
+        liveTrafficEnabled
+      }
+      onTrafficEnabledChange={
+        setLiveTrafficEnabled
+      }
+      className="max-h-[46vh] overflow-y-auto bg-[#fffdfb]/95 backdrop-blur-xl"
+    />
+  </div>
 
   {/* Map information overlay */}
   <div className="absolute left-4 top-4 max-w-[calc(100%-2rem)] rounded-2xl border border-white/80 bg-[#fffdfb]/92 px-4 py-3 shadow-[0_12px_28px_rgba(91,72,117,0.12)] backdrop-blur-xl">
