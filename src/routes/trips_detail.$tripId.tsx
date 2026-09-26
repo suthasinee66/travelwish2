@@ -2580,19 +2580,6 @@ const mapCenter = useMemo(() => {
     </GoogleMap>
   </APIProvider>
 
-  <div className="absolute bottom-4 left-4 z-20 w-[min(360px,calc(100%-2rem))]">
-    <LiveTripStatus
-      points={liveTripPoints}
-      trafficEnabled={
-        liveTrafficEnabled
-      }
-      onTrafficEnabledChange={
-        setLiveTrafficEnabled
-      }
-      className="max-h-[46vh] overflow-y-auto bg-[#fffdfb]/95 backdrop-blur-xl"
-    />
-  </div>
-
   {/* Map information overlay */}
   <div className="absolute left-4 top-4 max-w-[calc(100%-2rem)] rounded-2xl border border-white/80 bg-[#fffdfb]/92 px-4 py-3 shadow-[0_12px_28px_rgba(91,72,117,0.12)] backdrop-blur-xl">
     <div className="mb-1 h-1 w-12 rounded-full bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8]" />
@@ -2640,6 +2627,17 @@ const mapCenter = useMemo(() => {
             p-5
           "
         >
+          <LiveTripStatus
+            points={liveTripPoints}
+            trafficEnabled={
+              liveTrafficEnabled
+            }
+            onTrafficEnabledChange={
+              setLiveTrafficEnabled
+            }
+            className="mb-4 bg-[#fffdfb]"
+          />
+
 <TripPlanPanel
   plannerJson={plannerJson}
   plan=""
