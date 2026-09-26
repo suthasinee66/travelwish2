@@ -6,19 +6,6 @@ const router =
 function getGoogleRoutesApiKey() {
   if (
     process.env
-      .GOOGLE_ROUTES_API_KEY
-  ) {
-    return {
-      key:
-        process.env
-          .GOOGLE_ROUTES_API_KEY,
-      source:
-        "GOOGLE_ROUTES_API_KEY",
-    };
-  }
-
-  if (
-    process.env
       .GOOGLE_MAPS_API_KEY
   ) {
     return {
