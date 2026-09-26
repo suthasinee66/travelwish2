@@ -705,15 +705,17 @@ export function buildChatMessageExportHtml(
 
   <style>
     :root {
-      --navy: #10356d;
-      --navy-dark: #092a5b;
-      --navy-soft: #1b477f;
-      --coral: #f15a47;
-      --paper: #ffffff;
-      --line: #e5e9ef;
-      --ink: #172234;
-      --muted: #657187;
-      --page-gray: #d7d8db;
+      --navy: #5B3A61;
+      --navy-dark: #432C49;
+      --navy-soft: #765B7C;
+      --coral: #C78FB6;
+      --paper: #FFFDFC;
+      --line: #ECE3EE;
+      --ink: #40364B;
+      --muted: #8A7D8F;
+      --page-gray: #F1EDF2;
+      --lavender: #EDE3F0;
+      --blush: #F3E7EF;
     }
 
     * {
@@ -728,10 +730,15 @@ export function buildChatMessageExportHtml(
       color: var(--ink);
       font-family:
         "Noto Sans Thai",
+        "Sarabun",
         "Leelawadee UI",
         Arial,
         Helvetica,
         sans-serif;
+      font-optical-sizing: auto;
+      font-synthesis: none;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
 
     body {
@@ -764,7 +771,12 @@ export function buildChatMessageExportHtml(
       padding:
         11px
         18px;
-      background: var(--navy-dark);
+      background:
+        linear-gradient(
+          90deg,
+          var(--navy),
+          #A77CA4
+        );
       color: white;
       font: inherit;
       font-weight: 800;
@@ -821,7 +833,7 @@ export function buildChatMessageExportHtml(
             0%,
           var(--navy)
             52%,
-          #123b75
+          #6F4C76
             100%
         );
       box-shadow:
@@ -845,8 +857,12 @@ export function buildChatMessageExportHtml(
       height: 280px;
       border-radius: 50%;
       background:
-        var(--coral);
-      opacity: .98;
+        linear-gradient(
+          145deg,
+          #D7B7CF,
+          #B98CAF
+        );
+      opacity: .96;
     }
 
     .sheet::after {
@@ -885,10 +901,14 @@ export function buildChatMessageExportHtml(
           255,
           .88
         );
-      font-size: 42px;
+      font-size: 40px;
       line-height: 1;
-      font-weight: 800;
-      letter-spacing: .02em;
+      font-weight: 700;
+      letter-spacing: .055em;
+      font-family:
+        "Avenir Next",
+        "Noto Sans Thai",
+        sans-serif;
     }
 
     .header-card {
@@ -924,7 +944,7 @@ export function buildChatMessageExportHtml(
       overflow: hidden;
       min-height: 166px;
       background:
-        #46b5dc;
+        var(--lavender);
     }
 
     .header-image img {
@@ -942,8 +962,8 @@ export function buildChatMessageExportHtml(
       background:
         linear-gradient(
           145deg,
-          #47b6dd,
-          #7ad5ed
+          #D9C4E0,
+          #B996C4
         );
       color:
         rgba(
@@ -967,22 +987,27 @@ export function buildChatMessageExportHtml(
 
     .header-copy h1 {
       margin: 0;
-      font-size: 43px;
-      line-height: 1;
-      letter-spacing: .01em;
+      font-size: 42px;
+      line-height: .98;
+      letter-spacing: -.025em;
       color: var(--navy);
-      font-weight: 900;
+      font-weight: 800;
+      font-family:
+        "Avenir Next",
+        "Noto Sans Thai",
+        sans-serif;
     }
 
     .header-copy h1 span {
-      color: var(--coral);
+      color: var(--navy-soft);
     }
 
     .trip-length {
       margin-top: 9px;
-      font-size: 25px;
-      line-height: 1.1;
-      font-weight: 800;
+      font-size: 24px;
+      line-height: 1.12;
+      font-weight: 700;
+      letter-spacing: -.015em;
       color: var(--navy-dark);
       text-transform: uppercase;
     }
@@ -997,10 +1022,10 @@ export function buildChatMessageExportHtml(
     .trip-title {
       margin-top: 12px;
       max-width: 690px;
-      font-size: 12px;
-      line-height: 1.45;
+      font-size: 12.5px;
+      line-height: 1.65;
       color: var(--muted);
-      font-weight: 600;
+      font-weight: 500;
     }
 
     .header-dates {
@@ -1057,7 +1082,7 @@ export function buildChatMessageExportHtml(
       min-height: 218px;
       overflow: hidden;
       background:
-        #d9e8f2;
+        var(--lavender);
     }
 
     .day-image img {
@@ -1076,8 +1101,8 @@ export function buildChatMessageExportHtml(
       background:
         linear-gradient(
           150deg,
-          #a6d4e7,
-          #5ab5d6
+          #DECBE4,
+          #B58FC1
         );
       color: white;
       text-align: center;
@@ -1132,8 +1157,9 @@ export function buildChatMessageExportHtml(
       text-overflow: ellipsis;
       white-space: nowrap;
       color: var(--navy-dark);
-      font-size: 10px;
-      font-weight: 800;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .01em;
     }
 
     table {
@@ -1151,11 +1177,11 @@ export function buildChatMessageExportHtml(
         1px
         solid
         var(--line);
-      color: var(--coral);
+      color: var(--navy);
       text-align: left;
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: .02em;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .055em;
     }
 
     th:first-child,
@@ -1182,10 +1208,10 @@ export function buildChatMessageExportHtml(
       border-bottom:
         1px
         solid
-        #edf0f4;
+        #F1EAF2;
       vertical-align: top;
       font-size: 10.5px;
-      line-height: 1.35;
+      line-height: 1.5;
       color: var(--ink);
     }
 
@@ -1194,13 +1220,14 @@ export function buildChatMessageExportHtml(
     }
 
     .time-cell {
-      font-weight: 800;
+      font-weight: 700;
+      color: var(--navy);
       white-space: nowrap;
     }
 
     .activity-cell strong {
       display: block;
-      font-weight: 800;
+      font-weight: 700;
       color: var(--ink);
     }
 
@@ -1213,8 +1240,9 @@ export function buildChatMessageExportHtml(
     }
 
     .notes-cell {
-      color: #354256;
+      color: #6F6074;
       font-size: 9.5px;
+      line-height: 1.5;
     }
 
     .footer {
@@ -1361,7 +1389,7 @@ export function buildChatMessageExportHtml(
 
   <main class="sheet">
     <div class="side-label">
-      ITINERARY TEMPLATE
+      ITINERARY PLAN
     </div>
 
     <section class="header-card">
