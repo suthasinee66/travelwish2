@@ -740,6 +740,22 @@ export function buildChatMessageExportHtml(
     content="width=device-width,initial-scale=1"
   />
 
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  />
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  />
+
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap"
+  />
+
   <title>
     ${escapeHtml(
       title
@@ -765,6 +781,10 @@ export function buildChatMessageExportHtml(
 
     * {
       box-sizing: border-box;
+      font-family:
+        "Noto Sans Thai",
+        Arial,
+        sans-serif;
     }
 
     html,
@@ -1507,7 +1527,7 @@ export function buildChatMessageExportHtml(
 <body>
   <div class="toolbar">
     <button
-      onclick="window.print()"
+      onclick="(async()=>{try{if(document.fonts&&document.fonts.ready){await document.fonts.ready;}}catch(e){}window.print();})()"
     >
       Save as PDF
     </button>
