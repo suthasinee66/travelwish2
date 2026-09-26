@@ -556,6 +556,118 @@ async function resolveAIProposedRestaurants(
 
 
 
+function attachMarkdownDayStartTimes(
+    markdown: string,
+    plannerItems: any[]
+) {
+    if (
+        !markdown ||
+        !Array.isArray(plannerItems) ||
+        plannerItems.length === 0
+    ) {
+        return plannerItems;
+    }
+
+    const dayHeaderRegex =
+        /(?:^|\n)#{1,6}\s*[^\n]*?Day\s*(\d+)\b[^\n]*/gi;
+
+    const headers: Array<{
+        day: number;
+        start: number;
+        contentStart: number;
+    }> = [];
+
+    let match:
+        RegExpExecArray | null;
+
+    while (
+        (
+            match =
+                dayHeaderRegex.exec(
+                    markdown
+                )
+        ) !== null
+    ) {
+        headers.push({
+            day:
+                Number(
+                    match[1]
+                ),
+            start:
+                match.index,
+            contentStart:
+                dayHeaderRegex.lastIndex
+        });
+    }
+
+    const startByDay =
+        new Map<
+            number,
+            string
+        >();
+
+    const firstTimeRangeRegex =
+        /(\d{1,2}:\d{2})\s*(?:–|—|-)\s*(\d{1,2}:\d{2})/;
+
+    headers.forEach(
+        (
+            header,
+            index
+        ) => {
+            const next =
+                headers[
+                    index + 1
+                ];
+
+            const section =
+                markdown.slice(
+                    header.contentStart,
+                    next
+                        ? next.start
+                        : markdown.length
+                );
+
+            const timeMatch =
+                section.match(
+                    firstTimeRangeRegex
+                );
+
+            if (
+                timeMatch?.[1]
+            ) {
+                startByDay.set(
+                    header.day,
+                    timeMatch[1]
+                );
+            }
+        }
+    );
+
+    console.log(
+        "🕒 MARKDOWN DAY START TIMES:",
+        Object.fromEntries(
+            startByDay
+        )
+    );
+
+    return plannerItems.map(
+        (
+            item: any
+        ) => ({
+            ...item,
+
+            day_start_time:
+                startByDay.get(
+                    Number(
+                        item?.day
+                    )
+                ) ??
+                null
+        })
+    );
+}
+
+
 /*
  โหลดสถานที่เที่ยวทั้งหมด
  ไม่จำกัด 1000 row
@@ -3477,6 +3589,11 @@ markdown คือเนื้อหาแผนเที่ยวที่ผ�
 อย่างไรก็ตาม ต้องมีข้อมูลที่จำเป็นสำหรับการวางแผนเที่ยว
 เช่น วัน เวลา สถานที่ ร้านอาหาร กิจกรรม และรายละเอียดที่เกี่ยวข้อง
 
+กฎเวลาเริ่มต้นของแต่ละวัน:
+- กิจกรรม/สถานที่แรกของทุก Day ต้องมีช่วงเวลาแบบ HH:MM – HH:MM อย่างชัดเจน
+- ระบบจะอ่านเฉพาะ HH:MM ตัวแรกของกิจกรรมแรกในแต่ละวันไปเป็นเวลาเริ่มต้นของ TripPlan
+- เวลาของจุดถัดไปใน TripPlan จะคำนวณใหม่จาก duration + เวลาเดินทางตามลำดับจริง
+
 ====================
 กิจกรรมและระยะเวลา
 ====================
@@ -3549,6 +3666,12 @@ console.log(
     "chars"
 );
 
+const plannerWithDayStartTimes =
+    attachMarkdownDayStartTimes(
+        aiMessage,
+        routeOptimizedPlaces
+    );
+
 
 if (!isGuest) {
     console.log("💾 กำลังบันทึก planner ลง database...");
@@ -3563,7 +3686,7 @@ if (!isGuest) {
             user_id: userId,
             role: "ai",
             content: aiMessage,
-            planner_json: routeOptimizedPlaces
+            planner_json: plannerWithDayStartTimes
         })
         .select();
 
@@ -3591,7 +3714,7 @@ console.log("==================================================");
 
 return {
     markdown: aiMessage,
-    planner_json: routeOptimizedPlaces,
+    planner_json: plannerWithDayStartTimes,
     accommodation:
         plannerAccommodation,
     accommodation_reason:
