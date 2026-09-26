@@ -1500,10 +1500,24 @@ export function buildChatMessageExportHtml(
           exact;
       }
 
+      /* Print must keep the desktop itinerary layout.
+         Chrome can otherwise match the mobile max-width media query
+         while generating an A4 PDF, which stacks images above tables. */
+      .side-label {
+        display: block !important;
+      }
+
       .header-card,
       .day-card {
+        grid-template-columns:
+          46mm
+          minmax(0, 1fr) !important;
         break-inside: avoid-page;
         page-break-inside: avoid;
+      }
+
+      .header-image {
+        min-height: 44mm !important;
       }
 
       .day-card {
@@ -1511,13 +1525,30 @@ export function buildChatMessageExportHtml(
       }
 
       .day-image {
-        min-height: 54mm;
+        min-height: 54mm !important;
       }
 
       .day-image-grid {
-        min-height: 54mm;
+        min-height: 54mm !important;
         gap: 1.2mm;
         padding: 1.2mm;
+      }
+
+      .day-table-wrap {
+        overflow: visible !important;
+      }
+
+      table {
+        width: 100% !important;
+        min-width: 0 !important;
+      }
+
+      .header-copy h1 {
+        font-size: 32px !important;
+      }
+
+      .trip-length {
+        font-size: 18px !important;
       }
 
       .day-image-item {
