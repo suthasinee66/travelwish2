@@ -1657,6 +1657,16 @@ function HotelItineraryCard({
     <div
       role="button"
       tabIndex={0}
+      style={{
+        backgroundColor: "#fffdfb",
+        opacity: 1,
+        backgroundImage: "none",
+        backdropFilter: "none",
+        WebkitBackdropFilter: "none",
+        filter: "none",
+        mixBlendMode: "normal",
+        isolation: "isolate",
+      }}
       onClick={() =>
         onOpenDetail?.({
           type: "accommodation",
@@ -1679,7 +1689,8 @@ function HotelItineraryCard({
         rounded-2xl
         border
         border-[#dfd2e2]
-        bg-[#fbf6fc]
+        !bg-[#fffdfb]
+        !opacity-100
         p-3
         shadow-sm
         transition
@@ -1871,6 +1882,14 @@ function SortablePlaceItem({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    backgroundColor: "#ffffff",
+    opacity: 1,
+    backgroundImage: "none",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
+    filter: "none",
+    mixBlendMode: "normal" as const,
+    isolation: "isolate" as const,
   };
 
   return (
@@ -1932,7 +1951,8 @@ function SortablePlaceItem({
         border
         rounded-2xl
         p-3
-        bg-white
+        !bg-white
+        !opacity-100
         shadow-sm
         transition
         hover:border-[#d6c4da]
