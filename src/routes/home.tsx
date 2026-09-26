@@ -5138,51 +5138,97 @@ const sensors = useSensors(
       user_ratings_total
     `;
 
-    const restaurantSelectWithGoogle = `
-      ${baseRestaurantSelect},
-      google_place_id
-    `;
-
     let loadedRestaurants: any[] = [];
 
     if (missingIds.length > 0) {
-      const [
-        byPlaceIdResult,
-        byGooglePlaceIdResult
-      ] = await Promise.all([
-        supabase
+      // ------------------------------------------------------
+      // 1) ใช้ place_id ก่อนเสมอ
+      // ตาราง restaurant ของโปรเจกต์ใช้ place_id เป็น primary key
+      // และหลายแถว place_id ก็คือ Google Place ID อยู่แล้ว
+      // จึงไม่ควรบังคับให้ schema ต้องมี google_place_id
+      // ------------------------------------------------------
+      const byPlaceIdResult =
+        await supabase
           .from("restaurant")
-          .select(restaurantSelectWithGoogle)
-          .in("place_id", missingIds),
+          .select(baseRestaurantSelect)
+          .in("place_id", missingIds);
 
-        supabase
-          .from("restaurant")
-          .select(restaurantSelectWithGoogle)
-          .in("google_place_id", missingIds)
-      ]);
-
-      if (
-        byPlaceIdResult.error ||
-        byGooglePlaceIdResult.error
-      ) {
+      if (byPlaceIdResult.error) {
         console.error(
-          "❌ LOAD PLANNER RESTAURANTS ERROR:",
-          byPlaceIdResult.error ||
-          byGooglePlaceIdResult.error
+          "❌ LOAD PLANNER RESTAURANTS BY place_id ERROR:",
+          byPlaceIdResult.error
         );
       }
 
       loadedRestaurants = [
-        ...(byPlaceIdResult.data || []),
-        ...(byGooglePlaceIdResult.data || [])
-      ].filter(
-        (restaurant, index, array) =>
-          array.findIndex(
-            item =>
-              String(item.place_id) ===
-              String(restaurant.place_id)
-          ) === index
-      );
+        ...(byPlaceIdResult.data || [])
+      ];
+
+      // ------------------------------------------------------
+      // 2) ถ้ายังมี id ที่หาไม่เจอ ค่อยลอง google_place_id
+      // แบบ optional เท่านั้น เพื่อรองรับ schema รุ่นใหม่
+      // ถ้าคอลัมน์นี้ไม่มี ให้ข้ามได้โดยไม่ทำให้ร้านทั้งหมดหาย
+      // ------------------------------------------------------
+      const unresolvedIds =
+        missingIds.filter(
+          id =>
+            !loadedRestaurants.some(
+              (restaurant: any) =>
+                String(
+                  restaurant.place_id
+                ) === id
+            )
+        );
+
+      if (
+        unresolvedIds.length > 0
+      ) {
+        const byGooglePlaceIdResult =
+          await supabase
+            .from("restaurant")
+            .select(`
+              ${baseRestaurantSelect},
+              google_place_id
+            `)
+            .in(
+              "google_place_id",
+              unresolvedIds
+            );
+
+        if (
+          byGooglePlaceIdResult.error
+        ) {
+          console.warn(
+            "⚠️ restaurant.google_place_id unavailable — use place_id only:",
+            byGooglePlaceIdResult.error
+          );
+        } else {
+          loadedRestaurants.push(
+            ...(
+              byGooglePlaceIdResult.data ||
+              []
+            )
+          );
+        }
+      }
+
+      loadedRestaurants =
+        loadedRestaurants.filter(
+          (
+            restaurant,
+            index,
+            array
+          ) =>
+            array.findIndex(
+              item =>
+                String(
+                  item.place_id
+                ) ===
+                String(
+                  restaurant.place_id
+                )
+            ) === index
+        );
     }
 
     const allResolvedRestaurants = [
