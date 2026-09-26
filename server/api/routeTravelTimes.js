@@ -3,10 +3,195 @@ import express from "express";
 const router =
   express.Router();
 
-const GOOGLE_ROUTES_API_KEY =
-  process.env.GOOGLE_ROUTES_API_KEY ||
-  process.env.GOOGLE_MAPS_API_KEY ||
-  process.env.GOOGLE_PLACES_API_KEY;
+function getGoogleRoutesApiKey() {
+  if (
+    process.env
+      .GOOGLE_ROUTES_API_KEY
+  ) {
+    return {
+      key:
+        process.env
+          .GOOGLE_ROUTES_API_KEY,
+      source:
+        "GOOGLE_ROUTES_API_KEY",
+    };
+  }
+
+  if (
+    process.env
+      .GOOGLE_MAPS_API_KEY
+  ) {
+    return {
+      key:
+        process.env
+          .GOOGLE_MAPS_API_KEY,
+      source:
+        "GOOGLE_MAPS_API_KEY",
+    };
+  }
+
+  return {
+    key: null,
+    source: null,
+  };
+}
+
+function estimateTravelLegs(
+  points
+) {
+  const earthRadius =
+    6371000;
+
+  const toRad =
+    degree =>
+      (
+        degree *
+        Math.PI
+      ) /
+      180;
+
+  const legs = [];
+
+  for (
+    let index = 1;
+    index <
+    points.length;
+    index += 1
+  ) {
+    const from =
+      points[
+        index - 1
+      ];
+
+    const to =
+      points[
+        index
+      ];
+
+    const dLat =
+      toRad(
+        to.latitude -
+        from.latitude
+      );
+
+    const dLng =
+      toRad(
+        to.longitude -
+        from.longitude
+      );
+
+    const a =
+      Math.sin(
+        dLat / 2
+      ) ** 2 +
+      Math.cos(
+        toRad(
+          from.latitude
+        )
+      ) *
+        Math.cos(
+          toRad(
+            to.latitude
+          )
+        ) *
+        Math.sin(
+          dLng / 2
+        ) ** 2;
+
+    const straightMeters =
+      2 *
+      earthRadius *
+      Math.atan2(
+        Math.sqrt(a),
+        Math.sqrt(
+          1 - a
+        )
+      );
+
+    const estimatedRoadMeters =
+      straightMeters *
+      1.25;
+
+    const estimatedMinutes =
+      Math.max(
+        3,
+        Math.ceil(
+          estimatedRoadMeters /
+          1000 /
+          28 *
+          60
+        )
+      );
+
+    legs.push({
+      index:
+        index - 1,
+
+      distance_meters:
+        Math.round(
+          estimatedRoadMeters
+        ),
+
+      duration_seconds:
+        estimatedMinutes *
+        60,
+
+      duration_minutes:
+        estimatedMinutes,
+    });
+  }
+
+  return legs;
+}
+
+function sendEstimatedFallback(
+  res,
+  points,
+  reason,
+  googleStatus = null
+) {
+  const legs =
+    estimateTravelLegs(
+      points
+    );
+
+  return res.json({
+    success: true,
+    source:
+      "estimated_fallback",
+    fallback_reason:
+      reason,
+    google_status:
+      googleStatus,
+    total_distance_meters:
+      legs.reduce(
+        (
+          sum,
+          leg
+        ) =>
+          sum +
+          Number(
+            leg.distance_meters ??
+            0
+          ),
+        0
+      ),
+    total_duration_seconds:
+      legs.reduce(
+        (
+          sum,
+          leg
+        ) =>
+          sum +
+          Number(
+            leg.duration_seconds ??
+            0
+          ),
+        0
+      ),
+    legs,
+  });
+}
 
 function normalizePoint(
   value
@@ -103,15 +288,26 @@ router.post(
           });
       }
 
+      const {
+        key:
+          googleRoutesApiKey,
+        source:
+          googleRoutesKeySource,
+      } =
+        getGoogleRoutesApiKey();
+
       if (
-        !GOOGLE_ROUTES_API_KEY
+        !googleRoutesApiKey
       ) {
-        return res
-          .status(500)
-          .json({
-            error:
-              "Google Routes API key is not configured",
-          });
+        console.warn(
+          "⚠️ GOOGLE ROUTES KEY MISSING — USING ESTIMATE"
+        );
+
+        return sendEstimatedFallback(
+          res,
+          points,
+          "missing_google_routes_api_key"
+        );
       }
 
       const [
@@ -151,7 +347,7 @@ router.post(
                 "application/json",
 
               "X-Goog-Api-Key":
-                GOOGLE_ROUTES_API_KEY,
+                googleRoutesApiKey,
 
               "X-Goog-FieldMask":
                 [
@@ -209,16 +405,22 @@ router.post(
           errorText
         );
 
-        return res
-          .status(
-            response.status
-          )
-          .json({
-            error:
-              "Google Routes request failed",
-            details:
-              errorText,
-          });
+        console.warn(
+          "⚠️ GOOGLE ROUTES FALLBACK:",
+          {
+            status:
+              response.status,
+            keySource:
+              googleRoutesKeySource,
+          }
+        );
+
+        return sendEstimatedFallback(
+          res,
+          points,
+          "google_routes_request_failed",
+          response.status
+        );
       }
 
       const data =
@@ -267,6 +469,8 @@ router.post(
         success: true,
         source:
           "google_routes",
+        key_source:
+          googleRoutesKeySource,
         total_distance_meters:
           Number(
             route
