@@ -67,7 +67,7 @@ import { getPlaceImage } from "@/lib/google/places";
 import { loadPlaceImages } from "@/lib/recommend/loadPlaceImages";
 import Sidebar from "@/components/Sidebar";
 import AddPlaceToTripModal from "@/components/AddPlaceToTripModal";
-import GuestPreferenceModal from "@/components/GuestPreferenceModal";
+import PersonalSurveyForm from "@/components/PersonalSurveyForm";
 import PlaceDetailDrawer, { type PlaceDetailTarget } from "@/components/PlaceDetailDrawer";
 import LiveTripStatus, {
   TrafficLayerController,
@@ -11662,15 +11662,25 @@ const handleSend = async () => {
 
   return (
     <div className="travel-home flex h-screen bg-background text-foreground">
-      <GuestPreferenceModal
-        open={
-          isGuestMode &&
-          showGuestPreferences
-        }
-        onComplete={
-          handleGuestPreferencesComplete
-        }
-      />
+      {isGuestMode &&
+        showGuestPreferences && (
+          <div
+            className="
+              fixed
+              inset-0
+              z-[200]
+              overflow-y-auto
+              bg-background
+            "
+          >
+            <PersonalSurveyForm
+              mode="guest"
+              onGuestComplete={
+                handleGuestPreferencesComplete
+              }
+            />
+          </div>
+        )}
 
       <PlaceDetailDrawer
         open={Boolean(placeDetailTarget)}
