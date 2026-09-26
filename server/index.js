@@ -907,6 +907,501 @@ app.post("/api/ai", async (req, res) => {
 });
 
 
+
+// ============================================
+// LIVE TRIP STATUS
+// Google Routes + Google Weather
+// ใช้ GOOGLE_MAPS_API_KEY ตัวเดียว
+// ============================================
+
+function parseGoogleDurationSeconds(value) {
+  if (typeof value !== "string") return 0;
+
+  const match =
+    value.match(/^([0-9.]+)s$/);
+
+  return match
+    ? Number(match[1]) || 0
+    : 0;
+}
+
+function normalizeLivePoint(value) {
+  const latitude =
+    Number(
+      value?.latitude ??
+      value?.lat
+    );
+
+  const longitude =
+    Number(
+      value?.longitude ??
+      value?.lng
+    );
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
+    return null;
+  }
+
+  return {
+    id: value?.id ?? null,
+    name: String(
+      value?.name ??
+      "สถานที่"
+    ),
+    latitude,
+    longitude,
+  };
+}
+
+app.post(
+  "/api/live-trip-status",
+  async (req, res) => {
+    try {
+      const points =
+        (
+          Array.isArray(req.body?.points)
+            ? req.body.points
+            : []
+        )
+          .map(normalizeLivePoint)
+          .filter(Boolean)
+          .slice(0, 8);
+
+      if (points.length === 0) {
+        return res.status(400).json({
+          error: "points are required",
+        });
+      }
+
+      const apiKey =
+        process.env.GOOGLE_MAPS_API_KEY;
+
+      if (!apiKey) {
+        return res.json({
+          generatedAt:
+            new Date().toISOString(),
+          trafficAvailable: false,
+          weatherAvailable: false,
+          legs: [],
+          weather: [],
+          suggestions: [
+            "ยังไม่ได้ตั้งค่า GOOGLE_MAPS_API_KEY ที่ backend",
+          ],
+        });
+      }
+
+      const trafficJobs = [];
+
+      for (
+        let index = 1;
+        index < points.length;
+        index += 1
+      ) {
+        const from =
+          points[index - 1];
+        const to =
+          points[index];
+
+        trafficJobs.push(
+          (async () => {
+            try {
+              const response =
+                await fetch(
+                  "https://routes.googleapis.com/directions/v2:computeRoutes",
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type":
+                        "application/json",
+                      "X-Goog-Api-Key":
+                        apiKey,
+                      "X-Goog-FieldMask":
+                        "routes.duration,routes.staticDuration,routes.distanceMeters",
+                    },
+                    body:
+                      JSON.stringify({
+                        origin: {
+                          location: {
+                            latLng: {
+                              latitude:
+                                from.latitude,
+                              longitude:
+                                from.longitude,
+                            },
+                          },
+                        },
+                        destination: {
+                          location: {
+                            latLng: {
+                              latitude:
+                                to.latitude,
+                              longitude:
+                                to.longitude,
+                            },
+                          },
+                        },
+                        travelMode:
+                          "DRIVE",
+                        routingPreference:
+                          "TRAFFIC_AWARE",
+                        computeAlternativeRoutes:
+                          false,
+                        languageCode:
+                          "th",
+                        units:
+                          "METRIC",
+                      }),
+                  }
+                );
+
+              if (!response.ok) {
+                console.warn(
+                  "⚠️ LIVE ROUTE GOOGLE ERROR:",
+                  response.status,
+                  await response.text()
+                );
+                return null;
+              }
+
+              const data =
+                await response.json();
+
+              const route =
+                data?.routes?.[0];
+
+              if (!route) return null;
+
+              const durationSeconds =
+                parseGoogleDurationSeconds(
+                  route.duration
+                );
+
+              const staticSeconds =
+                parseGoogleDurationSeconds(
+                  route.staticDuration
+                );
+
+              const delayMinutes =
+                Math.max(
+                  0,
+                  durationSeconds -
+                    staticSeconds
+                ) / 60;
+
+              const staticMinutes =
+                staticSeconds / 60;
+
+              const delayRatio =
+                staticMinutes > 0
+                  ? delayMinutes /
+                    staticMinutes
+                  : 0;
+
+              const level =
+                delayMinutes >= 15 ||
+                delayRatio >= 0.35
+                  ? "heavy"
+                  : (
+                      delayMinutes >= 7 ||
+                      delayRatio >= 0.18
+                    )
+                    ? "slow"
+                    : "normal";
+
+              return {
+                fromName:
+                  from.name,
+                toName:
+                  to.name,
+                durationMinutes:
+                  Math.max(
+                    1,
+                    Math.round(
+                      durationSeconds / 60
+                    )
+                  ),
+                staticDurationMinutes:
+                  Math.max(
+                    1,
+                    Math.round(
+                      staticSeconds / 60
+                    )
+                  ),
+                delayMinutes:
+                  Math.max(
+                    0,
+                    Math.round(
+                      delayMinutes
+                    )
+                  ),
+                distanceMeters:
+                  Number(
+                    route.distanceMeters ??
+                    0
+                  ),
+                level,
+              };
+            } catch (error) {
+              console.warn(
+                "⚠️ LIVE ROUTE REQUEST FAILED:",
+                error?.message ?? error
+              );
+              return null;
+            }
+          })()
+        );
+      }
+
+      const weatherJobs =
+        points.map(
+          point =>
+            (async () => {
+              try {
+                const url =
+                  new URL(
+                    "https://weather.googleapis.com/v1/forecast/hours:lookup"
+                  );
+
+                url.searchParams.set(
+                  "key",
+                  apiKey
+                );
+                url.searchParams.set(
+                  "location.latitude",
+                  String(point.latitude)
+                );
+                url.searchParams.set(
+                  "location.longitude",
+                  String(point.longitude)
+                );
+                url.searchParams.set(
+                  "hours",
+                  "3"
+                );
+                url.searchParams.set(
+                  "pageSize",
+                  "3"
+                );
+                url.searchParams.set(
+                  "languageCode",
+                  "th"
+                );
+                url.searchParams.set(
+                  "unitsSystem",
+                  "METRIC"
+                );
+
+                const response =
+                  await fetch(url);
+
+                if (!response.ok) {
+                  console.warn(
+                    "⚠️ LIVE WEATHER GOOGLE ERROR:",
+                    response.status,
+                    await response.text()
+                  );
+                  return null;
+                }
+
+                const data =
+                  await response.json();
+
+                const hours =
+                  Array.isArray(
+                    data?.forecastHours
+                  )
+                    ? data.forecastHours
+                    : [];
+
+                if (hours.length === 0) {
+                  return null;
+                }
+
+                const wettest =
+                  [...hours].sort(
+                    (left, right) =>
+                      Number(
+                        right
+                          ?.precipitation
+                          ?.probability
+                          ?.percent ??
+                        0
+                      ) -
+                      Number(
+                        left
+                          ?.precipitation
+                          ?.probability
+                          ?.percent ??
+                        0
+                      )
+                  )[0];
+
+                const displayHour =
+                  Number(
+                    wettest
+                      ?.displayDateTime
+                      ?.hours
+                  );
+
+                return {
+                  name:
+                    point.name,
+                  rainProbability:
+                    Number(
+                      wettest
+                        ?.precipitation
+                        ?.probability
+                        ?.percent ??
+                      0
+                    ),
+                  temperatureC:
+                    Number(
+                      wettest
+                        ?.temperature
+                        ?.degrees
+                    ),
+                  condition:
+                    wettest
+                      ?.weatherCondition
+                      ?.description
+                      ?.text ??
+                    null,
+                  hourLabel:
+                    Number.isFinite(
+                      displayHour
+                    )
+                      ? `${String(
+                          displayHour
+                        ).padStart(
+                          2,
+                          "0"
+                        )}:00`
+                      : null,
+                };
+              } catch (error) {
+                console.warn(
+                  "⚠️ LIVE WEATHER REQUEST FAILED:",
+                  error?.message ?? error
+                );
+                return null;
+              }
+            })()
+        );
+
+      const [
+        trafficResults,
+        weatherResults,
+      ] =
+        await Promise.all([
+          Promise.all(
+            trafficJobs
+          ),
+          Promise.all(
+            weatherJobs
+          ),
+        ]);
+
+      const legs =
+        trafficResults.filter(Boolean);
+
+      const weather =
+        weatherResults.filter(Boolean);
+
+      const suggestions = [];
+
+      const worstLeg =
+        [...legs].sort(
+          (left, right) =>
+            Number(
+              right?.delayMinutes ??
+              0
+            ) -
+            Number(
+              left?.delayMinutes ??
+              0
+            )
+        )[0];
+
+      if (
+        worstLeg &&
+        Number(
+          worstLeg.delayMinutes
+        ) >= 7
+      ) {
+        suggestions.push(
+          `เส้นทางก่อนถึง ${worstLeg.toName} ช้ากว่าปกติประมาณ ${worstLeg.delayMinutes} นาที แนะนำเผื่อเวลาเดินทาง`
+        );
+      }
+
+      const rainItem =
+        [...weather].sort(
+          (left, right) =>
+            Number(
+              right?.rainProbability ??
+              0
+            ) -
+            Number(
+              left?.rainProbability ??
+              0
+            )
+        )[0];
+
+      if (
+        rainItem &&
+        Number(
+          rainItem.rainProbability
+        ) >= 50
+      ) {
+        suggestions.push(
+          `ช่วง ${rainItem.hourLabel ?? "ใกล้เวลาที่จะไป"} ที่ ${rainItem.name} มีโอกาสฝนตกประมาณ ${Math.round(
+            Number(
+              rainItem.rainProbability
+            )
+          )}% แนะนำพกร่มหรือเตรียมสถานที่ในร่มสำรอง`
+        );
+      }
+
+      if (
+        suggestions.length === 0 &&
+        (
+          legs.length > 0 ||
+          weather.length > 0
+        )
+      ) {
+        suggestions.push(
+          "ตอนนี้ยังไม่พบรถติดหรือฝนที่เด่นผิดปกติ สามารถเดินทางตามแผนเดิมได้"
+        );
+      }
+
+      return res.json({
+        generatedAt:
+          new Date().toISOString(),
+        trafficAvailable:
+          legs.length > 0,
+        weatherAvailable:
+          weather.length > 0,
+        legs,
+        weather,
+        suggestions,
+      });
+    } catch (error) {
+      console.error(
+        "❌ LIVE TRIP STATUS ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          error?.message ??
+          "Unable to load live trip status",
+      });
+    }
+  }
+);
+
 // ============================================
 // START SERVER
 // ============================================
