@@ -823,7 +823,8 @@ export function buildChatMessageExportHtml(
           var(--cream),
           var(--sky)
         );
-      color: white;
+      color:
+        var(--navy-dark);
       font: inherit;
       font-weight: 800;
       cursor: pointer;
@@ -1138,7 +1139,7 @@ export function buildChatMessageExportHtml(
       min-height: 218px;
       overflow: hidden;
       background:
-        var(--sky);
+        #ffffff;
     }
 
     .day-image-grid {
@@ -1149,12 +1150,7 @@ export function buildChatMessageExportHtml(
       gap: 5px;
       padding: 5px;
       background:
-        rgba(
-          255,
-          255,
-          255,
-          .34
-        );
+        #ffffff;
     }
 
     .day-image-item {
@@ -1163,7 +1159,7 @@ export function buildChatMessageExportHtml(
       overflow: hidden;
       border-radius: 10px;
       background:
-        var(--lavender);
+        #ffffff;
     }
 
     .day-image-item img {
@@ -1222,11 +1218,7 @@ export function buildChatMessageExportHtml(
       place-items: center;
       padding: 20px;
       background:
-        linear-gradient(
-          150deg,
-          #f7edbd,
-          #a9dce8
-        );
+        #ffffff;
       color: white;
       text-align: center;
       font-size: 16px;
