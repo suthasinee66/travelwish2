@@ -775,10 +775,7 @@ export function buildChatMessageExportHtml(
       color: var(--ink);
       font-family:
         "Noto Sans Thai",
-        "Sarabun",
-        "Leelawadee UI",
         Arial,
-        Helvetica,
         sans-serif;
       font-optical-sizing: auto;
       font-synthesis: none;
@@ -953,8 +950,8 @@ export function buildChatMessageExportHtml(
       font-weight: 700;
       letter-spacing: .055em;
       font-family:
-        "Avenir Next",
         "Noto Sans Thai",
+        Arial,
         sans-serif;
     }
 
@@ -1045,8 +1042,8 @@ export function buildChatMessageExportHtml(
       color: #8f73a5;
       font-weight: 800;
       font-family:
-        "Avenir Next",
         "Noto Sans Thai",
+        Arial,
         sans-serif;
     }
 
