@@ -1500,6 +1500,52 @@ function reorderItineraryStops(
   );
 }
 
+function formatDurationText(
+  value: unknown
+) {
+  const totalMinutes =
+    Math.max(
+      0,
+      Math.round(
+        Number(
+          value
+        )
+      )
+    );
+
+  if (
+    !Number.isFinite(
+      totalMinutes
+    ) ||
+    totalMinutes <= 0
+  ) {
+    return null;
+  }
+
+  if (
+    totalMinutes < 60
+  ) {
+    return `${totalMinutes} นาที`;
+  }
+
+  const hours =
+    Math.floor(
+      totalMinutes / 60
+    );
+
+  const minutes =
+    totalMinutes % 60;
+
+  if (
+    minutes === 0
+  ) {
+    return `${hours} ชม.`;
+  }
+
+  return `${hours} ชม. ${minutes} นาที`;
+}
+
+
 function formatCompactDistance(
   meters: number | null
 ) {
@@ -2092,9 +2138,9 @@ function SortablePlaceItem({
                   item.scheduled_duration_minutes
                 ) > 0 && (
                   <span className="text-[#9a8da0]">
-                    {Number(
+                    {formatDurationText(
                       item.scheduled_duration_minutes
-                    )} นาที
+                    )}
                   </span>
                 )}
               </div>
