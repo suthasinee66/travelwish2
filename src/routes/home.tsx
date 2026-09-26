@@ -1596,7 +1596,7 @@ function DistanceBetweenItems({
         z-0
         -my-0.5
         ml-4
-        h-10
+        h-8
       "
     >
       <div
@@ -1789,7 +1789,7 @@ function AllDaysDropZone({
     <div
       ref={setNodeRef}
       className={`
-        space-y-3
+        space-y-2
         rounded-2xl
         transition
         ${isOver
