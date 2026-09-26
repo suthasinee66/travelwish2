@@ -1642,21 +1642,55 @@ html {
   }
 
   .survey-section-description {
-    font-size: 13px;
-    line-height: 1.6;
-  }
-
-  .survey-season,
-  .survey-region {
-    min-height: 52px;
-    height: auto;
-    padding: 8px;
-  }
-
-  .survey-budget button {
-    flex-wrap: wrap;
-    padding: 8px 4px;
     font-size: 12px;
+    line-height: 1.55;
+  }
+
+  /* Personal survey: compact answer controls on phones only. */
+  .survey-page .survey-choice {
+    min-height: 68px;
+    gap: 4px;
+    padding: 7px 6px;
+    border-radius: 13px;
+    font-size: 11.5px;
+    line-height: 1.25;
+  }
+
+  .survey-page .survey-choice-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+  }
+
+  .survey-page .survey-choice-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .survey-page .survey-chip {
+    min-height: 40px;
+    gap: 4px;
+    padding: 7px 11px;
+    font-size: 11.5px;
+    line-height: 1.25;
+  }
+
+  .survey-page .survey-season,
+  .survey-page .survey-region {
+    min-height: 44px;
+    height: auto;
+    padding: 6px 7px;
+    border-radius: 12px;
+    font-size: 11.5px;
+    line-height: 1.25;
+  }
+
+  .survey-page .survey-budget button {
+    min-height: 44px;
+    flex-wrap: wrap;
+    padding: 6px 3px;
+    font-size: 11.5px;
+    line-height: 1.25;
   }
 
   main.aurora-canvas > div.relative.z-10 {
