@@ -1601,11 +1601,10 @@ function DistanceBetweenItems({
       <div
         className="
           absolute
-          bottom-[-2px]
+          bottom-[-18px]
           left-[24px]
-          top-[-2px]
+          top-[-18px]
           w-[3px]
-          rounded-full
           bg-[#d7d7dc]
         "
       />
@@ -1617,6 +1616,10 @@ function DistanceBetweenItems({
           top-1/2
           -translate-y-1/2
           whitespace-nowrap
+          rounded-md
+          bg-[#f8f8fa]
+          px-1.5
+          py-0.5
           text-[12px]
           font-medium
           leading-none
