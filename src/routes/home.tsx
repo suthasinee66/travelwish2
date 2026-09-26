@@ -1526,15 +1526,66 @@ function DistanceBetweenItems({
   from: any;
   to: any;
 }) {
-  const label =
+  const isReturnToAccommodation =
+    Boolean(
+      from?.return_to_accommodation_minutes != null ||
+      from?.return_to_accommodation_meters != null
+    ) &&
+    to?.type ===
+      "accommodation";
+
+  const routeMeters =
+    isReturnToAccommodation
+      ? Number(
+          from
+            ?.return_to_accommodation_meters
+        )
+      : Number(
+          to
+            ?.travel_from_previous_meters
+        );
+
+  const routeMinutes =
+    isReturnToAccommodation
+      ? Number(
+          from
+            ?.return_to_accommodation_minutes
+        )
+      : Number(
+          to
+            ?.travel_from_previous_minutes
+        );
+
+  const distanceMeters =
+    Number.isFinite(
+      routeMeters
+    ) &&
+    routeMeters >= 0
+      ? routeMeters
+      : getDistanceMeters(
+          from,
+          to
+        );
+
+  const distanceLabel =
     formatCompactDistance(
-      getDistanceMeters(
-        from,
-        to
-      )
+      distanceMeters
     );
 
-  if (!label) {
+  const timeLabel =
+    Number.isFinite(
+      routeMinutes
+    ) &&
+    routeMinutes > 0
+      ? `${Math.round(
+          routeMinutes
+        )} นาที`
+      : null;
+
+  if (
+    !distanceLabel &&
+    !timeLabel
+  ) {
     return null;
   }
 
@@ -1559,7 +1610,14 @@ function DistanceBetweenItems({
           bg-gray-200
         "
       />
-      <span>| {label}</span>
+
+      <span>
+        {distanceLabel}
+        {distanceLabel &&
+          timeLabel &&
+          " · "}
+        {timeLabel}
+      </span>
     </div>
   );
 }
