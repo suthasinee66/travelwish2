@@ -62,7 +62,7 @@ import { supabase } from "@/lib/supabase";
 import { Children, Fragment, useEffect, useState, useMemo, useRef } from "react";
 import { getRecommendations } from "@/lib/recommend/getRecommendations";
 import { getRecommendations as getInspireVideos } from "@/lib/inspire/getRecommendations";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { getPlaceImage } from "@/lib/google/places";
 import { loadPlaceImages } from "@/lib/recommend/loadPlaceImages";
 import Sidebar from "@/components/Sidebar";
@@ -2888,6 +2888,7 @@ export function TripPlanPanel({
 }) {
   console.log("🔥 TripPlanPanel RENDER");
 
+  const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState(0);
 const [showAllDays, setShowAllDays] = useState(false);
   const [routePlaces, setRoutePlaces] = useState<any[]>([]);
@@ -3862,11 +3863,13 @@ const saveTripToSupabase = async () => {
         "บันทึกการเปลี่ยนแปลงลงในทริปเดิมเรียบร้อยแล้ว"
       );
     } else {
-      showAppAlert(
-        "success",
-        "บันทึกทริปแล้ว",
-        "ทริปของคุณถูกบันทึกเรียบร้อยแล้ว"
-      );
+      navigate({
+        to: "/trips_detail/$tripId",
+        params: {
+          tripId:
+            tripIdToSave,
+        },
+      });
     }
   } catch (error) {
     console.error(
@@ -8341,6 +8344,27 @@ mapCenter;
             )
           : getDefaultTripTitle()
       );
+
+      const panelContent =
+        document.querySelector(
+          ".travel-panel-content"
+        );
+
+      if (
+        panelContent instanceof
+        HTMLElement
+      ) {
+        panelContent.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+
       setShowSaveTripModal(true);
     }}
     className="travel-save-button px-6 py-2.5 rounded-xl font-semibold transition-all duration-200"
