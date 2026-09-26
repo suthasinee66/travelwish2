@@ -2002,7 +2002,10 @@ const mapCenter = useMemo(() => {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeHtml(trip.title ?? "TravelWish Trip")}</title>
   <style>
-    @page { size: A4 portrait; margin: 8mm; }
+    @page {
+      size: 210mm 297mm;
+      margin: 0;
+    }
     * { box-sizing: border-box; }
     html { background: #a5a7ab; }
     body {
@@ -2035,10 +2038,10 @@ const mapCenter = useMemo(() => {
     .export-pdf { background: #ff654e; color: white; }
 
     .sheet {
-      width: min(100% - 32px, 900px);
+      width: min(calc(100% - 32px), 210mm);
       margin: 26px auto 48px;
-      min-height: 1180px;
-      padding: 54px 58px 60px;
+      min-height: 297mm;
+      padding: 14mm 15mm 16mm;
       position: relative;
       overflow: hidden;
       background: #11356f;
@@ -2180,9 +2183,37 @@ const mapCenter = useMemo(() => {
     }
 
     @media print {
-      html, body { background: white; }
-      .export-toolbar { display: none !important; }
-      .sheet { width: 100%; margin: 0; min-height: 277mm; box-shadow: none; }
+      html,
+      body {
+        width: 210mm;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white;
+      }
+
+      .export-toolbar {
+        display: none !important;
+      }
+
+      .sheet {
+        width: 210mm !important;
+        min-height: 297mm !important;
+        margin: 0 !important;
+        padding: 14mm 15mm 16mm !important;
+        box-shadow: none !important;
+        overflow: visible;
+      }
+
+      .header-card,
+      .template-day-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .template-day-card {
+        break-before: auto;
+        page-break-before: auto;
+      }
     }
   </style>
 </head>
