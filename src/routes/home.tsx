@@ -7468,15 +7468,17 @@ mapCenter;
     </div>
   )}
 
-  <LiveTripStatus
-    points={liveTripPoints}
-    trafficEnabled={
-      liveTrafficEnabled
-    }
-    onTrafficEnabledChange={
-      setLiveTrafficEnabled
-    }
-  />
+  {showMap && (
+    <LiveTripStatus
+      points={liveTripPoints}
+      trafficEnabled={
+        liveTrafficEnabled
+      }
+      onTrafficEnabledChange={
+        setLiveTrafficEnabled
+      }
+    />
+  )}
 
   {/* HEADER */}
       <div>
