@@ -705,17 +705,19 @@ export function buildChatMessageExportHtml(
 
   <style>
     :root {
-      --navy: #5B3A61;
-      --navy-dark: #432C49;
-      --navy-soft: #765B7C;
-      --coral: #C78FB6;
-      --paper: #FFFDFC;
-      --line: #ECE3EE;
-      --ink: #40364B;
-      --muted: #8A7D8F;
-      --page-gray: #F1EDF2;
-      --lavender: #EDE3F0;
-      --blush: #F3E7EF;
+      --navy: #b89bcb;
+      --navy-dark: #8f73a5;
+      --navy-soft: #c9b4d8;
+      --coral: #e9a8c9;
+      --paper: #fffdf7;
+      --line: #eaddea;
+      --ink: #4e4057;
+      --muted: #8a778d;
+      --page-gray: #f7f2f6;
+      --lavender: #b89bcb;
+      --blush: #e9a8c9;
+      --cream: #f7edbd;
+      --sky: #a9dce8;
     }
 
     * {
@@ -774,8 +776,9 @@ export function buildChatMessageExportHtml(
       background:
         linear-gradient(
           90deg,
-          var(--navy),
-          #A77CA4
+          var(--blush),
+          var(--cream),
+          var(--sky)
         );
       color: white;
       font: inherit;
@@ -829,11 +832,11 @@ export function buildChatMessageExportHtml(
         ),
         linear-gradient(
           135deg,
-          var(--navy-dark)
+          #8f73a5
             0%,
-          var(--navy)
-            52%,
-          #6F4C76
+          #b89bcb
+            48%,
+          #a9dce8
             100%
         );
       box-shadow:
@@ -859,8 +862,8 @@ export function buildChatMessageExportHtml(
       background:
         linear-gradient(
           145deg,
-          #D7B7CF,
-          #B98CAF
+          #e9a8c9,
+          #f7edbd
         );
       opacity: .96;
     }
@@ -926,7 +929,12 @@ export function buildChatMessageExportHtml(
       min-height: 210px;
       padding: 22px;
       border-radius: 24px;
-      background: white;
+      background:
+        linear-gradient(
+          180deg,
+          #fffefc,
+          #fffafb
+        );
       box-shadow:
         0
         14px
@@ -944,7 +952,7 @@ export function buildChatMessageExportHtml(
       overflow: hidden;
       min-height: 166px;
       background:
-        var(--lavender);
+        var(--sky);
     }
 
     .header-image img {
@@ -962,8 +970,8 @@ export function buildChatMessageExportHtml(
       background:
         linear-gradient(
           145deg,
-          #D9C4E0,
-          #B996C4
+          #a9dce8,
+          #b89bcb
         );
       color:
         rgba(
@@ -990,7 +998,7 @@ export function buildChatMessageExportHtml(
       font-size: 42px;
       line-height: .98;
       letter-spacing: -.025em;
-      color: var(--navy);
+      color: #8f73a5;
       font-weight: 800;
       font-family:
         "Avenir Next",
@@ -999,7 +1007,7 @@ export function buildChatMessageExportHtml(
     }
 
     .header-copy h1 span {
-      color: var(--navy-soft);
+      color: var(--blush);
     }
 
     .trip-length {
@@ -1016,7 +1024,12 @@ export function buildChatMessageExportHtml(
       width: 78px;
       height: 3px;
       margin-top: 15px;
-      background: var(--navy-dark);
+      background:
+        linear-gradient(
+          135deg,
+          #8f73a5,
+          #b89bcb
+        );
     }
 
     .trip-title {
@@ -1082,7 +1095,7 @@ export function buildChatMessageExportHtml(
       min-height: 218px;
       overflow: hidden;
       background:
-        var(--lavender);
+        var(--sky);
     }
 
     .day-image img {
@@ -1101,8 +1114,8 @@ export function buildChatMessageExportHtml(
       background:
         linear-gradient(
           150deg,
-          #DECBE4,
-          #B58FC1
+          #f7edbd,
+          #a9dce8
         );
       color: white;
       text-align: center;
@@ -1221,7 +1234,7 @@ export function buildChatMessageExportHtml(
 
     .time-cell {
       font-weight: 700;
-      color: var(--navy);
+      color: #8f73a5;
       white-space: nowrap;
     }
 
