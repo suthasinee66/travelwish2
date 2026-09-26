@@ -525,19 +525,44 @@ export function buildChatMessageExportHtml(
             )?.title ??
             `Day ${day}`;
 
-          const dayImage =
-            dayStops
-              .map(
-                stop =>
-                  imageMap[
-                    `${stop.kind}:${String(
-                      stop.id ??
-                      ""
-                    )}`
-                  ]
+          const dayImages =
+            Array.from(
+              new Set(
+                dayStops
+                  .map(
+                    stop =>
+                      imageMap[
+                        `${stop.kind}:${String(
+                          stop.id ??
+                          ""
+                        )}`
+                      ]
+                  )
+                  .filter(
+                    (
+                      image
+                    ): image is string =>
+                      typeof image ===
+                        "string" &&
+                      image.trim()
+                        .length > 0
+                  )
               )
-              .find(Boolean) ??
-            firstImage;
+            )
+              .slice(
+                0,
+                4
+              );
+
+          if (
+            dayImages.length ===
+              0 &&
+            firstImage
+          ) {
+            dayImages.push(
+              firstImage
+            );
+          }
 
           const rows =
             dayStops
@@ -623,14 +648,32 @@ export function buildChatMessageExportHtml(
             <section class="day-card">
               <div class="day-image">
                 ${
-                  dayImage
+                  dayImages.length >
+                  0
                     ? `
-                      <img
-                        src="${escapeHtml(
-                          dayImage
-                        )}"
-                        alt=""
-                      />
+                      <div
+                        class="day-image-grid day-image-count-${dayImages.length}"
+                      >
+                        ${dayImages
+                          .map(
+                            (
+                              image,
+                              imageIndex
+                            ) => `
+                              <div
+                                class="day-image-item day-image-item-${imageIndex + 1}"
+                              >
+                                <img
+                                  src="${escapeHtml(
+                                    image
+                                  )}"
+                                  alt=""
+                                />
+                              </div>
+                            `
+                          )
+                          .join("")}
+                      </div>
                     `
                     : `
                       <div class="image-placeholder">
@@ -1098,10 +1141,77 @@ export function buildChatMessageExportHtml(
         var(--sky);
     }
 
-    .day-image img {
+    .day-image-grid {
       width: 100%;
       height: 100%;
+      min-height: 218px;
+      display: grid;
+      gap: 5px;
+      padding: 5px;
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          .34
+        );
+    }
+
+    .day-image-item {
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      border-radius: 10px;
+      background:
+        var(--lavender);
+    }
+
+    .day-image-item img {
+      width: 100%;
+      height: 100%;
+      display: block;
       object-fit: cover;
+    }
+
+    .day-image-count-1 {
+      grid-template-columns:
+        1fr;
+      grid-template-rows:
+        1fr;
+    }
+
+    .day-image-count-2 {
+      grid-template-columns:
+        1fr
+        1fr;
+      grid-template-rows:
+        1fr;
+    }
+
+    .day-image-count-3 {
+      grid-template-columns:
+        1.15fr
+        .85fr;
+      grid-template-rows:
+        1fr
+        1fr;
+    }
+
+    .day-image-count-3
+      .day-image-item-1 {
+      grid-row:
+        1 /
+        span
+        2;
+    }
+
+    .day-image-count-4 {
+      grid-template-columns:
+        1fr
+        1fr;
+      grid-template-rows:
+        1fr
+        1fr;
     }
 
     .image-placeholder {
@@ -1315,6 +1425,10 @@ export function buildChatMessageExportHtml(
         min-height: 180px;
       }
 
+      .day-image-grid {
+        min-height: 220px;
+      }
+
       .header-copy h1 {
         font-size: 34px;
       }
@@ -1382,6 +1496,16 @@ export function buildChatMessageExportHtml(
 
       .day-image {
         min-height: 54mm;
+      }
+
+      .day-image-grid {
+        min-height: 54mm;
+        gap: 1.2mm;
+        padding: 1.2mm;
+      }
+
+      .day-image-item {
+        border-radius: 2.5mm;
       }
 
       .footer {
