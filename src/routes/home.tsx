@@ -1592,32 +1592,43 @@ function DistanceBetweenItems({
   return (
     <div
       className="
-        ml-8
-        my-0.5
-        flex
-        h-4
-        items-center
-        gap-1.5
-        text-[10px]
-        leading-none
-        text-gray-400
+        relative
+        -my-0.5
+        ml-4
+        h-10
       "
     >
       <div
         className="
-          h-3
-          w-px
-          bg-gray-200
+          absolute
+          bottom-[-2px]
+          left-[24px]
+          top-[-2px]
+          w-[3px]
+          rounded-full
+          bg-[#d7d7dc]
         "
       />
 
-      <span>
+      <div
+        className="
+          absolute
+          left-[38px]
+          top-1/2
+          -translate-y-1/2
+          whitespace-nowrap
+          text-[12px]
+          font-medium
+          leading-none
+          text-[#8a8892]
+        "
+      >
         {distanceLabel}
         {distanceLabel &&
           timeLabel &&
           " · "}
         {timeLabel}
-      </span>
+      </div>
     </div>
   );
 }
