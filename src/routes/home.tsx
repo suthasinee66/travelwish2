@@ -1500,6 +1500,106 @@ function reorderItineraryStops(
   );
 }
 
+function extractMarkdownDayStartTimes(
+  markdown: unknown
+) {
+  const text =
+    String(
+      markdown ??
+      ""
+    );
+
+  const result:
+    Record<number, string> = {};
+
+  if (!text.trim()) {
+    return result;
+  }
+
+  const dayHeaderRegex =
+    /(?:^|\n)#{1,6}\s*[^\n]*?(?:Day\s*(\d+)|วันที่\s*(\d+))[^\n]*/gi;
+
+  const headers: Array<{
+    day: number;
+    start: number;
+    contentStart: number;
+  }> = [];
+
+  let match:
+    RegExpExecArray |
+    null;
+
+  while (
+    (
+      match =
+        dayHeaderRegex.exec(
+          text
+        )
+    ) !== null
+  ) {
+    const day =
+      Number(
+        match[1] ??
+        match[2]
+      );
+
+    if (
+      Number.isFinite(
+        day
+      )
+    ) {
+      headers.push({
+        day,
+        start:
+          match.index,
+        contentStart:
+          dayHeaderRegex
+            .lastIndex,
+      });
+    }
+  }
+
+  const firstTimeRangeRegex =
+    /(\d{1,2}:\d{2})\s*(?:–|—|-)\s*(\d{1,2}:\d{2})/;
+
+  headers.forEach(
+    (
+      header,
+      index
+    ) => {
+      const next =
+        headers[
+          index + 1
+        ];
+
+      const section =
+        text.slice(
+          header.contentStart,
+          next
+            ? next.start
+            : text.length
+        );
+
+      const timeMatch =
+        section.match(
+          firstTimeRangeRegex
+        );
+
+      if (
+        timeMatch?.[1]
+      ) {
+        result[
+          header.day
+        ] =
+          timeMatch[1];
+      }
+    }
+  );
+
+  return result;
+}
+
+
 function formatDurationText(
   value: unknown
 ) {
@@ -4861,6 +4961,17 @@ const sensors = useSensors(
   ? plannerJson
   : plannerJson?.selectedPlaces || [];
 
+  const markdownDayStartTimes =
+    useMemo(
+      () =>
+        extractMarkdownDayStartTimes(
+          plan
+        ),
+      [
+        plan,
+      ]
+    );
+
   // ใช้ตรวจว่า AI ส่ง planner เวอร์ชันใหม่เข้ามาหรือไม่
   // เพื่อเคลียร์ cache ภายใน TripPlanPanel ที่ใช้ตอน drag/edit
   const plannerVersion = useMemo(
@@ -4873,10 +4984,18 @@ const sensors = useSensors(
           restaurant_id: item.restaurant_id,
           day_start_time:
             item.day_start_time ??
+            markdownDayStartTimes[
+              Number(
+                item.day
+              )
+            ] ??
             null
         }))
       ),
-    [plannerJson]
+    [
+      plannerJson,
+      markdownDayStartTimes,
+    ]
   );
 
   const allDaysInitializedVersionRef =
@@ -5234,6 +5353,14 @@ const days = useMemo(() => {
       )
       .map(item => ({
         ...item,
+
+        day_start_time:
+          item.day_start_time ??
+          markdownDayStartTimes[
+            day
+          ] ??
+          null,
+
         type: "plan"
       }));
 
@@ -5250,7 +5377,10 @@ const days = useMemo(() => {
 
   });
 
-}, [plannerItems]);
+}, [
+  plannerItems,
+  markdownDayStartTimes,
+]);
 
 
 const findPlace = (placeId: string) => {
@@ -5299,6 +5429,11 @@ const findRestaurant = (restaurantId: string) => {
 console.log(
   "ALL DAYS",
   days
+);
+
+console.log(
+  "🕒 TRIPPLAN DAY START TIMES:",
+  markdownDayStartTimes
 );
 
 
