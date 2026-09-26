@@ -1593,6 +1593,7 @@ function DistanceBetweenItems({
     <div
       className="
         relative
+        z-0
         -my-0.5
         ml-4
         h-10
@@ -1601,6 +1602,7 @@ function DistanceBetweenItems({
       <div
         className="
           absolute
+          z-0
           bottom-[-18px]
           left-[24px]
           top-[-18px]
@@ -1612,6 +1614,7 @@ function DistanceBetweenItems({
       <div
         className="
           absolute
+          z-[2]
           left-[38px]
           top-1/2
           -translate-y-1/2
@@ -1670,6 +1673,8 @@ function HotelItineraryCard({
         }
       }}
       className="
+        relative
+        z-10
         cursor-pointer
         rounded-2xl
         border
@@ -1921,6 +1926,8 @@ function SortablePlaceItem({
         });
       }}
       className="
+        relative
+        z-10
         cursor-pointer
         border
         rounded-2xl
