@@ -101,6 +101,7 @@ export function scheduleItineraryItems(
     ItineraryTravelLeg[],
   options?: {
     dayStartMinutes?: number;
+    firstItemStartMinutes?: number;
     hasAccommodationOrigin?: boolean;
     travelSource?: string;
   }
@@ -168,6 +169,23 @@ export function scheduleItineraryItems(
 
         cursor +=
           travelMinutes;
+
+        // ถ้า Markdown กำหนดเวลาเริ่มของวัน
+        // ให้ "สถานที่แรก" เริ่มตรงเวลานั้นพอดี
+        // เวลาเดินทางจากที่พักยังเก็บไว้แสดง แต่ไม่บวกทับเวลาเริ่มนี้
+        if (
+          index === 0 &&
+          Number.isFinite(
+            options
+              ?.firstItemStartMinutes
+          )
+        ) {
+          cursor =
+            Number(
+              options
+                ?.firstItemStartMinutes
+            );
+        }
 
         // เวลาเป็น dynamic ทั้งหมด:
         // ใช้ลำดับปัจจุบัน + เวลาเดินทาง + duration เท่านั้น
