@@ -569,7 +569,7 @@ function attachMarkdownDayStartTimes(
     }
 
     const dayHeaderRegex =
-        /(?:^|\n)#{1,6}\s*[^\n]*?Day\s*(\d+)\b[^\n]*/gi;
+        /(?:^|\n)#{1,6}\s*[^\n]*?(?:Day\s*(\d+)|วันที่\s*(\d+))[^\n]*/gi;
 
     const headers: Array<{
         day: number;
@@ -591,7 +591,8 @@ function attachMarkdownDayStartTimes(
         headers.push({
             day:
                 Number(
-                    match[1]
+                    match[1] ??
+                    match[2]
                 ),
             start:
                 match.index,
