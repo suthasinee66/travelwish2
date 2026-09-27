@@ -1632,7 +1632,41 @@ function reorderItineraryStops(
   );
 }
 
-function extractMarkdownDayStartTimes(
+function normalizeMarkdownClock(
+  hourValue: unknown,
+  minuteValue: unknown
+) {
+  const hours =
+    Number(hourValue);
+
+  const minutes =
+    Number(minuteValue);
+
+  if (
+    !Number.isInteger(hours) ||
+    !Number.isInteger(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
+    return null;
+  }
+
+  return `${String(
+    hours
+  ).padStart(
+    2,
+    "0"
+  )}:${String(
+    minutes
+  ).padStart(
+    2,
+    "0"
+  )}`;
+}
+
+function extractMarkdownDayTimeRanges(
   markdown: unknown
 ) {
   const text =
@@ -1642,7 +1676,13 @@ function extractMarkdownDayStartTimes(
     );
 
   const result:
-    Record<number, string> = {};
+    Record<
+      number,
+      Array<{
+        start: string;
+        end: string;
+      }>
+    > = {};
 
   if (!text.trim()) {
     return result;
@@ -1691,8 +1731,10 @@ function extractMarkdownDayStartTimes(
     }
   }
 
-  const firstTimeRangeRegex =
-    /(\d{1,2}:\d{2})\s*(?:–|—|-)\s*(\d{1,2}:\d{2})/;
+  // รองรับทั้ง 08:00–09:30 และ 08.00-09.30
+  // แล้ว normalize เป็น HH:MM เพื่อใช้กับ input[type=time]
+  const timeRangeRegex =
+    /(\d{1,2})[:.](\d{2})\s*(?:–|—|-)\s*(\d{1,2})[:.](\d{2})/g;
 
   headers.forEach(
     (
@@ -1712,18 +1754,58 @@ function extractMarkdownDayStartTimes(
             : text.length
         );
 
-      const timeMatch =
-        section.match(
-          firstTimeRangeRegex
-        );
+      const ranges: Array<{
+        start: string;
+        end: string;
+      }> = [];
+
+      let timeMatch:
+        RegExpExecArray |
+        null;
+
+      timeRangeRegex.lastIndex =
+        0;
+
+      while (
+        (
+          timeMatch =
+            timeRangeRegex.exec(
+              section
+            )
+        ) !== null
+      ) {
+        const startTime =
+          normalizeMarkdownClock(
+            timeMatch[1],
+            timeMatch[2]
+          );
+
+        const endTime =
+          normalizeMarkdownClock(
+            timeMatch[3],
+            timeMatch[4]
+          );
+
+        if (
+          startTime &&
+          endTime
+        ) {
+          ranges.push({
+            start:
+              startTime,
+            end:
+              endTime,
+          });
+        }
+      }
 
       if (
-        timeMatch?.[1]
+        ranges.length > 0
       ) {
         result[
           header.day
         ] =
-          timeMatch[1];
+          ranges;
       }
     }
   );
@@ -2110,6 +2192,7 @@ function SortablePlaceItem({
   sortableIdOverride,
   sortableDayIndex,
   numberColor,
+  onTimeChange,
   onOpenDetail,
 }: any) {
 
@@ -2138,6 +2221,48 @@ function SortablePlaceItem({
 
   const attId = String(item.place_id);
   const restaurantId = String(item.restaurant_id);
+
+  const [
+    editingTime,
+    setEditingTime
+  ] = useState(false);
+
+  const [
+    draftStartTime,
+    setDraftStartTime
+  ] = useState(
+    item.start_time ??
+    ""
+  );
+
+  const [
+    draftEndTime,
+    setDraftEndTime
+  ] = useState(
+    item.end_time ??
+    ""
+  );
+
+  useEffect(() => {
+    if (editingTime) {
+      return;
+    }
+
+    setDraftStartTime(
+      item.start_time ??
+      ""
+    );
+
+    setDraftEndTime(
+      item.end_time ??
+      ""
+    );
+  }, [
+    item.start_time,
+    item.end_time,
+    editingTime,
+  ]);
+
   useEffect(() => {
   if (
     item.type === "restaurant" &&
@@ -2356,15 +2481,226 @@ function SortablePlaceItem({
                   flex-wrap
                   items-center
                   gap-x-2
-                  gap-y-0.5
+                  gap-y-1
                   text-[11px]
                   font-medium
                   text-[#6f456f]
                 "
+                onClick={event =>
+                  event.stopPropagation()
+                }
+                onKeyDown={event =>
+                  event.stopPropagation()
+                }
               >
-                <span>
-                  {item.start_time}–{item.end_time}
-                </span>
+                {editingTime ? (
+                  <div
+                    className="
+                      flex
+                      flex-wrap
+                      items-center
+                      gap-1.5
+                    "
+                    onPointerDown={event =>
+                      event.stopPropagation()
+                    }
+                  >
+                    <input
+                      type="time"
+                      value={draftStartTime}
+                      onChange={event =>
+                        setDraftStartTime(
+                          event.target.value
+                        )
+                      }
+                      aria-label="เวลาเริ่ม"
+                      className="
+                        h-8
+                        w-[92px]
+                        rounded-lg
+                        border
+                        border-[#d9c9dd]
+                        bg-white
+                        px-2
+                        text-[11px]
+                        font-semibold
+                        text-[#573d63]
+                        outline-none
+                        focus:border-[#8f6a96]
+                        focus:ring-2
+                        focus:ring-[#8f6a96]/10
+                      "
+                    />
+
+                    <span className="text-[#a497a8]">
+                      –
+                    </span>
+
+                    <input
+                      type="time"
+                      value={draftEndTime}
+                      onChange={event =>
+                        setDraftEndTime(
+                          event.target.value
+                        )
+                      }
+                      aria-label="เวลาสิ้นสุด"
+                      className="
+                        h-8
+                        w-[92px]
+                        rounded-lg
+                        border
+                        border-[#d9c9dd]
+                        bg-white
+                        px-2
+                        text-[11px]
+                        font-semibold
+                        text-[#573d63]
+                        outline-none
+                        focus:border-[#8f6a96]
+                        focus:ring-2
+                        focus:ring-[#8f6a96]/10
+                      "
+                    />
+
+                    <button
+                      type="button"
+                      aria-label="บันทึกเวลา"
+                      title="บันทึกเวลา"
+                      onClick={event => {
+                        event.stopPropagation();
+
+                        const saved =
+                          onTimeChange?.(
+                            item,
+                            draftStartTime,
+                            draftEndTime,
+                            sortableDayIndex
+                          );
+
+                        if (
+                          saved !==
+                          false
+                        ) {
+                          setEditingTime(
+                            false
+                          );
+                        }
+                      }}
+                      className="
+                        flex
+                        h-8
+                        w-8
+                        items-center
+                        justify-center
+                        rounded-lg
+                        bg-[#6f456f]
+                        text-white
+                        transition
+                        hover:bg-[#5b395c]
+                      "
+                    >
+                      <Check
+                        size={14}
+                        strokeWidth={2.2}
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      aria-label="ยกเลิกแก้ไขเวลา"
+                      title="ยกเลิก"
+                      onClick={event => {
+                        event.stopPropagation();
+
+                        setDraftStartTime(
+                          item.start_time ??
+                          ""
+                        );
+
+                        setDraftEndTime(
+                          item.end_time ??
+                          ""
+                        );
+
+                        setEditingTime(
+                          false
+                        );
+                      }}
+                      className="
+                        flex
+                        h-8
+                        w-8
+                        items-center
+                        justify-center
+                        rounded-lg
+                        border
+                        border-[#e5dbe8]
+                        bg-white
+                        text-[#8b7d90]
+                        transition
+                        hover:bg-[#f8f4f9]
+                      "
+                    >
+                      <X
+                        size={14}
+                        strokeWidth={2}
+                      />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    title="คลิกเพื่อแก้ไขเวลา"
+                    onPointerDown={event =>
+                      event.stopPropagation()
+                    }
+                    onClick={event => {
+                      event.stopPropagation();
+
+                      setDraftStartTime(
+                        item.start_time ??
+                        ""
+                      );
+
+                      setDraftEndTime(
+                        item.end_time ??
+                        ""
+                      );
+
+                      setEditingTime(
+                        true
+                      );
+                    }}
+                    className="
+                      inline-flex
+                      items-center
+                      gap-1
+                      rounded-md
+                      px-1
+                      py-0.5
+                      -ml-1
+                      transition
+                      hover:bg-[#f4edf6]
+                      hover:text-[#573d63]
+                    "
+                  >
+                    <Clock3
+                      size={12}
+                      strokeWidth={1.9}
+                    />
+
+                    <span>
+                      {item.start_time}–{item.end_time}
+                    </span>
+
+                    <Pencil
+                      size={10}
+                      strokeWidth={1.9}
+                      className="opacity-60"
+                    />
+                  </button>
+                )}
 
                 {Number(
                   item.scheduled_duration_minutes
@@ -5161,10 +5497,10 @@ const sensors = useSensors(
   ? plannerJson
   : plannerJson?.selectedPlaces || [];
 
-  const markdownDayStartTimes =
+  const markdownDayTimeRanges =
     useMemo(
       () =>
-        extractMarkdownDayStartTimes(
+        extractMarkdownDayTimeRanges(
           plan
         ),
       [
@@ -5172,29 +5508,81 @@ const sensors = useSensors(
       ]
     );
 
+  const markdownDayStartTimes =
+    useMemo(
+      () => {
+        const result:
+          Record<
+            number,
+            string
+          > = {};
+
+        Object.entries(
+          markdownDayTimeRanges
+        ).forEach(
+          ([
+            day,
+            ranges,
+          ]) => {
+            const first =
+              ranges?.[0];
+
+            if (
+              first?.start
+            ) {
+              result[
+                Number(day)
+              ] =
+                first.start;
+            }
+          }
+        );
+
+        return result;
+      },
+      [
+        markdownDayTimeRanges,
+      ]
+    );
+
   // ใช้ตรวจว่า AI ส่ง planner เวอร์ชันใหม่เข้ามาหรือไม่
   // เพื่อเคลียร์ cache ภายใน TripPlanPanel ที่ใช้ตอน drag/edit
   const plannerVersion = useMemo(
     () =>
-      JSON.stringify(
-        plannerItems.map((item: any) => ({
-          day: item.day,
-          period: item.period,
-          place_id: item.place_id,
-          restaurant_id: item.restaurant_id,
-          day_start_time:
-            item.day_start_time ??
-            markdownDayStartTimes[
-              Number(
-                item.day
-              )
-            ] ??
-            null
-        }))
-      ),
+      JSON.stringify({
+        items:
+          plannerItems.map((item: any) => ({
+            day:
+              item.day,
+            period:
+              item.period,
+            place_id:
+              item.place_id,
+            restaurant_id:
+              item.restaurant_id,
+            day_start_time:
+              item.day_start_time ??
+              markdownDayStartTimes[
+                Number(
+                  item.day
+                )
+              ] ??
+              null,
+            manual_start_time:
+              item.manual_start_time ??
+              null,
+            manual_end_time:
+              item.manual_end_time ??
+              null,
+          })),
+
+        markdownTimes:
+          markdownDayTimeRanges,
+      }),
     [
       plannerJson,
       markdownDayStartTimes,
+      markdownDayTimeRanges,
     ]
   );
 
@@ -5597,18 +5985,42 @@ const days = useMemo(() => {
               x.restaurant_id === item.restaurant_id
           ) === index
       )
-      .map(item => ({
-        ...item,
+      .map(
+        (
+          item,
+          itemIndex
+        ) => ({
+          ...item,
 
-        day_start_time:
-          item.day_start_time ??
-          markdownDayStartTimes[
-            day
-          ] ??
-          null,
+          day_start_time:
+            item.day_start_time ??
+            markdownDayStartTimes[
+              day
+            ] ??
+            null,
 
-        type: "plan"
-      }));
+          markdown_start_time:
+            markdownDayTimeRanges[
+              day
+            ]?.[
+              itemIndex
+            ]?.start ??
+            item.markdown_start_time ??
+            null,
+
+          markdown_end_time:
+            markdownDayTimeRanges[
+              day
+            ]?.[
+              itemIndex
+            ]?.end ??
+            item.markdown_end_time ??
+            null,
+
+          type:
+            "plan"
+        })
+      );
 
     const title =
       plannerItems.find(
@@ -5626,6 +6038,7 @@ const days = useMemo(() => {
 }, [
   plannerItems,
   markdownDayStartTimes,
+  markdownDayTimeRanges,
 ]);
 
 
@@ -5994,6 +6407,162 @@ const parseItineraryStartMinutes = (
   );
 };
 
+const updateRouteItemTime = (
+  currentItem: any,
+  startTime: string,
+  endTime: string,
+  dayIndexOverride?: number
+) => {
+  const normalizedStart =
+    String(
+      startTime ??
+      ""
+    ).trim();
+
+  const normalizedEnd =
+    String(
+      endTime ??
+      ""
+    ).trim();
+
+  const startMinutes =
+    parseItineraryStartMinutes(
+      normalizedStart
+    );
+
+  const endMinutes =
+    parseItineraryStartMinutes(
+      normalizedEnd
+    );
+
+  if (
+    startMinutes == null ||
+    endMinutes == null ||
+    endMinutes <=
+      startMinutes
+  ) {
+    showAppAlert(
+      "info",
+      "เวลาไม่ถูกต้อง",
+      "กรุณาเลือกเวลาเริ่มและเวลาสิ้นสุด โดยเวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม"
+    );
+
+    return false;
+  }
+
+  const targetDayIndex =
+    Number.isInteger(
+      dayIndexOverride
+    )
+      ? Number(
+          dayIndexOverride
+        )
+      : selectedDay;
+
+  const sameItem = (
+    candidate: any
+  ) => {
+    if (
+      candidate.type !==
+      currentItem.type
+    ) {
+      return false;
+    }
+
+    if (
+      currentItem.type ===
+      "restaurant"
+    ) {
+      return (
+        String(
+          candidate.restaurant_id
+        ) ===
+        String(
+          currentItem.restaurant_id
+        )
+      );
+    }
+
+    return (
+      String(
+        candidate.place_id
+      ) ===
+      String(
+        currentItem.place_id
+      )
+    );
+  };
+
+  const sourceItems =
+    targetDayIndex ===
+    selectedDay
+      ? routePlaces
+      : (
+          routePlacesByDay[
+            targetDayIndex
+          ] ??
+          buildRoutePlaces(
+            days[
+              targetDayIndex
+            ]?.items ??
+            []
+          )
+        );
+
+  const nextItems =
+    sourceItems.map(
+      (candidate: any) =>
+        sameItem(
+          candidate
+        )
+          ? {
+              ...candidate,
+
+              manual_start_time:
+                normalizedStart,
+
+              manual_end_time:
+                normalizedEnd,
+
+              start_time:
+                normalizedStart,
+
+              end_time:
+                normalizedEnd,
+
+              scheduled_duration_minutes:
+                endMinutes -
+                startMinutes,
+            }
+          : candidate
+    );
+
+  const nextByDay = {
+    ...routePlacesByDay,
+    [targetDayIndex]:
+      nextItems,
+  };
+
+  setRoutePlacesByDay(
+    nextByDay
+  );
+
+  if (
+    targetDayIndex ===
+    selectedDay
+  ) {
+    setRoutePlaces(
+      nextItems
+    );
+  }
+
+  onRouteChange?.(
+    nextByDay
+  );
+
+  return true;
+};
+
 const scheduleRouteItemsWithTravelTime =
   async (
     items: any[],
@@ -6125,25 +6694,87 @@ const scheduleRouteItemsWithTravelTime =
       }
     }
 
-    return scheduleItineraryItems(
-      items,
-      legs,
-      {
-        dayStartMinutes:
-          9 * 60,
+    const scheduled =
+      scheduleItineraryItems(
+        items,
+        legs,
+        {
+          dayStartMinutes:
+            9 * 60,
 
-        firstItemStartMinutes:
+          firstItemStartMinutes:
+            parseItineraryStartMinutes(
+              dayStartTime
+            ) ??
+            undefined,
+
+          hasAccommodationOrigin:
+            Boolean(
+              hotelPoint
+            ),
+
+          travelSource,
+        }
+      );
+
+    return scheduled.map(
+      (
+        scheduledItem,
+        index
+      ) => {
+        const sourceItem =
+          items[
+            index
+          ] ??
+          scheduledItem;
+
+        const preferredStart =
+          sourceItem.manual_start_time ??
+          sourceItem.markdown_start_time ??
+          null;
+
+        const preferredEnd =
+          sourceItem.manual_end_time ??
+          sourceItem.markdown_end_time ??
+          null;
+
+        const startMinutes =
           parseItineraryStartMinutes(
-            dayStartTime
-          ) ??
-          undefined,
+            preferredStart
+          );
 
-        hasAccommodationOrigin:
-          Boolean(
-            hotelPoint
-          ),
+        const endMinutes =
+          parseItineraryStartMinutes(
+            preferredEnd
+          );
 
-        travelSource,
+        const hasPreferredRange =
+          startMinutes != null &&
+          endMinutes != null &&
+          endMinutes >
+            startMinutes;
+
+        return {
+          ...scheduledItem,
+
+          start_time:
+            hasPreferredRange
+              ? preferredStart
+              : scheduledItem.start_time,
+
+          end_time:
+            hasPreferredRange
+              ? preferredEnd
+              : scheduledItem.end_time,
+
+          scheduled_duration_minutes:
+            hasPreferredRange
+              ? (
+                  endMinutes -
+                  startMinutes
+                )
+              : scheduledItem.scheduled_duration_minutes,
+        };
       }
     );
   };
@@ -6200,6 +6831,22 @@ const routeScheduleSignature =
                       item.period
                     )
                   : item.period,
+
+              manualStart:
+                item.manual_start_time ??
+                null,
+
+              manualEnd:
+                item.manual_end_time ??
+                null,
+
+              markdownStart:
+                item.markdown_start_time ??
+                null,
+
+              markdownEnd:
+                item.markdown_end_time ??
+                null,
             })
           ),
       }),
@@ -6320,6 +6967,22 @@ const allDaysScheduleSignature =
                           item.period
                         )
                       : item.period,
+
+                  manualStart:
+                    item.manual_start_time ??
+                    null,
+
+                  manualEnd:
+                    item.manual_end_time ??
+                    null,
+
+                  markdownStart:
+                    item.markdown_start_time ??
+                    null,
+
+                  markdownEnd:
+                    item.markdown_end_time ??
+                    null,
                 })
               ),
           })
@@ -8474,6 +9137,7 @@ mapCenter;
                       removeRestaurantFromPlan={
                         removeRestaurantFromPlan
                       }
+                      onTimeChange={updateRouteItemTime}
                       onOpenDetail={onOpenPlaceDetail}
                     />
 
@@ -8613,7 +9277,8 @@ mapCenter;
               removeRestaurantFromPlan={
                 removeRestaurantFromPlan
               }
-              onOpenDetail={onOpenPlaceDetail}
+              onTimeChange={updateRouteItemTime}
+                      onOpenDetail={onOpenPlaceDetail}
             />
 
             {index <
