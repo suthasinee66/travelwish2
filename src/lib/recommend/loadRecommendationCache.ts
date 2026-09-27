@@ -13,6 +13,10 @@ import {
   loadPlaceImages
 } from "./loadPlaceImages";
 
+import {
+  loadLearnedPreferenceProfile,
+} from "./adaptivePreference";
+
 
 // ============================================================
 // หน้า Home แสดง Recommend for You 6 ใบ
@@ -248,12 +252,21 @@ export async function loadRecommendationCache(
 
   // ==========================================================
   // 1. Preference Hash
+  // รวม learned version เพื่อ invalidate cache
+  // เมื่อพฤติกรรม/คะแนนของผู้ใช้เปลี่ยน
   // ==========================================================
 
-  const preferenceHash =
-    await getPreferenceHash(
-      preferences
+  const learnedPreference =
+    await loadLearnedPreferenceProfile(
+      userId
     );
+
+  const preferenceHash =
+    await getPreferenceHash({
+      ...preferences,
+      __learned_preference_version:
+        learnedPreference.version,
+    });
 
 
   console.log(
@@ -526,7 +539,8 @@ const recommendations =
   await getRecommendations(
     preferences,
     recommendationPlaces,
-    onReady
+    onReady,
+    learnedPreference
   );
 
 
