@@ -27,6 +27,91 @@ function normalize(value) {
     .trim();
 }
 
+function normalizeProvinceName(value) {
+  let text =
+    String(value ?? "")
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/จังหวัด/g, "")
+      .replace(/^จ\.?\s*/g, "")
+      .replace(/\s+/g, "")
+      .replace(/[().,\-_/]/g, "")
+      .trim();
+
+  const aliases = {
+    "กรุงเทพ": "กรุงเทพมหานคร",
+    "กรุงเทพฯ": "กรุงเทพมหานคร",
+    "bangkok": "กรุงเทพมหานคร",
+    "bangkokmetropolitanadministration": "กรุงเทพมหานคร",
+    "bkk": "กรุงเทพมหานคร",
+  };
+
+  return aliases[text] ?? text;
+}
+
+function googleProvince(place) {
+  const components =
+    Array.isArray(
+      place?.addressComponents
+    )
+      ? place.addressComponents
+      : [];
+
+  const component =
+    components.find(
+      item =>
+        Array.isArray(
+          item?.types
+        ) &&
+        item.types.includes(
+          "administrative_area_level_1"
+        )
+    );
+
+  return (
+    component?.longText ??
+    component?.shortText ??
+    null
+  );
+}
+
+function placeMatchesProvince(
+  place,
+  province
+) {
+  const target =
+    normalizeProvinceName(
+      province
+    );
+
+  if (!target) {
+    return true;
+  }
+
+  const actual =
+    normalizeProvinceName(
+      googleProvince(place)
+    );
+
+  if (actual) {
+    return actual === target;
+  }
+
+  // Google normally returns administrative_area_level_1.
+  // Keep a formatted-address fallback for unusual records.
+  const address =
+    normalizeProvinceName(
+      place?.formattedAddress
+    );
+
+  return Boolean(
+    address &&
+    address.includes(
+      target
+    )
+  );
+}
+
 function googlePhotoUrls(place) {
   if (
     !GOOGLE_PLACES_API_KEY ||
@@ -211,6 +296,38 @@ async function searchRestaurant(
   const scored =
     places
       .map(place => {
+        if (
+          !placeMatchesProvince(
+            place,
+            province
+          )
+        ) {
+          console.warn(
+            "🚫 GOOGLE RESTAURANT OUTSIDE PROVINCE:",
+            {
+              requestedName:
+                name,
+              requestedProvince:
+                province,
+              googleName:
+                place.displayName?.text ??
+                null,
+              googleProvince:
+                googleProvince(
+                  place
+                ),
+              latitude:
+                place.location?.latitude ??
+                null,
+              longitude:
+                place.location?.longitude ??
+                null,
+            }
+          );
+
+          return null;
+        }
+
         const title =
           normalize(
             place.displayName?.text
@@ -253,11 +370,12 @@ async function searchRestaurant(
 
         if (
           targetProvince &&
-          address.includes(
-            targetProvince
+          placeMatchesProvince(
+            place,
+            province
           )
         ) {
-          score += 5;
+          score += 10;
         }
 
         return {
@@ -438,6 +556,34 @@ router.post(
               "ไม่สามารถยืนยันร้านอาหารที่ AI แนะนำได้",
             requestedName:
               name,
+          });
+      }
+
+      if (
+        !placeMatchesProvince(
+          verified,
+          province
+        )
+      ) {
+        return res
+          .status(422)
+          .json({
+            error:
+              "Google Places พบร้านชื่อใกล้เคียง แต่พิกัดอยู่นอกจังหวัดของทริป",
+            code:
+              "PLACE_OUTSIDE_PROVINCE",
+            requestedProvince:
+              province,
+            googleProvince:
+              googleProvince(
+                verified
+              ),
+            latitude:
+              verified.location?.latitude ??
+              null,
+            longitude:
+              verified.location?.longitude ??
+              null,
           });
       }
 
