@@ -364,6 +364,14 @@ app.post("/api/ai", async (req, res) => {
       };
     }
 
+    if (model === "claude") {
+      // Claude Sonnet can otherwise spend the full completion budget
+      // on extended thinking and return no final content.
+      requestPayload.reasoning = {
+        effort: "none"
+      };
+    }
+
     if (
       responseMode === "trend_context" ||
       responseMode === "markdown"
@@ -513,6 +521,14 @@ app.post("/api/ai", async (req, res) => {
     }
 
     if (responseMode === "planner_json") {
+      if (model === "claude") {
+        // The strict planner schema contains more nullable/union fields
+        // than some Claude providers accept. json_object still guarantees
+        // JSON while the prompt itself enforces the planner shape.
+        requestPayload.response_format = {
+          type: "json_object"
+        };
+      } else {
       requestPayload.response_format = {
         type: "json_schema",
         json_schema: {
@@ -806,6 +822,8 @@ app.post("/api/ai", async (req, res) => {
           }
         }
       };
+    
+      }
     }
 
     let response;
@@ -849,9 +867,11 @@ app.post("/api/ai", async (req, res) => {
         ...requestPayload,
       };
 
-      // Anthropic providers can differ in which optional
-      // OpenAI-compatible sampling/reasoning parameters they accept.
-      delete safePayload.reasoning;
+      // Keep Claude reasoning disabled. Removing this caused
+      // some providers to spend the entire max_tokens budget on reasoning.
+      safePayload.reasoning = {
+        effort: "none"
+      };
       delete safePayload.temperature;
 
       try {
