@@ -3512,91 +3512,36 @@ ${JSON.stringify(
         accommodationRecommendationReason =
             "ใช้ที่พักสำรองที่อยู่ใกล้ศูนย์กลางเส้นทางมากที่สุด เนื่องจากบริการ AI เลือกที่พักไม่ตอบกลับสำเร็จ";
 
-        accommodationRecommendations =
-            [
-                fallbackAccommodationCandidate,
-                ...(
-                    accommodationRows ??
-                    []
-                )
-                    .map(
-                        (
-                            hotel:
-                                any
-                        ) =>
-                            accommodationCandidates
-                                .find(
-                                    (
-                                        candidate:
-                                            any
-                                    ) =>
-                                        candidate.id ===
-                                        String(
-                                            hotel.acc_id
-                                        )
-                                )
-                    )
-                    .filter(Boolean)
-            ]
-                .filter(
-                    (
-                        candidate:
-                            any,
-                        index:
-                            number,
-                        all:
-                            any[]
-                    ) =>
-                        all.findIndex(
-                            (
-                                other:
-                                    any
-                            ) =>
-                                other.id ===
-                                candidate.id
-                        ) === index
-                )
-                .slice(
-                    0,
-                    3
-                )
-                .map(
-                    (
-                        candidate:
-                            any,
-                        index:
-                            number
-                    ) => ({
-                        rank:
-                            index + 1,
-                        id:
-                            candidate.id,
-                        name:
-                            candidate.name,
-                        address:
-                            candidate.address,
-                        district:
-                            candidate.district,
-                        star_level:
-                            candidate.star_level,
-                        price_label:
-                            candidate.price_label,
-                        low_rate:
-                            candidate.low_rate,
-                        high_rate:
-                            candidate.high_rate,
-                        rating:
-                            candidate.rating,
-                        user_ratings_total:
-                            candidate.user_ratings_total,
-                        route_center_distance_km:
-                            candidate.route_center_distance_km,
-                        reason:
-                            index === 0
-                                ? accommodationRecommendationReason
-                                : "ตัวเลือกสำรองจากที่พักที่อยู่ใกล้ศูนย์กลางเส้นทาง"
-                    })
-                );
+        accommodationRecommendations = [
+            {
+                rank: 1,
+                id:
+                    fallbackAccommodationCandidate.id,
+                name:
+                    fallbackAccommodationCandidate.name,
+                address:
+                    fallbackAccommodationCandidate.address,
+                district:
+                    fallbackAccommodationCandidate.district,
+                star_level:
+                    fallbackAccommodationCandidate.star_level,
+                price_label:
+                    fallbackAccommodationCandidate.price_label,
+                low_rate:
+                    fallbackAccommodationCandidate.low_rate,
+                high_rate:
+                    fallbackAccommodationCandidate.high_rate,
+                rating:
+                    fallbackAccommodationCandidate.rating,
+                user_ratings_total:
+                    fallbackAccommodationCandidate.user_ratings_total,
+                route_center_distance_km:
+                    fallbackAccommodationCandidate
+                        .route_center_distance_km,
+                reason:
+                    accommodationRecommendationReason
+            }
+        ];
 
         console.warn(
             "🏨 ACCOMMODATION FALLBACK SELECTED:",
