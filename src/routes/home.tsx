@@ -526,13 +526,8 @@ transition-all
 duration-200
 
 ${tripInput.province
-
-            ?
-            "bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8] text-[#4f3b58] shadow-[0_8px_20px_rgba(184,155,203,0.28)] hover:brightness-[1.03]"
-
-            :
-            "bg-gradient-to-r from-[#eadff0] via-[#f5dce9] to-[#dceff4] text-[#786a7e]"
-
+            ? "travel-save-button"
+            : "bg-[#eee8f0] text-[#9b8f9f]"
           }
 
 `}
@@ -576,8 +571,8 @@ function DaysPicker({
       <button
         onClick={() => setActiveStep("who")}
         className={`mt-8 ml-auto block px-8 py-3 rounded-full font-semibold transition-all duration-200 ${tripInput.days
-          ? "bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8] text-[#4f3b58] shadow-[0_8px_20px_rgba(184,155,203,0.28)] hover:brightness-[1.03]"
-          : "bg-gradient-to-r from-[#eadff0] via-[#f5dce9] to-[#dceff4] text-[#786a7e]"
+          ? "travel-save-button"
+          : "bg-[#eee8f0] text-[#9b8f9f]"
           }`}
       >
         Next
@@ -626,7 +621,7 @@ function WhoPicker({
               transition-all
               duration-200
               ${tripInput.companion === x
-                ? "border-transparent bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8] text-[#4f3b58] shadow-[0_8px_20px_rgba(184,155,203,0.24)]"
+                ? "travel-save-button border-transparent"
                 : "border-[#e8dce9] bg-white text-[#66596b] hover:bg-[#faf6fb] hover:border-[#d8c5df]"
               }
             `}
@@ -690,10 +685,8 @@ font-semibold
 transition-all
 duration-200
 ${tripInput.budget
-            ?
-            "bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8] text-[#4f3b58] shadow-[0_8px_20px_rgba(184,155,203,0.28)] hover:brightness-[1.03]"
-            :
-            "bg-gradient-to-r from-[#eadff0] via-[#f5dce9] to-[#dceff4] text-[#786a7e]"
+            ? "travel-save-button"
+            : "bg-[#eee8f0] text-[#9b8f9f]"
           }
 `}
 
