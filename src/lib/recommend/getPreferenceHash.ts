@@ -1,24 +1,83 @@
-export async function getPreferenceHash(preferences: any) {
-  const normalized = JSON.stringify({
-    travel_type: [...(preferences?.travel_type || [])].sort(),
-    activities: [...(preferences?.activities || [])].sort(),
-    atmosphere: [...(preferences?.atmosphere || [])].sort(),
-    budget: [...(preferences?.budget || [])].sort(),
-    companion: [...(preferences?.companion || [])].sort(),
-  });
+function sortedArray(
+  value: unknown
+) {
+  if (Array.isArray(value)) {
+    return value
+      .map(String)
+      .sort();
+  }
 
-  const encoder = new TextEncoder();
+  if (
+    value == null ||
+    value === ""
+  ) {
+    return [];
+  }
 
-  const data = encoder.encode(normalized);
+  return [
+    String(value),
+  ];
+}
 
-  const hashBuffer = await crypto.subtle.digest(
-    "SHA-256",
-    data
-  );
+export async function getPreferenceHash(
+  preferences: any
+) {
+  const normalized =
+    JSON.stringify({
+      travel_type:
+        sortedArray(
+          preferences?.travel_type
+        ),
+      activities:
+        sortedArray(
+          preferences?.activities
+        ),
+      atmosphere:
+        sortedArray(
+          preferences?.atmosphere
+        ),
+      budget:
+        sortedArray(
+          preferences?.budget
+        ),
+      companion:
+        sortedArray(
+          preferences
+            ?.travel_companion ??
+          preferences?.companion
+        ),
+      learned_version:
+        Number(
+          preferences
+            ?.__learned_preference_version ??
+          0
+        ) || 0,
+    });
+
+  const encoder =
+    new TextEncoder();
+
+  const data =
+    encoder.encode(
+      normalized
+    );
+
+  const hashBuffer =
+    await crypto.subtle.digest(
+      "SHA-256",
+      data
+    );
 
   return Array.from(
-    new Uint8Array(hashBuffer)
+    new Uint8Array(
+      hashBuffer
+    )
   )
-    .map(b => b.toString(16).padStart(2, "0"))
+    .map(
+      byte =>
+        byte
+          .toString(16)
+          .padStart(2, "0")
+    )
     .join("");
 }
