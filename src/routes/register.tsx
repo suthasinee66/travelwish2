@@ -191,7 +191,7 @@ function RegisterPage() {
             <img
               src={travelWishLogo}
               alt="TravelWish"
-              className="h-11 w-auto max-w-[190px] object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+              className="h-14 w-auto max-w-[230px] rounded-2xl border-2 border-white bg-white px-3 py-2 object-contain ring-1 ring-[#eadfeb] shadow-[0_10px_28px_rgba(91,72,117,0.14)] transition-transform duration-300 group-hover:scale-[1.02]"
             />
           </Link>
 
@@ -297,7 +297,7 @@ function RegisterPage() {
                   <img
                     src={travelWishLogo}
                     alt="TravelWish"
-                    className="h-14 w-auto max-w-[210px] object-contain"
+                    className="h-16 w-auto max-w-[230px] rounded-2xl border-2 border-white bg-white px-3 py-2 object-contain ring-1 ring-[#eadfeb] shadow-[0_10px_30px_rgba(91,72,117,0.18)]"
                   />
                 </div>
 
