@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Compass,
@@ -704,6 +704,8 @@ export default function PersonalSurveyForm({
   const [personalityTags, setPersonalityTags] = useState<string[]>([]);
   const [foodRestrictions, setFoodRestrictions] = useState("");
   const [showDeepSurvey, setShowDeepSurvey] = useState(false);
+  const deepSurveyToggleRef =
+    useRef<HTMLButtonElement | null>(null);
 
   const [atmosphere, setAtmosphere] = useState("");
   const [travelCompanion, setTravelCompanion] = useState("");
@@ -722,6 +724,83 @@ export default function PersonalSurveyForm({
     } else {
       setList([...list, value]);
     }
+  };
+
+  const getScrollContainer = (
+    element: HTMLElement | null
+  ): HTMLElement | null => {
+    let parent =
+      element?.parentElement ??
+      null;
+
+    while (parent) {
+      const style =
+        window.getComputedStyle(
+          parent
+        );
+
+      const overflowY =
+        style.overflowY;
+
+      if (
+        (
+          overflowY === "auto" ||
+          overflowY === "scroll"
+        ) &&
+        parent.scrollHeight >
+          parent.clientHeight
+      ) {
+        return parent;
+      }
+
+      parent =
+        parent.parentElement;
+    }
+
+    return null;
+  };
+
+  const toggleDeepSurvey = () => {
+    const button =
+      deepSurveyToggleRef.current;
+
+    const scrollContainer =
+      getScrollContainer(
+        button
+      );
+
+    const previousScrollTop =
+      scrollContainer
+        ? scrollContainer.scrollTop
+        : window.scrollY;
+
+    setShowDeepSurvey(
+      current => !current
+    );
+
+    // ป้องกัน browser scroll anchoring ตอนเพิ่ม/ลดคำถามจำนวนมาก
+    // โดยคืน scroll offset เดิมหลัง React วาด layout ใหม่
+    requestAnimationFrame(
+      () => {
+        requestAnimationFrame(
+          () => {
+            if (
+              scrollContainer
+            ) {
+              scrollContainer.scrollTop =
+                previousScrollTop;
+            } else {
+              window.scrollTo({
+                top:
+                  previousScrollTop,
+                behavior:
+                  "auto",
+              });
+            }
+          }
+        );
+      }
+    );
   };
 
   const selectDeepAnswer = (
@@ -1415,12 +1494,15 @@ export default function PersonalSurveyForm({
             </div>
 
             <button
+              ref={deepSurveyToggleRef}
               type="button"
-              onClick={() =>
-                setShowDeepSurvey(
-                  current => !current
-                )
+              onClick={
+                toggleDeepSurvey
               }
+              style={{
+                overflowAnchor:
+                  "none",
+              }}
               className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[#decfdf] bg-white/65 px-4 py-3.5 text-left transition hover:bg-white"
             >
               <div>
@@ -1443,7 +1525,13 @@ export default function PersonalSurveyForm({
             </button>
 
             {showDeepSurvey && (
-              <div className="mt-6 space-y-6">
+              <div
+                style={{
+                  overflowAnchor:
+                    "none",
+                }}
+                className="mt-6 space-y-6"
+              >
               {DEEP_SURVEY_DIMENSIONS.map(
                 (dimension, dimensionIndex) => (
                   <div
