@@ -10660,8 +10660,6 @@ const updateChatSessionTrip = async (
         trip_preferences: trip,
         ai_model:
           selectedModel,
-        comparison_mode:
-          comparisonMode,
       })
       .eq("id", sessionId)
       .select()
@@ -10760,8 +10758,6 @@ const ensureChatSession = async (
       trip_preferences:
         tripToSave,
       ai_model: selectedModel,
-      comparison_mode:
-        comparisonMode,
     })
     .select()
     .single();
@@ -10828,6 +10824,28 @@ const persistChatMessage = async (
           plannerJson ??
           null,
       });
+
+  if (
+    !error &&
+    typeof content ===
+      "string" &&
+    content.startsWith(
+      COMPARISON_MESSAGE_PREFIX
+    )
+  ) {
+    setChatSessions(prev =>
+      prev.map(chat =>
+        String(chat.id) ===
+        String(sessionId)
+          ? {
+              ...chat,
+              comparison_mode:
+                true,
+            }
+          : chat
+      )
+    );
+  }
 
   return {
     error,
