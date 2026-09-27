@@ -19,6 +19,9 @@ import LiveTripStatus, {
 } from "@/components/LiveTripStatus";
 import { TripPlanPanel } from "./home";
 import {
+  decodeTripItemNotes,
+} from "@/lib/itinerary/tripItemMetadata";
+import {
   buildChatMessageExportHtml,
 } from "@/lib/export/chatMessageExport";
 import {
@@ -346,6 +349,11 @@ function TripsDetail() {
 
         if (!place) continue;
 
+        const storedMetadata =
+          decodeTripItemNotes(
+            item.notes
+          );
+
         result.push({
           ...item,
 
@@ -393,8 +401,23 @@ function TripsDetail() {
             null,
 
           notes:
-            item.notes ??
-            null,
+            storedMetadata.notes,
+
+          saved_start_time:
+            storedMetadata.start_time,
+
+          saved_end_time:
+            storedMetadata.end_time,
+
+          manual_start_time:
+            storedMetadata.time_locked
+              ? storedMetadata.start_time
+              : null,
+
+          manual_end_time:
+            storedMetadata.time_locked
+              ? storedMetadata.end_time
+              : null,
 
           location: {
             latitude: Number(
@@ -899,6 +922,18 @@ const mapCenter = useMemo(() => {
 
         notes:
           item.notes,
+
+        saved_start_time:
+          item.saved_start_time,
+
+        saved_end_time:
+          item.saved_end_time,
+
+        manual_start_time:
+          item.manual_start_time,
+
+        manual_end_time:
+          item.manual_end_time,
 
         location: item.location,
 
@@ -2720,14 +2755,140 @@ const mapCenter = useMemo(() => {
   existingTripId={String(tripId)}
   existingTripTitle={trip?.title || ""}
   onExistingTripSaved={(title) => {
-    setTrip((prev: any) =>
-      prev
-        ? {
-            ...prev,
-            title,
+    setTrip((prev: any) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const nextTripDays =
+        (prev.trip_days ?? []).map(
+          (day: any) => {
+            const dayIndex =
+              Number(
+                day.day_number
+              ) - 1;
+
+            const routeItems =
+              liveRoutesByDay?.[
+                dayIndex
+              ];
+
+            if (
+              !Array.isArray(
+                routeItems
+              )
+            ) {
+              return day;
+            }
+
+            const byIdentity =
+              new Map(
+                routeItems.map(
+                  (
+                    routeItem: any,
+                    index: number
+                  ) => [
+                    routeItem.type ===
+                      "restaurant"
+                      ? `restaurant:${String(
+                          routeItem.restaurant_id
+                        )}`
+                      : `place:${String(
+                          routeItem.place_id
+                        )}`,
+                    {
+                      routeItem,
+                      index,
+                    },
+                  ]
+                )
+              );
+
+            return {
+              ...day,
+              trip_items:
+                (
+                  day.trip_items ??
+                  []
+                )
+                  .map(
+                    (
+                      savedItem: any
+                    ) => {
+                      const key =
+                        savedItem.item_type ===
+                          "restaurant"
+                          ? `restaurant:${String(
+                              savedItem.restaurant_id
+                            )}`
+                          : `place:${String(
+                              savedItem.att_id
+                            )}`;
+
+                      const match =
+                        byIdentity.get(
+                          key
+                        );
+
+                      if (!match) {
+                        return savedItem;
+                      }
+
+                      const startTime =
+                        match.routeItem
+                          .start_time ??
+                        null;
+
+                      const endTime =
+                        match.routeItem
+                          .end_time ??
+                        null;
+
+                      const cleanNotes =
+                        decodeTripItemNotes(
+                          savedItem.notes
+                        ).notes;
+
+                      return {
+                        ...savedItem,
+
+                        sort_order:
+                          match.index +
+                          1,
+
+                        duration_minutes:
+                          match.routeItem
+                            .scheduled_duration_minutes ??
+                          savedItem.duration_minutes,
+
+                        notes:
+                          cleanNotes,
+                      };
+                    }
+                  )
+                  .sort(
+                    (
+                      a: any,
+                      b: any
+                    ) =>
+                      Number(
+                        a.sort_order
+                      ) -
+                      Number(
+                        b.sort_order
+                      )
+                  ),
+            };
           }
-        : prev
-    );
+        );
+
+      return {
+        ...prev,
+        title,
+        trip_days:
+          nextTripDays,
+      };
+    });
   }}
   onRouteChange={(routesByDay) => {
     setLiveRoutesByDay({
