@@ -1310,6 +1310,293 @@ console.log(
     "📦 Planner Ranked:",
     plannerRanked
 );
+
+const plannerAccommodationCandidates:
+    any[] = [];
+
+if (!tripData.accommodation) {
+    try {
+        const {
+            data:
+                accommodationRows,
+            error:
+                accommodationError
+        } =
+            await supabase
+                .from(
+                    "accommodation"
+                )
+                .select(`
+                    acc_id,
+                    acc_name_th,
+                    acc_name_en,
+                    acc_address,
+                    province_name_th,
+                    district_name_th,
+                    latitude,
+                    longitude,
+                    star_level,
+                    accom_price_name,
+                    acc_low_rate,
+                    acc_high_rate,
+                    rating,
+                    user_ratings_total,
+                    images
+                `)
+                .eq(
+                    "province_name_th",
+                    tripData.province
+                )
+                .not(
+                    "latitude",
+                    "is",
+                    null
+                )
+                .not(
+                    "longitude",
+                    "is",
+                    null
+                )
+                .limit(
+                    120
+                );
+
+        if (
+            accommodationError
+        ) {
+            console.warn(
+                "⚠️ LOAD ACCOMMODATION CANDIDATES FAILED:",
+                accommodationError
+            );
+        }
+
+        const tripBudget =
+            Number(
+                tripData.budget
+            );
+
+        const tripDays =
+            Math.max(
+                1,
+                Number(
+                    tripData.days ??
+                    1
+                )
+            );
+
+        const looseNightlyBudget =
+            Number.isFinite(
+                tripBudget
+            ) &&
+            tripBudget > 0
+                ? (
+                    tripBudget /
+                    tripDays
+                ) * 0.45
+                : null;
+
+        plannerAccommodationCandidates.push(
+            ...(
+                accommodationRows ??
+                []
+            )
+                .map(
+                    (
+                        hotel:
+                            any
+                    ) => {
+                        const lowRate =
+                            Number(
+                                hotel.acc_low_rate
+                            );
+
+                        const highRate =
+                            Number(
+                                hotel.acc_high_rate
+                            );
+
+                        const rating =
+                            Number(
+                                hotel.rating
+                            );
+
+                        const reviews =
+                            Number(
+                                hotel.user_ratings_total ??
+                                0
+                            );
+
+                        const nightlyRate =
+                            Number.isFinite(
+                                lowRate
+                            ) &&
+                            lowRate > 0 &&
+                            Number.isFinite(
+                                highRate
+                            ) &&
+                            highRate > 0
+                                ? (
+                                    lowRate +
+                                    highRate
+                                ) / 2
+                                : (
+                                    Number.isFinite(
+                                        lowRate
+                                    ) &&
+                                    lowRate > 0
+                                        ? lowRate
+                                        : null
+                                );
+
+                        const budgetPenalty =
+                            nightlyRate != null &&
+                            looseNightlyBudget != null &&
+                            nightlyRate >
+                                looseNightlyBudget
+                                ? (
+                                    nightlyRate -
+                                    looseNightlyBudget
+                                ) /
+                                Math.max(
+                                    1,
+                                    looseNightlyBudget
+                                )
+                                : 0;
+
+                        const qualityScore =
+                            (
+                                Number.isFinite(
+                                    rating
+                                )
+                                    ? rating * 2
+                                    : 0
+                            ) +
+                            (
+                                reviews > 0
+                                    ? Math.min(
+                                        4,
+                                        Math.log10(
+                                            reviews + 1
+                                        )
+                                    )
+                                    : 0
+                            ) -
+                            budgetPenalty * 3;
+
+                        return {
+                            id:
+                                String(
+                                    hotel.acc_id
+                                ),
+
+                            name:
+                                hotel.acc_name_th ??
+                                hotel.acc_name_en ??
+                                "ที่พัก",
+
+                            address:
+                                hotel.acc_address ??
+                                null,
+
+                            district:
+                                hotel.district_name_th ??
+                                null,
+
+                            latitude:
+                                Number(
+                                    hotel.latitude
+                                ),
+
+                            longitude:
+                                Number(
+                                    hotel.longitude
+                                ),
+
+                            star_level:
+                                hotel.star_level ??
+                                null,
+
+                            price_label:
+                                hotel.accom_price_name ??
+                                null,
+
+                            low_rate:
+                                hotel.acc_low_rate ??
+                                null,
+
+                            high_rate:
+                                hotel.acc_high_rate ??
+                                null,
+
+                            rating:
+                                Number.isFinite(
+                                    rating
+                                )
+                                    ? rating
+                                    : null,
+
+                            user_ratings_total:
+                                Number.isFinite(
+                                    reviews
+                                )
+                                    ? reviews
+                                    : null,
+
+                            has_images:
+                                Array.isArray(
+                                    hotel.images
+                                ) &&
+                                hotel.images.length >
+                                0,
+
+                            prefilter_score:
+                                qualityScore,
+
+                            raw:
+                                hotel
+                        };
+                    }
+                )
+                .filter(
+                    (
+                        hotel:
+                            any
+                    ) =>
+                        Number.isFinite(
+                            hotel.latitude
+                        ) &&
+                        Number.isFinite(
+                            hotel.longitude
+                        )
+                )
+                .sort(
+                    (
+                        left:
+                            any,
+                        right:
+                            any
+                    ) =>
+                        right.prefilter_score -
+                        left.prefilter_score
+                )
+                .slice(
+                    0,
+                    15
+                )
+        );
+
+        console.log(
+            "🏨 HOTEL CANDIDATES INCLUDED IN AI ROUND 1:",
+            plannerAccommodationCandidates.length
+        );
+    } catch (error) {
+        console.warn(
+            "⚠️ PREPARE HOTEL CANDIDATES FAILED:",
+            error
+        );
+    }
+}
+
     console.table(
         ranked.map((r, index) => ({
             index: index + 1,
@@ -1326,11 +1613,14 @@ const prompt = `
 
 รอบนี้เป็น AI รอบหลักที่ 1 จากทั้งหมด 2 รอบ
 
-ในคำตอบ JSON เดียว ให้ทำ 2 งานพร้อมกัน:
+ในคำตอบ JSON เดียว ให้ทำ 3 งานพร้อมกัน:
 1. DISCOVERY — เสนอ candidate ใหม่ได้สูงสุด 15 แห่งที่มีอยู่จริงในจังหวัด
    ${tripData.province} และเหมาะกับผู้ใช้
 2. FINAL SELECTION — เลือก itinerary โดยใช้ทั้ง TDMC TOP 30
    และ candidate ใหม่ที่คุณเสนอเอง
+3. ACCOMMODATION — ถ้าผู้ใช้ยังไม่มีที่พัก ให้เลือก Top 3 ที่พัก
+   จาก ACCOMMODATION CANDIDATES ด้านล่าง โดยอันดับ 1 คือที่พักหลัก
+   ที่จะใช้เป็น route anchor ของแผน
 
 ระบบจะนำ proposedNewPlaces ไปตรวจสอบกับ Google Places หลังคุณตอบ
 ดังนั้นสถานที่ใหม่ที่เลือกต้องอ้างด้วย proposed_place_key และมี
@@ -1512,12 +1802,63 @@ AI DISCOVERY ในรอบเดียวกัน:
 - สถานที่ใหม่ที่ AI เสนอและผ่านการ verify แล้ว
 
 ==================================================
+5.5 ACCOMMODATION SELECTION — ทำใน ROUND 1 นี้เลย
+==================================================
+
+CURRENT ACCOMMODATION:
+${JSON.stringify(tripData.accommodation ?? null)}
+
+ACCOMMODATION CANDIDATES:
+${JSON.stringify(
+    plannerAccommodationCandidates.map(
+        ({
+            raw,
+            prefilter_score,
+            ...hotel
+        }: any) =>
+            hotel
+    )
+)}
+
+กฎ:
+- ถ้า CURRENT ACCOMMODATION มีค่าและ locked = true:
+  - ห้ามเปลี่ยนที่พัก
+  - accommodationRecommendations = []
+- ถ้าผู้ใช้ยังไม่มีที่พัก:
+  - เลือก Top 3 จาก ACCOMMODATION CANDIDATES เท่านั้น
+  - accommodation_id ต้องตรงกับ id ของ candidate ห้ามสร้าง id เอง
+  - rank 1 คือที่พักหลัก
+  - เลือกโดยพิจารณาร่วมกับ selectedPlaces ที่คุณกำลังสร้างใน JSON เดียวกัน
+  - พิจารณาทำเล พิกัด/ย่าน งบ จำนวนวัน companion, personality_tags,
+    rating, จำนวนรีวิว star_level และราคา
+  - ถ้าคุณภาพใกล้กัน ให้เลือกที่พักที่ช่วยให้ route ของสถานที่ที่เลือกสะดวกกว่า
+  - reason อธิบายสั้น ๆ ว่าทำไมเหมาะกับผู้ใช้และ itinerary
+- ถ้าไม่มี candidate ให้ accommodationRecommendations = []
+
+==================================================
 6. RESPONSE FORMAT
 ==================================================
 
 ตอบ JSON รูปแบบนี้เท่านั้น
 
 {
+  "accommodationRecommendations": [
+    {
+      "rank": 1,
+      "accommodation_id": "id จาก ACCOMMODATION CANDIDATES",
+      "reason": "เหตุผลว่าทำไมเหมาะกับผู้ใช้และ itinerary"
+    },
+    {
+      "rank": 2,
+      "accommodation_id": "id จาก ACCOMMODATION CANDIDATES",
+      "reason": "เหตุผลสั้น ๆ"
+    },
+    {
+      "rank": 3,
+      "accommodation_id": "id จาก ACCOMMODATION CANDIDATES",
+      "reason": "เหตุผลสั้น ๆ"
+    }
+  ],
   "proposedNewPlaces": [
     {
       "key": "new-place-1",
@@ -1710,7 +2051,7 @@ console.log("🔢 Estimated Input Tokens =", estimatedPromptTokens);
 const start = performance.now();
 
 console.log(
-    `🧠 AI ROUND 1/2 [${selectedModel.toUpperCase()}]: discovery + planner JSON`
+    `🧠 AI ROUND 1/2 [${selectedModel.toUpperCase()}]: discovery + planner + accommodation`
 );
 
 const raw = await generateWithSelectedModel(
@@ -2482,9 +2823,10 @@ for (
 }
 
 // =========================================================
-// AI ACCOMMODATION RECOMMENDATION
-// ถ้าผู้ใช้ยังไม่มีที่พัก ให้ AI model ที่กำลังวางแผน
-// เลือก 1 ที่พักจริงจาก Supabase หลังรู้ itinerary แล้ว
+// ACCOMMODATION SELECTED IN AI ROUND 1
+//
+// ที่พักไม่ได้เรียก AI แยกอีกแล้ว:
+// model เลือก Top 3 พร้อม attraction/restaurant ใน planner JSON.
 // =========================================================
 let plannerAccommodation =
     tripData.accommodation ??
@@ -2497,866 +2839,377 @@ let accommodationRecommendationReason:
 let accommodationRecommendations:
     any[] = [];
 
-let fallbackAccommodationCandidate:
-    any | null =
-    null;
+const accommodationCandidateById =
+    new Map(
+        plannerAccommodationCandidates.map(
+            (
+                candidate:
+                    any
+            ) => [
+                String(
+                    candidate.id
+                ),
+                candidate
+            ]
+        )
+    );
 
-if (!plannerAccommodation) {
-    try {
-        const {
-            data:
-                accommodationRows,
-            error:
-                accommodationError
-        } =
-            await supabase
-                .from("accommodation")
-                .select(`
-                    acc_id,
-                    acc_name_th,
-                    acc_name_en,
-                    acc_address,
-                    province_name_th,
-                    district_name_th,
-                    latitude,
-                    longitude,
-                    star_level,
-                    accom_price_name,
-                    acc_low_rate,
-                    acc_high_rate,
-                    rating,
-                    user_ratings_total,
-                    images
-                `)
-                .eq(
-                    "province_name_th",
-                    tripData.province
-                )
-                .not(
-                    "latitude",
-                    "is",
-                    null
-                )
-                .not(
-                    "longitude",
-                    "is",
-                    null
-                )
-                .limit(120);
+if (
+    !plannerAccommodation &&
+    plannerAccommodationCandidates.length >
+        0
+) {
+    const rawRecommendations =
+        Array.isArray(
+            result
+                ?.accommodationRecommendations
+        )
+            ? result
+                .accommodationRecommendations
+            : [];
 
-        if (accommodationError) {
-            console.warn(
-                "⚠️ LOAD ACCOMMODATION CANDIDATES FAILED:",
-                accommodationError
+    const validRecommendations =
+        rawRecommendations
+            .map(
+                (
+                    recommendation:
+                        any,
+                    index:
+                        number
+                ) => {
+                    const id =
+                        String(
+                            recommendation
+                                ?.accommodation_id ??
+                            ""
+                        ).trim();
+
+                    const candidate =
+                        accommodationCandidateById.get(
+                            id
+                        );
+
+                    if (!candidate) {
+                        return null;
+                    }
+
+                    return {
+                        rank:
+                            Number(
+                                recommendation
+                                    ?.rank
+                            ) ||
+                            index + 1,
+
+                        candidate,
+
+                        reason:
+                            String(
+                                recommendation
+                                    ?.reason ??
+                                ""
+                            ).trim()
+                    };
+                }
+            )
+            .filter(Boolean)
+            .filter(
+                (
+                    item:
+                        any,
+                    index:
+                        number,
+                    all:
+                        any[]
+                ) =>
+                    all.findIndex(
+                        (
+                            other:
+                                any
+                        ) =>
+                            other
+                                .candidate
+                                .id ===
+                            item
+                                .candidate
+                                .id
+                    ) === index
+            )
+            .sort(
+                (
+                    left:
+                        any,
+                    right:
+                        any
+                ) =>
+                    left.rank -
+                    right.rank
+            )
+            .slice(
+                0,
+                3
             );
-        }
 
-        const validAttractionCoords =
-            selectedAttractionDetails
-                .map(
-                    (
-                        attraction:
-                            any
-                    ) => ({
+    // หากโมเดลคืน id ไม่ถูกต้องทั้งหมด ใช้ candidate แรกเป็น safety fallback
+    // แต่ไม่มี AI call เพิ่ม
+    const finalRecommendations =
+        validRecommendations.length >
+        0
+            ? validRecommendations
+            : [
+                {
+                    rank:
+                        1,
+                    candidate:
+                        plannerAccommodationCandidates[
+                            0
+                        ],
+                    reason:
+                        "ใช้ตัวเลือกสำรองจาก candidate ที่ระบบเตรียมไว้ เนื่องจาก AI ไม่ได้คืน accommodation_id ที่ตรวจสอบได้"
+                }
+            ];
+
+    accommodationRecommendations =
+        finalRecommendations.map(
+            (
+                item:
+                    any,
+                index:
+                    number
+            ) => ({
+                rank:
+                    index + 1,
+
+                id:
+                    item.candidate.id,
+
+                name:
+                    item.candidate.name,
+
+                address:
+                    item.candidate.address,
+
+                district:
+                    item.candidate.district,
+
+                star_level:
+                    item.candidate.star_level,
+
+                price_label:
+                    item.candidate.price_label,
+
+                low_rate:
+                    item.candidate.low_rate,
+
+                high_rate:
+                    item.candidate.high_rate,
+
+                rating:
+                    item.candidate.rating,
+
+                user_ratings_total:
+                    item.candidate.user_ratings_total,
+
+                reason:
+                    item.reason
+            })
+        );
+
+    const topChoice =
+        finalRecommendations[
+            0
+        ];
+
+    const rawHotel =
+        topChoice
+            .candidate
+            .raw;
+
+    plannerAccommodation = {
+        id:
+            String(
+                rawHotel.acc_id
+            ),
+
+        name:
+            rawHotel.acc_name_th ??
+            rawHotel.acc_name_en ??
+            topChoice
+                .candidate
+                .name,
+
+        address:
+            rawHotel.acc_address ??
+            null,
+
+        latitude:
+            Number(
+                rawHotel.latitude
+            ),
+
+        longitude:
+            Number(
+                rawHotel.longitude
+            ),
+
+        source:
+            validRecommendations.length >
+            0
+                ? "ai_verified"
+                : "algorithm_fallback",
+
+        locked:
+            false,
+
+        images:
+            Array.isArray(
+                rawHotel.images
+            )
+                ? rawHotel.images
+                : []
+    };
+
+    accommodationRecommendationReason =
+        topChoice.reason ||
+        null;
+
+    // Enrich รายละเอียดโรงแรมด้วย Google Places เท่านั้น ไม่เรียก AI
+    try {
+        if (
+            API_URL &&
+            plannerAccommodation?.id
+        ) {
+            const enrichResponse =
+                await fetch(
+                    `${API_URL}/api/resolve-ai-accommodation`,
+                    {
+                        method:
+                            "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body:
+                            JSON.stringify({
+                                accommodation_id:
+                                    plannerAccommodation.id,
+
+                                name:
+                                    plannerAccommodation.name,
+
+                                province:
+                                    tripData.province,
+
+                                ai_model:
+                                    selectedModel
+                            })
+                    }
+                );
+
+            if (
+                enrichResponse.ok
+            ) {
+                const enrichData =
+                    await enrichResponse
+                        .json();
+
+                const enriched =
+                    enrichData
+                        ?.accommodation;
+
+                if (enriched) {
+                    plannerAccommodation = {
+                        ...plannerAccommodation,
+
+                        id:
+                            String(
+                                enriched.acc_id ??
+                                plannerAccommodation.id
+                            ),
+
+                        name:
+                            enriched.acc_name_th ??
+                            enriched.acc_name_en ??
+                            plannerAccommodation.name,
+
+                        address:
+                            enriched.acc_address ??
+                            plannerAccommodation.address ??
+                            null,
+
                         latitude:
                             Number(
-                                attraction.latitude
+                                enriched.latitude ??
+                                plannerAccommodation.latitude
                             ),
 
                         longitude:
                             Number(
-                                attraction.longitude
+                                enriched.longitude ??
+                                plannerAccommodation.longitude
+                            ),
+
+                        images:
+                            Array.isArray(
+                                enriched.images
                             )
-                    })
-                )
-                .filter(
-                    point =>
-                        Number.isFinite(
-                            point.latitude
-                        ) &&
-                        Number.isFinite(
-                            point.longitude
-                        )
-                );
+                                ? enriched.images
+                                : plannerAccommodation.images,
 
-        const routeCenter =
-            validAttractionCoords.length >
-            0
-                ? {
-                    latitude:
-                        validAttractionCoords
-                            .reduce(
-                                (
-                                    sum,
-                                    point
-                                ) =>
-                                    sum +
-                                    point.latitude,
-                                0
-                            ) /
-                        validAttractionCoords
-                            .length,
-
-                    longitude:
-                        validAttractionCoords
-                            .reduce(
-                                (
-                                    sum,
-                                    point
-                                ) =>
-                                    sum +
-                                    point.longitude,
-                                0
-                            ) /
-                        validAttractionCoords
-                            .length
-                }
-                : null;
-
-        const toRadians =
-            (value: number) =>
-                value *
-                Math.PI /
-                180;
-
-        const distanceKm =
-            (
-                lat1: number,
-                lon1: number,
-                lat2: number,
-                lon2: number
-            ) => {
-                const R =
-                    6371;
-
-                const dLat =
-                    toRadians(
-                        lat2 -
-                        lat1
-                    );
-
-                const dLon =
-                    toRadians(
-                        lon2 -
-                        lon1
-                    );
-
-                const a =
-                    Math.sin(
-                        dLat / 2
-                    ) ** 2 +
-                    Math.cos(
-                        toRadians(
-                            lat1
-                        )
-                    ) *
-                    Math.cos(
-                        toRadians(
-                            lat2
-                        )
-                    ) *
-                    Math.sin(
-                        dLon / 2
-                    ) ** 2;
-
-                return (
-                    R *
-                    2 *
-                    Math.atan2(
-                        Math.sqrt(a),
-                        Math.sqrt(
-                            1 - a
-                        )
-                    )
-                );
-            };
-
-        const accommodationCandidates =
-            (
-                accommodationRows ??
-                []
-            )
-                .map(
-                    (
-                        hotel:
-                            any
-                    ) => {
-                        const latitude =
-                            Number(
-                                hotel.latitude
-                            );
-
-                        const longitude =
-                            Number(
-                                hotel.longitude
-                            );
-
-                        const centerDistanceKm =
-                            routeCenter &&
-                            Number.isFinite(
-                                latitude
-                            ) &&
-                            Number.isFinite(
-                                longitude
-                            )
-                                ? distanceKm(
-                                    routeCenter.latitude,
-                                    routeCenter.longitude,
-                                    latitude,
-                                    longitude
-                                )
-                                : null;
-
-                        return {
-                            id:
-                                String(
-                                    hotel.acc_id
-                                ),
-
-                            name:
-                                hotel.acc_name_th ??
-                                hotel.acc_name_en ??
-                                "ที่พัก",
-
-                            address:
-                                hotel.acc_address ??
-                                null,
-
-                            district:
-                                hotel.district_name_th ??
-                                null,
-
-                            latitude,
-                            longitude,
-
-                            star_level:
-                                hotel.star_level ??
-                                null,
-
-                            price_label:
-                                hotel.accom_price_name ??
-                                null,
-
-                            low_rate:
-                                hotel.acc_low_rate ??
-                                null,
-
-                            high_rate:
-                                hotel.acc_high_rate ??
-                                null,
-
-                            rating:
-                                hotel.rating ??
-                                null,
-
-                            user_ratings_total:
-                                hotel.user_ratings_total ??
-                                null,
-
-                            has_images:
-                                Array.isArray(
-                                    hotel.images
-                                ) &&
-                                hotel.images.length >
-                                0,
-
-                            route_center_distance_km:
-                                centerDistanceKm ===
-                                null
-                                    ? null
-                                    : Number(
-                                        centerDistanceKm
-                                            .toFixed(
-                                                2
-                                            )
-                                    ),
-
-                            raw:
-                                hotel
-                        };
-                    }
-                )
-                .filter(
-                    (
-                        hotel:
-                            any
-                    ) =>
-                        Number.isFinite(
-                            hotel.latitude
-                        ) &&
-                        Number.isFinite(
-                            hotel.longitude
-                        )
-                )
-                .sort(
-                    (
-                        left:
-                            any,
-                        right:
-                            any
-                    ) =>
-                        (
-                            left
-                                .route_center_distance_km ??
-                            999
-                        ) -
-                        (
-                            right
-                                .route_center_distance_km ??
-                            999
-                        )
-                )
-                .slice(
-                    0,
-                    24
-                );
-
-        fallbackAccommodationCandidate =
-            accommodationCandidates[0] ??
-            null;
-
-        console.log(
-            "🏨 ACCOMMODATION CANDIDATES:",
-            {
-                count:
-                    accommodationCandidates.length,
-
-                fallback:
-                    fallbackAccommodationCandidate
-                        ? {
-                            id:
-                                fallbackAccommodationCandidate.id,
-
-                            name:
-                                fallbackAccommodationCandidate.name,
-
-                            route_center_distance_km:
-                                fallbackAccommodationCandidate
-                                    .route_center_distance_km
-                        }
-                        : null
-            }
-        );
-
-        if (
-            accommodationCandidates
-                .length >
-            0
-        ) {
-            const tripBudget =
-                Number(
-                    tripData.budget
-                );
-
-            const tripDays =
-                Math.max(
-                    1,
-                    Number(
-                        tripData.days ??
-                        1
-                    )
-                );
-
-            const scoredAccommodation =
-                accommodationCandidates
-                    .map(
-                        (
-                            candidate:
-                                any
-                        ) => {
-                            const distance =
-                                Number(
-                                    candidate
-                                        .route_center_distance_km ??
-                                    999
-                                );
-
-                            const rating =
-                                Number(
-                                    candidate.rating
-                                );
-
-                            const reviews =
-                                Number(
-                                    candidate
-                                        .user_ratings_total ??
-                                    0
-                                );
-
-                            const lowRate =
-                                Number(
-                                    candidate.low_rate
-                                );
-
-                            const highRate =
-                                Number(
-                                    candidate.high_rate
-                                );
-
-                            const nightlyRate =
-                                Number.isFinite(
-                                    lowRate
-                                ) &&
-                                lowRate > 0 &&
-                                Number.isFinite(
-                                    highRate
-                                ) &&
-                                highRate > 0
-                                    ? (
-                                        lowRate +
-                                        highRate
-                                    ) / 2
-                                    : (
-                                        Number.isFinite(
-                                            lowRate
-                                        ) &&
-                                        lowRate > 0
-                                            ? lowRate
-                                            : null
-                                    );
-
-                            const looseNightlyBudget =
-                                Number.isFinite(
-                                    tripBudget
-                                ) &&
-                                tripBudget > 0
-                                    ? (
-                                        tripBudget /
-                                        tripDays
-                                    ) * 0.45
-                                    : null;
-
-                            const pricePenalty =
-                                nightlyRate != null &&
-                                looseNightlyBudget != null &&
-                                nightlyRate >
-                                    looseNightlyBudget
-                                    ? Math.min(
-                                        12,
-                                        (
-                                            nightlyRate -
-                                            looseNightlyBudget
-                                        ) /
-                                        Math.max(
-                                            1,
-                                            looseNightlyBudget
-                                        ) *
-                                        8
-                                    )
-                                    : 0;
-
-                            const ratingBonus =
-                                Number.isFinite(
-                                    rating
-                                )
-                                    ? Math.max(
-                                        0,
-                                        rating - 3
-                                    ) * 1.8
-                                    : 0;
-
-                            const reviewBonus =
-                                reviews > 0
-                                    ? Math.min(
-                                        2.5,
-                                        Math.log10(
-                                            reviews + 1
-                                        ) * 0.9
-                                    )
-                                    : 0;
-
-                            const score =
-                                distance +
-                                pricePenalty -
-                                ratingBonus -
-                                reviewBonus;
-
-                            return {
-                                candidate,
-                                score,
-                                distance,
-                                rating:
-                                    Number.isFinite(
-                                        rating
-                                    )
-                                        ? rating
-                                        : null,
-                                reviews
-                            };
-                        }
-                    )
-                    .sort(
-                        (
-                            left:
-                                any,
-                            right:
-                                any
-                        ) =>
-                            left.score -
-                            right.score
-                    )
-                    .slice(
-                        0,
-                        3
-                    );
-
-            accommodationRecommendations =
-                scoredAccommodation.map(
-                    (
-                        item:
-                            any,
-                        index:
-                            number
-                    ) => ({
-                        rank:
-                            index + 1,
-
-                        id:
-                            item.candidate.id,
-
-                        name:
-                            item.candidate.name,
-
-                        address:
-                            item.candidate.address,
-
-                        district:
-                            item.candidate.district,
-
-                        star_level:
-                            item.candidate.star_level,
-
-                        price_label:
-                            item.candidate.price_label,
-
-                        low_rate:
-                            item.candidate.low_rate,
-
-                        high_rate:
-                            item.candidate.high_rate,
+                        google_place_id:
+                            enriched.google_place_id ??
+                            null,
 
                         rating:
-                            item.candidate.rating,
+                            enriched.rating ??
+                            null,
 
                         user_ratings_total:
-                            item.candidate.user_ratings_total,
+                            enriched.user_ratings_total ??
+                            null,
 
-                        route_center_distance_km:
-                            item.candidate
-                                .route_center_distance_km,
+                        phone:
+                            enriched.acc_tel ??
+                            null,
 
-                        reason:
-                            [
-                                Number.isFinite(
-                                    item.distance
-                                )
-                                    ? `อยู่ห่างจากศูนย์กลางเส้นทางประมาณ ${item.distance.toFixed(1)} กม.`
-                                    : null,
+                        website:
+                            enriched.acc_website ??
+                            null,
 
-                                item.rating != null
-                                    ? `คะแนน ${item.rating.toFixed(1)}`
-                                    : null,
-
-                                item.reviews > 0
-                                    ? `${item.reviews.toLocaleString()} รีวิว`
-                                    : null
-                            ]
-                                .filter(
-                                    Boolean
-                                )
-                                .join(
-                                    " · "
-                                )
-                    })
-                );
-
-            const chosen =
-                scoredAccommodation[
-                    0
-                ]?.candidate ??
-                null;
-
-            if (chosen) {
-                const rawHotel =
-                    chosen.raw;
-
-                plannerAccommodation = {
-                    id:
-                        String(
-                            rawHotel.acc_id
-                        ),
-
-                    name:
-                        rawHotel.acc_name_th ??
-                        rawHotel.acc_name_en ??
-                        chosen.name,
-
-                    address:
-                        rawHotel.acc_address ??
-                        null,
-
-                    latitude:
-                        Number(
-                            rawHotel.latitude
-                        ),
-
-                    longitude:
-                        Number(
-                            rawHotel.longitude
-                        ),
-
-                    source:
-                        "algorithm_verified",
-
-                    locked:
-                        false,
-
-                    images:
-                        Array.isArray(
-                            rawHotel.images
-                        )
-                            ? rawHotel.images
-                            : []
-                };
-
-                accommodationRecommendationReason =
-                    accommodationRecommendations[
-                        0
-                    ]?.reason ??
-                    "เลือกจากทำเล คะแนน รีวิว และความเหมาะสมกับงบโดยไม่เรียก AI เพิ่ม";
-
-                try {
-                    if (API_URL) {
-                        const enrichResponse =
-                            await fetch(
-                                `${API_URL}/api/resolve-ai-accommodation`,
-                                {
-                                    method:
-                                        "POST",
-
-                                    headers: {
-                                        "Content-Type":
-                                            "application/json"
-                                    },
-
-                                    body:
-                                        JSON.stringify({
-                                            accommodation_id:
-                                                rawHotel.acc_id,
-
-                                            name:
-                                                plannerAccommodation.name,
-
-                                            province:
-                                                tripData.province,
-
-                                            ai_model:
-                                                selectedModel
-                                        })
-                                }
-                            );
-
-                        if (
-                            enrichResponse.ok
-                        ) {
-                            const enrichData =
-                                await enrichResponse
-                                    .json();
-
-                            const enriched =
-                                enrichData
-                                    ?.accommodation;
-
-                            if (enriched) {
-                                plannerAccommodation = {
-                                    id:
-                                        String(
-                                            enriched.acc_id ??
-                                            rawHotel.acc_id
-                                        ),
-
-                                    name:
-                                        enriched.acc_name_th ??
-                                        enriched.acc_name_en ??
-                                        plannerAccommodation.name,
-
-                                    address:
-                                        enriched.acc_address ??
-                                        plannerAccommodation.address ??
-                                        null,
-
-                                    latitude:
-                                        Number(
-                                            enriched.latitude ??
-                                            plannerAccommodation.latitude
-                                        ),
-
-                                    longitude:
-                                        Number(
-                                            enriched.longitude ??
-                                            plannerAccommodation.longitude
-                                        ),
-
-                                    source:
-                                        "algorithm_verified",
-
-                                    locked:
-                                        false,
-
-                                    images:
-                                        Array.isArray(
-                                            enriched.images
-                                        )
-                                            ? enriched.images
-                                            : plannerAccommodation.images,
-
-                                    google_place_id:
-                                        enriched.google_place_id ??
-                                        null,
-
-                                    rating:
-                                        enriched.rating ??
-                                        null,
-
-                                    user_ratings_total:
-                                        enriched.user_ratings_total ??
-                                        null,
-
-                                    phone:
-                                        enriched.acc_tel ??
-                                        null,
-
-                                    website:
-                                        enriched.acc_website ??
-                                        null,
-
-                                    google_maps_uri:
-                                        enriched.google_maps_uri ??
-                                        null
-                                };
-                            }
-                        } else {
-                            console.warn(
-                                "⚠️ ACCOMMODATION ENRICH HTTP ERROR:",
-                                await enrichResponse.text()
-                            );
-                        }
-                    }
-                } catch (enrichError) {
-                    console.warn(
-                        "⚠️ ACCOMMODATION ENRICH FAILED:",
-                        enrichError
-                    );
+                        google_maps_uri:
+                            enriched.google_maps_uri ??
+                            null
+                    };
                 }
-
-                console.log(
-                    "🏨 ALGORITHM RECOMMENDED ACCOMMODATION:",
-                    {
-                        accommodation:
-                            plannerAccommodation,
-
-                        reason:
-                            accommodationRecommendationReason,
-
-                        top3:
-                            accommodationRecommendations
-                    }
+            } else {
+                console.warn(
+                    "⚠️ ACCOMMODATION ENRICH HTTP ERROR:",
+                    await enrichResponse.text()
                 );
             }
         }
-    } catch (error) {
+    } catch (enrichError) {
         console.warn(
-            "⚠️ ACCOMMODATION ALGORITHM FAILED:",
-            error
+            "⚠️ ACCOMMODATION ENRICH FAILED:",
+            enrichError
         );
     }
 
-    if (
-        !plannerAccommodation &&
-        fallbackAccommodationCandidate
-    ) {
-        const fallbackHotel =
-            fallbackAccommodationCandidate.raw;
-
-        plannerAccommodation = {
-            id:
-                String(
-                    fallbackHotel.acc_id
-                ),
-
-            name:
-                fallbackHotel.acc_name_th ??
-                fallbackHotel.acc_name_en ??
-                fallbackAccommodationCandidate.name ??
-                "ที่พัก",
-
-            address:
-                fallbackHotel.acc_address ??
-                null,
-
-            latitude:
-                Number(
-                    fallbackHotel.latitude
-                ),
-
-            longitude:
-                Number(
-                    fallbackHotel.longitude
-                ),
-
-            source:
-                "algorithm_fallback",
-
-            locked:
-                false,
-
-            images:
-                Array.isArray(
-                    fallbackHotel.images
-                )
-                    ? fallbackHotel.images
-                    : []
-        };
-
-        accommodationRecommendationReason =
-            "ใช้ที่พักสำรองที่อยู่ใกล้ศูนย์กลางเส้นทางมากที่สุด เนื่องจากการจัดอันดับที่พักหลักไม่สำเร็จ";
-
-        accommodationRecommendations = [
-            {
-                rank: 1,
-                id:
-                    fallbackAccommodationCandidate.id,
-                name:
-                    fallbackAccommodationCandidate.name,
-                address:
-                    fallbackAccommodationCandidate.address,
-                district:
-                    fallbackAccommodationCandidate.district,
-                star_level:
-                    fallbackAccommodationCandidate.star_level,
-                price_label:
-                    fallbackAccommodationCandidate.price_label,
-                low_rate:
-                    fallbackAccommodationCandidate.low_rate,
-                high_rate:
-                    fallbackAccommodationCandidate.high_rate,
-                rating:
-                    fallbackAccommodationCandidate.rating,
-                user_ratings_total:
-                    fallbackAccommodationCandidate.user_ratings_total,
-                route_center_distance_km:
-                    fallbackAccommodationCandidate
-                        .route_center_distance_km,
-                reason:
-                    accommodationRecommendationReason
-            }
-        ];
-
-        console.warn(
-            "🏨 ACCOMMODATION FALLBACK SELECTED:",
-            plannerAccommodation
-        );
-    }
+    console.log(
+        "🏨 AI ROUND 1 ACCOMMODATION:",
+        {
+            model:
+                selectedModel,
+            accommodation:
+                plannerAccommodation,
+            reason:
+                accommodationRecommendationReason,
+            top3:
+                accommodationRecommendations
+        }
+    );
 }
 
 // ไม่ว่าที่พักจะมาจากผู้ใช้หรือ AI ให้ refresh พิกัดล่าสุดก่อนจัด route
