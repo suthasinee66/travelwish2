@@ -734,17 +734,80 @@ async function loadFullRecord(
   const accId =
     data.acc_id ?? data.id;
 
-  if (!accId) return data;
+  const googlePlaceId =
+    data.google_place_id ??
+    null;
 
-  const result = await supabase
-    .from("accommodation")
-    .select("*")
-    .eq("acc_id", String(accId))
-    .maybeSingle();
+  let freshAccommodation:
+    any | null = null;
 
-  return result.data
-    ? { ...data, ...result.data }
-    : data;
+  if (accId) {
+    const byAccId =
+      await supabase
+        .from("accommodation")
+        .select("*")
+        .eq(
+          "acc_id",
+          String(accId)
+        )
+        .maybeSingle();
+
+    if (byAccId.error) {
+      console.warn(
+        "LOAD FRESH ACCOMMODATION BY acc_id ERROR:",
+        byAccId.error
+      );
+    }
+
+    freshAccommodation =
+      byAccId.data ??
+      null;
+  }
+
+  if (
+    !freshAccommodation &&
+    googlePlaceId
+  ) {
+    const byGooglePlaceId =
+      await supabase
+        .from("accommodation")
+        .select("*")
+        .eq(
+          "google_place_id",
+          String(
+            googlePlaceId
+          )
+        )
+        .maybeSingle();
+
+    if (
+      byGooglePlaceId.error
+    ) {
+      console.warn(
+        "LOAD FRESH ACCOMMODATION BY google_place_id ERROR:",
+        byGooglePlaceId.error
+      );
+    }
+
+    freshAccommodation =
+      byGooglePlaceId.data ??
+      null;
+  }
+
+  if (!freshAccommodation) {
+    return data;
+  }
+
+  // สำคัญ: ข้อมูลจาก Supabase ต้องทับค่าที่ติดมากับ card เดิม
+  // โดยเฉพาะ accom_price_name ซึ่งอาจถูกแก้หลังสร้าง itinerary
+  return {
+    ...data,
+    ...freshAccommodation,
+    accom_price_name:
+      freshAccommodation
+        .accom_price_name ??
+      null,
+  };
 }
 
 function InfoItem({
@@ -931,7 +994,22 @@ export default function PlaceDetailDrawer({
       return;
     }
 
-    setRecord(target.data ?? {});
+    setRecord(
+      target.type ===
+        "accommodation"
+        ? {
+            ...(
+              target.data ??
+              {}
+            ),
+            accom_price_name:
+              null,
+          }
+        : (
+            target.data ??
+            {}
+          )
+    );
     setRecordType(target.type);
     setRelatedData({
       weather: null,
