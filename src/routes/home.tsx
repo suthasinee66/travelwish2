@@ -3074,6 +3074,10 @@ const activeRouteMode =
 const ActiveRouteIcon =
   activeRouteMode.icon;
 const [showSaveTripModal, setShowSaveTripModal] = useState(false);
+const [
+  showGuestSaveLoginModal,
+  setShowGuestSaveLoginModal,
+] = useState(false);
 const [tripTitle, setTripTitle] = useState("");
 const [
   liveTrafficEnabled,
@@ -3235,15 +3239,28 @@ const saveTripToSupabase = async () => {
       error: userError,
     } = await supabase.auth.getUser();
 
+    if (
+      user?.is_anonymous
+    ) {
+      setShowSaveTripModal(
+        false
+      );
+      setShowGuestSaveLoginModal(
+        true
+      );
+      return;
+    }
+
     if (userError || !user) {
       console.error(
         "❌ USER ERROR:",
         userError
       );
-      showAppAlert(
-        "error",
-        "ไม่สามารถบันทึกได้",
-        "กรุณาเข้าสู่ระบบก่อนบันทึกทริป"
+      setShowSaveTripModal(
+        false
+      );
+      setShowGuestSaveLoginModal(
+        true
       );
       return;
     }
@@ -8474,7 +8491,22 @@ mapCenter;
 </DndContext>
 <div className="flex justify-end mt-5 pt-4 border-t border-purple-100">
   <button
-    onClick={() => {
+    onClick={async () => {
+      const {
+        data: { user },
+      } =
+        await supabase.auth.getUser();
+
+      if (
+        !user ||
+        user.is_anonymous
+      ) {
+        setShowGuestSaveLoginModal(
+          true
+        );
+        return;
+      }
+
       setTripTitle(
         existingTripId
           ? (
@@ -8496,6 +8528,126 @@ mapCenter;
 
 
       </div>
+{showGuestSaveLoginModal &&
+  typeof document !== "undefined" &&
+  createPortal(
+    (
+      <div
+        className="
+          fixed
+          inset-0
+          z-[520]
+          flex
+          items-center
+          justify-center
+          bg-[#302b43]/30
+          p-4
+        "
+        onClick={() =>
+          setShowGuestSaveLoginModal(
+            false
+          )
+        }
+      >
+        <div
+          className="
+            w-full
+            max-w-[390px]
+            rounded-[26px]
+            border
+            border-[#eadfeb]
+            bg-[#fffdfb]
+            p-6
+            text-center
+            shadow-[0_24px_70px_rgba(91,72,117,0.24)]
+          "
+          onClick={event =>
+            event.stopPropagation()
+          }
+        >
+          <div
+            className="
+              mx-auto
+              flex
+              h-14
+              w-14
+              items-center
+              justify-center
+              rounded-full
+              bg-[#f4edf7]
+              text-[#6f456f]
+            "
+          >
+            <User size={25} />
+          </div>
+
+          <h3 className="mt-4 text-lg font-bold text-[#40364b]">
+            เข้าสู่ระบบเพื่อบันทึกทริป
+          </h3>
+
+          <p className="mt-2 text-sm leading-6 text-[#7f7285]">
+            Guest สามารถวางแผนทริปได้ตามปกติ แต่ต้องเข้าสู่ระบบก่อนจึงจะบันทึกทริปไว้ในบัญชีได้
+          </p>
+
+          <div className="mt-6 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setShowGuestSaveLoginModal(
+                  false
+                )
+              }
+              className="
+                min-h-[44px]
+                rounded-full
+                border
+                border-[#e3d8e6]
+                bg-white
+                px-4
+                text-sm
+                font-semibold
+                text-[#66596b]
+                transition
+                hover:bg-[#faf7fb]
+              "
+            >
+              ไว้ทีหลัง
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowGuestSaveLoginModal(
+                  false
+                );
+
+                navigate({
+                  to: "/login",
+                });
+              }}
+              className="
+                min-h-[44px]
+                rounded-full
+                bg-[#67276b]
+                px-4
+                text-sm
+                font-semibold
+                text-white
+                shadow-[0_7px_18px_rgba(91,58,97,0.22)]
+                transition
+                hover:bg-[#743479]
+              "
+            >
+              เข้าสู่ระบบ
+            </button>
+          </div>
+        </div>
+      </div>
+    ),
+    document.body
+  )
+}
+
 {showSaveTripModal &&
   typeof document !== "undefined" &&
   createPortal(
