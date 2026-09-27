@@ -10228,7 +10228,11 @@ function RecommendationCarouselCard({
   );
 }
 
-function Home() {
+export function Home({
+  startNewTrip = false,
+}: {
+  startNewTrip?: boolean;
+} = {}) {
   const {
     user,
     preferences,
@@ -12971,6 +12975,7 @@ const handleSend = async () => {
         );
 
         if (
+          !startNewTrip &&
           guestSessions.length > 0 &&
           !currentChatId
         ) {
@@ -13072,7 +13077,10 @@ const handleSend = async () => {
     loadChats();
 
 
-  }, [user]);
+  }, [
+    user,
+    startNewTrip,
+  ]);
 
   useEffect(() => {
 
