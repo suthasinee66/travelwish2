@@ -12918,10 +12918,18 @@ ${m.role === "user"
     <img
       src={
         aiModels.find(
-          model => model.id === selectedModel
+          model =>
+            model.id ===
+            (
+              m.activeModel ??
+              selectedModel
+            )
         )?.icon
       }
-      alt={selectedModel}
+      alt={
+        m.activeModel ??
+        selectedModel
+      }
       className="w-7 h-7 object-contain"
     />
   </div>
@@ -12950,6 +12958,112 @@ ${m.role === "user"
 
 `}
                 >
+{m.comparison && (
+  <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl border border-[#eadfeb] bg-[#fbf8fc] p-1.5">
+    {aiModels.map(
+      model => {
+        const variant =
+          m.comparison?.[
+            model.id
+          ];
+
+        const active =
+          (
+            m.activeModel ??
+            selectedModel
+          ) === model.id;
+
+        return (
+          <button
+            key={model.id}
+            type="button"
+            disabled={!variant}
+            onClick={() => {
+              setMessages(
+                current =>
+                  current.map(
+                    (
+                      message,
+                      messageIndex
+                    ) =>
+                      messageIndex === i
+                        ? {
+                            ...message,
+                            activeModel:
+                              model.id,
+                            text:
+                              variant
+                                ?.text ??
+                              message.text,
+                          }
+                        : message
+                  )
+              );
+
+              setSelectedModel(
+                model.id
+              );
+
+              if (
+                Array.isArray(
+                  variant
+                    ?.plannerJson
+                )
+              ) {
+                setPlan(
+                  variant?.text ??
+                  null
+                );
+                setPlannerJson(
+                  variant
+                    .plannerJson
+                );
+                setShowTripPlan(
+                  true
+                );
+              }
+            }}
+            className={`
+              inline-flex
+              min-h-9
+              items-center
+              gap-2
+              rounded-xl
+              px-3
+              py-1.5
+              text-xs
+              font-semibold
+              transition
+              disabled:cursor-not-allowed
+              disabled:opacity-40
+              ${active
+                ? "bg-[#6f456f] text-white shadow-sm"
+                : "bg-white text-[#625568] hover:bg-[#f3edf5]"}
+            `}
+          >
+            <img
+              src={model.icon}
+              alt=""
+              className="h-4 w-4 rounded-full bg-white object-contain"
+            />
+            {model.name}
+            {variant?.error && (
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-rose-400"
+                title="โมเดลนี้ตอบไม่สำเร็จ"
+              />
+            )}
+          </button>
+        );
+      }
+    )}
+
+    <span className="ml-auto hidden text-[10px] text-[#978a9c] sm:inline">
+      Same message · 3 models
+    </span>
+  </div>
+)}
+
 {m.loading ? (
   <div
     className="
@@ -13326,21 +13440,38 @@ hover:bg-gray-100
   "
 >
   {/* AI LOGO */}
-  <img
-    src={
-      aiModels.find(
-        model => model.id === selectedModel
-      )?.icon
-    }
-    alt="AI"
-    className="w-4 h-4 object-contain"
-  />
+  {comparisonMode ? (
+    <div className="flex -space-x-1">
+      {aiModels.map(
+        model => (
+          <img
+            key={model.id}
+            src={model.icon}
+            alt={model.name}
+            className="h-4 w-4 rounded-full border border-white bg-white object-contain"
+          />
+        )
+      )}
+    </div>
+  ) : (
+    <img
+      src={
+        aiModels.find(
+          model => model.id === selectedModel
+        )?.icon
+      }
+      alt="AI"
+      className="w-4 h-4 object-contain"
+    />
+  )}
 
   {/* ชื่อ AI */}
   <span>
-    {aiModels.find(
-      model => model.id === selectedModel
-    )?.name}
+    {comparisonMode
+      ? "Compare 3 AI"
+      : aiModels.find(
+          model => model.id === selectedModel
+        )?.name}
   </span>
 
   {/* ลูกศร */}
@@ -13369,14 +13500,64 @@ hover:bg-gray-100
 
           <div className="px-3 py-2">
             <p className="text-xs font-semibold">
-              เลือก AI
+              เลือกโหมด AI
             </p>
 
             <p className="text-[11px] text-muted-foreground">
-              เลือกโมเดลสำหรับช่วยวางแผนท่องเที่ยว
+              เปรียบเทียบ 3 โมเดลจากข้อความเดียวกัน
             </p>
           </div>
 
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setComparisonMode(true);
+              setShowModelMenu(false);
+            }}
+            className={`
+              mb-1
+              w-full
+              rounded-xl
+              px-3
+              py-2.5
+              text-left
+              transition
+              ${comparisonMode
+                ? "bg-[#f1e7f4]"
+                : "hover:bg-accent/60"}
+            `}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-1">
+                {aiModels.map(
+                  model => (
+                    <img
+                      key={model.id}
+                      src={model.icon}
+                      alt={model.name}
+                      className="h-6 w-6 rounded-full border-2 border-white bg-white object-contain"
+                    />
+                  )
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold">
+                  Compare 3 AI
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  ส่งครั้งเดียวให้ AI 1, AI 2 และ AI 3
+                </div>
+              </div>
+
+              {comparisonMode && (
+                <span className="text-xs font-bold">
+                  ✓
+                </span>
+              )}
+            </div>
+          </button>
 
           {aiModels.map((model) => (
             <button
@@ -13385,6 +13566,7 @@ hover:bg-gray-100
   onClick={(e) => {
     e.stopPropagation();
     setSelectedModel(model.id);
+    setComparisonMode(false);
     setShowModelMenu(false);
   }}
   className={`
@@ -13401,6 +13583,7 @@ hover:bg-gray-100
     relative
     z-[10000]
     ${
+      !comparisonMode &&
       selectedModel === model.id
         ? "bg-accent"
         : "hover:bg-accent/60"
@@ -13439,7 +13622,8 @@ hover:bg-gray-100
 
               </div>
 
-              {selectedModel === model.id && (
+              {!comparisonMode &&
+                selectedModel === model.id && (
                 <span className="text-xs font-bold">
                   ✓
                 </span>
