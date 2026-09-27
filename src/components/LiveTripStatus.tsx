@@ -205,6 +205,12 @@ export default function LiveTripStatus({
 
   const loadStatus =
     async () => {
+      if (!trafficEnabled) {
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
       if (
         normalizedPoints.length ===
         0
@@ -275,6 +281,10 @@ export default function LiveTripStatus({
     };
 
   useEffect(() => {
+    if (!trafficEnabled) {
+      return;
+    }
+
     void loadStatus();
 
     const interval =
@@ -296,6 +306,7 @@ export default function LiveTripStatus({
         interval
       );
   }, [
+    trafficEnabled,
     JSON.stringify(
       normalizedPoints
     ),
@@ -354,268 +365,260 @@ export default function LiveTripStatus({
   return (
     <section
       className={`
-        rounded-2xl
         border
         border-[#eadfeb]
         bg-[#fffdfb]
-        p-4
-        shadow-[0_8px_24px_rgba(87,61,99,0.05)]
+        shadow-[0_6px_18px_rgba(87,61,99,0.04)]
+        ${trafficEnabled
+          ? "rounded-xl p-2.5"
+          : "rounded-xl p-1.5"
+        }
         ${className}
       `}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <Gauge
-              size={16}
-              className="text-[#6f456f]"
-            />
-            <h3 className="text-sm font-bold text-[#40364b]">
-              Live trip status
-            </h3>
-          </div>
-
-          <p className="mt-1 text-[11px] leading-4 text-[#8b7d90]">
-            จราจรและสภาพอากาศจะรีเฟรชอัตโนมัติทุก 5 นาที
-          </p>
-        </div>
-
+      {!trafficEnabled ? (
         <button
           type="button"
           onClick={() =>
-            void loadStatus()
+            onTrafficEnabledChange(
+              true
+            )
           }
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#e5dbe8] bg-white text-[#6f456f] transition hover:bg-[#f6eff7]"
-          aria-label="รีเฟรชสถานการณ์สด"
-          title="รีเฟรชสถานการณ์สด"
-        >
-          {loading ? (
-            <LoaderCircle
-              size={15}
-              className="animate-spin"
-            />
-          ) : (
-            <RefreshCw
-              size={15}
-            />
-          )}
-        </button>
-      </div>
-
-      <button
-        type="button"
-        onClick={() =>
-          onTrafficEnabledChange(
-            !trafficEnabled
-          )
-        }
-        className={`
-          mt-3
-          flex
-          w-full
-          items-center
-          justify-between
-          rounded-xl
-          border
-          px-3
-          py-2.5
-          text-left
-          transition
-          ${trafficEnabled
-            ? "border-[#cdbbd2] bg-[#f3eaf5]"
-            : "border-[#eadfeb] bg-white"
-          }
-        `}
-      >
-        <span className="flex items-center gap-2 text-xs font-semibold text-[#51475a]">
-          <Route
-            size={15}
-            className="text-[#6f456f]"
-          />
-          Live traffic บนแผนที่
-        </span>
-
-        <span
-          className={`
-            relative
-            h-5
-            w-9
-            rounded-full
+          className="
+            flex
+            w-full
+            items-center
+            justify-between
+            gap-3
+            rounded-lg
+            px-2.5
+            py-2
+            text-left
             transition
-            ${trafficEnabled
-              ? "bg-[#6f456f]"
-              : "bg-[#d8d0da]"
-            }
-          `}
+            hover:bg-[#f8f3f9]
+          "
         >
-          <span
-            className={`
-              absolute
-              top-0.5
-              h-4
-              w-4
-              rounded-full
-              bg-white
-              shadow-sm
-              transition
-              ${trafficEnabled
-                ? "left-[18px]"
-                : "left-0.5"
-              }
-            `}
-          />
-        </span>
-      </button>
-
-      {error && (
-        <div className="mt-3 flex items-start gap-2 rounded-xl bg-[#fff5f4] px-3 py-2.5 text-[11px] leading-4 text-[#9f5d58]">
-          <TriangleAlert
-            size={14}
-            className="mt-0.5 shrink-0"
-          />
-          <span>
-            {error}
-          </span>
-        </div>
-      )}
-
-      {!error && (
-        <div className="mt-3 grid gap-2">
-          <div className="flex items-start gap-2 rounded-xl bg-[#f8f5f9] px-3 py-2.5">
+          <span className="flex items-center gap-2 text-[11px] font-semibold text-[#51475a]">
             <Route
-              size={15}
-              className="mt-0.5 shrink-0 text-[#6f456f]"
+              size={14}
+              className="text-[#6f456f]"
             />
+            Live traffic
+          </span>
 
-            <div className="min-w-0">
-              <div className="text-xs font-semibold text-[#4f4454]">
-                การจราจร
+          <span className="relative h-[18px] w-8 shrink-0 rounded-full bg-[#d8d0da] transition">
+            <span className="absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition" />
+          </span>
+        </button>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Gauge
+                size={14}
+                className="shrink-0 text-[#6f456f]"
+              />
+
+              <div className="min-w-0">
+                <h3 className="truncate text-[11px] font-bold text-[#40364b]">
+                  Live trip status
+                </h3>
+                <p className="text-[9px] leading-3 text-[#978c9d]">
+                  อัปเดตทุก 5 นาที
+                </p>
               </div>
-
-              {worstLeg ? (
-                <div className="mt-0.5 text-[11px] leading-4 text-[#7f7185]">
-                  {worstLeg.level ===
-                  "heavy"
-                    ? "รถติดหนัก"
-                    : worstLeg.level ===
-                        "slow"
-                      ? "รถเริ่มติด"
-                      : "การจราจรปกติ"}
-                  {worstLeg.toName
-                    ? ` ก่อนถึง ${worstLeg.toName}`
-                    : ""}
-                  {Number(
-                    worstLeg.delayMinutes ??
-                      0
-                  ) > 0
-                    ? ` · ช้ากว่าปกติประมาณ ${Math.round(
-                        Number(
-                          worstLeg.delayMinutes
-                        )
-                      )} นาที`
-                    : ""}
-                </div>
-              ) : (
-                <div className="mt-0.5 text-[11px] leading-4 text-[#9a8da0]">
-                  {status?.trafficAvailable ===
-                  false
-                    ? "ยังไม่มีข้อมูล ETA แบบสด"
-                    : "กำลังรอข้อมูลเส้นทาง"}
-                </div>
-              )}
             </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                void loadStatus()
+              }
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-[#e5dbe8] bg-white text-[#6f456f] transition hover:bg-[#f6eff7]"
+              aria-label="รีเฟรชสถานการณ์สด"
+              title="รีเฟรชสถานการณ์สด"
+            >
+              {loading ? (
+                <LoaderCircle
+                  size={13}
+                  className="animate-spin"
+                />
+              ) : (
+                <RefreshCw
+                  size={13}
+                />
+              )}
+            </button>
           </div>
 
-          <div className="flex items-start gap-2 rounded-xl bg-[#f6fbfc] px-3 py-2.5">
-            {Number(
-              rainItem?.rainProbability ??
-                0
-            ) >= 50 ? (
-              <CloudRain
-                size={15}
-                className="mt-0.5 shrink-0 text-[#5d96a4]"
+          <button
+            type="button"
+            onClick={() =>
+              onTrafficEnabledChange(
+                false
+              )
+            }
+            className="
+              mt-2
+              flex
+              w-full
+              items-center
+              justify-between
+              rounded-lg
+              border
+              border-[#d8c8dc]
+              bg-[#f5eef6]
+              px-2.5
+              py-1.5
+              text-left
+              transition
+            "
+          >
+            <span className="flex items-center gap-2 text-[10px] font-semibold text-[#51475a]">
+              <Route
+                size={13}
+                className="text-[#6f456f]"
               />
-            ) : (
-              <CloudSun
-                size={15}
-                className="mt-0.5 shrink-0 text-[#6f9ca6]"
-              />
-            )}
+              Live traffic บนแผนที่
+            </span>
 
-            <div className="min-w-0">
-              <div className="text-xs font-semibold text-[#4f4454]">
-                สภาพอากาศ
+            <span className="relative h-[18px] w-8 shrink-0 rounded-full bg-[#6f456f] transition">
+              <span className="absolute left-4 top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition" />
+            </span>
+          </button>
+
+          {error && (
+            <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-[#fff5f4] px-2.5 py-2 text-[10px] leading-4 text-[#9f5d58]">
+              <TriangleAlert
+                size={12}
+                className="mt-0.5 shrink-0"
+              />
+              <span>
+                {error}
+              </span>
+            </div>
+          )}
+
+          {!error && (
+            <div className="mt-2 overflow-hidden rounded-lg border border-[#eee6ef] bg-white/70">
+              <div className="flex items-start gap-2 px-2.5 py-2">
+                <Route
+                  size={12}
+                  className="mt-0.5 shrink-0 text-[#6f456f]"
+                />
+
+                <div className="min-w-0">
+                  {worstLeg ? (
+                    <p className="text-[10px] leading-4 text-[#6f6374]">
+                      <span className="font-semibold text-[#4f4454]">
+                        {worstLeg.level ===
+                        "heavy"
+                          ? "รถติดหนัก"
+                          : worstLeg.level ===
+                              "slow"
+                            ? "รถเริ่มติด"
+                            : "การจราจรปกติ"}
+                      </span>
+                      {worstLeg.toName
+                        ? ` · ${worstLeg.toName}`
+                        : ""}
+                      {Number(
+                        worstLeg.delayMinutes ??
+                          0
+                      ) > 0
+                        ? ` · +${Math.round(
+                            Number(
+                              worstLeg.delayMinutes
+                            )
+                          )} นาที`
+                        : ""}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] leading-4 text-[#94899a]">
+                      {status?.trafficAvailable ===
+                      false
+                        ? "ยังไม่มีข้อมูล ETA แบบสด"
+                        : "กำลังรอข้อมูลเส้นทาง"}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {rainItem ? (
-                <div className="mt-0.5 text-[11px] leading-4 text-[#71828a]">
-                  {rainItem.name}
-                  {rainItem.hourLabel
-                    ? ` · ${rainItem.hourLabel}`
-                    : ""}
-                  {" · "}
-                  ฝน{" "}
-                  {Math.round(
-                    Number(
-                      rainItem.rainProbability ??
-                        0
-                    )
-                  )}
-                  %
-                  {Number.isFinite(
-                    Number(
-                      rainItem.temperatureC
-                    )
-                  )
-                    ? ` · ${Math.round(
+              <div className="flex items-start gap-2 border-t border-[#eee6ef] px-2.5 py-2">
+                {Number(
+                  rainItem?.rainProbability ??
+                    0
+                ) >= 50 ? (
+                  <CloudRain
+                    size={12}
+                    className="mt-0.5 shrink-0 text-[#5d96a4]"
+                  />
+                ) : (
+                  <CloudSun
+                    size={12}
+                    className="mt-0.5 shrink-0 text-[#6f9ca6]"
+                  />
+                )}
+
+                <div className="min-w-0">
+                  {rainItem ? (
+                    <p className="text-[10px] leading-4 text-[#71828a]">
+                      <span className="font-semibold text-[#4f4454]">
+                        ฝน {Math.round(
+                          Number(
+                            rainItem.rainProbability ??
+                              0
+                          )
+                        )}%
+                      </span>
+                      {rainItem.name
+                        ? ` · ${rainItem.name}`
+                        : ""}
+                      {rainItem.hourLabel
+                        ? ` · ${rainItem.hourLabel}`
+                        : ""}
+                      {Number.isFinite(
                         Number(
                           rainItem.temperatureC
                         )
-                      )}°C`
-                    : ""}
+                      )
+                        ? ` · ${Math.round(
+                            Number(
+                              rainItem.temperatureC
+                            )
+                          )}°C`
+                        : ""}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] leading-4 text-[#94899a]">
+                      {status?.weatherAvailable ===
+                      false
+                        ? "ยังไม่มีข้อมูลพยากรณ์อากาศ"
+                        : "กำลังรอข้อมูลอากาศ"}
+                    </p>
+                  )}
                 </div>
-              ) : (
-                <div className="mt-0.5 text-[11px] leading-4 text-[#9a8da0]">
-                  {status?.weatherAvailable ===
-                  false
-                    ? "ยังไม่มีข้อมูลพยากรณ์อากาศ"
-                    : "กำลังรอข้อมูลอากาศ"}
-                </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+
+          {Array.isArray(
+            status?.suggestions
+          ) &&
+            status!.suggestions!
+              .length > 0 && (
+              <div className="mt-2 rounded-lg bg-[#f8f5f9] px-2.5 py-2">
+                <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-[#9a8da0]">
+                  Suggestion
+                </p>
+
+                <p className="mt-0.5 text-[10px] leading-4 text-[#615665]">
+                  {status!.suggestions![0]}
+                </p>
+              </div>
+            )}
+        </>
       )}
-
-      {Array.isArray(
-        status?.suggestions
-      ) &&
-        status!.suggestions!
-          .length > 0 && (
-          <div className="mt-3 rounded-xl border border-[#eadfeb] bg-white px-3 py-2.5">
-            <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#9a8da0]">
-              Suggestion
-            </div>
-
-            <div className="mt-1.5 space-y-1.5">
-              {status!.suggestions!
-                .slice(0, 3)
-                .map(
-                  (
-                    suggestion,
-                    index
-                  ) => (
-                    <div
-                      key={index}
-                      className="text-[11px] leading-4 text-[#615665]"
-                    >
-                      {suggestion}
-                    </div>
-                  )
-                )}
-            </div>
-          </div>
-        )}
     </section>
   );
 }
