@@ -17,27 +17,24 @@ function normalizeMarkdownResponse(
         String(value ?? "")
             .trim();
 
-    // บางโมเดล (โดยเฉพาะ Claude) ชอบเกริ่นก่อนแล้ว
-    // ครอบ Markdown ทั้งก้อนด้วย ```markdown ... ```
-    // ให้ดึงเฉพาะเนื้อหาใน fence เพื่อให้ ReactMarkdown render จริง
-    const fencedMarkdown =
-        text.match(
-            /```(?:markdown|md)\s*\n?([\s\S]*?)```/i
-        );
-
-    if (fencedMarkdown?.[1]) {
-        return fencedMarkdown[1]
-            .trim();
-    }
-
-    // รองรับกรณีเปิด fence แต่โมเดลลืมปิด
+    // เก็บข้อความเกริ่นของ AI ไว้ แล้วแกะเฉพาะ markdown fence
+    // เช่น:
+    // "ได้เลยครับ...\n\n```markdown\n# แผนเที่ยว\n```"
+    // -> "ได้เลยครับ...\n\n# แผนเที่ยว"
     text = text.replace(
-        /^```(?:markdown|md)?\s*\n?/i,
-        ""
+        /```(?:markdown|md)\s*\n?([\s\S]*?)```/gi,
+        (
+            _match,
+            markdownBody
+        ) =>
+            `\n\n${String(
+                markdownBody ?? ""
+            ).trim()}\n\n`
     );
 
+    // รองรับกรณีโมเดลเปิด markdown fence แล้วลืมปิด
     text = text.replace(
-        /\n?```\s*$/i,
+        /```(?:markdown|md)\s*\n?/gi,
         ""
     );
 
