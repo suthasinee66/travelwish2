@@ -12078,6 +12078,10 @@ const handleTripComplete = async (
     tripToSave
   );
 
+  // Once the confirmation message is shown, switch from the welcome
+  // state to the normal chat layout immediately.
+  setHasChatStarted(true);
+
   const confirmationMessage =
     "ได้เลยครับ ✨ ต้องการให้ผมจัดแพลนจากข้อมูลที่มีตอนนี้เลยไหม?";
 
@@ -14495,7 +14499,9 @@ hover:bg-gray-100
 
         </div>
 {/* Welcome Hero */}
-{!hasChatStarted && (
+{!hasChatStarted &&
+  messages.length === 0 &&
+  !waitingPlanConfirm && (
   <div className="travel-hero flex-1 flex flex-col items-center justify-center px-6 pb-24 text-center">
     <div className="mb-6 flex items-center gap-2 rounded-full border border-[#e6e2d8] bg-white/70 px-4 py-2 text-sm text-[#6f776f] shadow-sm backdrop-blur">
       <span>✦</span>
