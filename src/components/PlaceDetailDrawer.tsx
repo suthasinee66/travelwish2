@@ -35,6 +35,7 @@ import {
 import {
   getPlacePreferenceRating,
   recordPlaceInteraction,
+  recordRestaurantInteraction,
 } from "@/lib/recommend/adaptivePreference";
 
 const API_URL = (
@@ -1131,19 +1132,42 @@ export default function PlaceDetailDrawer({
   ]);
 
   useEffect(() => {
+    const isAttraction =
+      type === "attraction" &&
+      Boolean(data?.att_id);
+
+    const restaurantId =
+      data?.place_id ??
+      data?.restaurant_id ??
+      data?.google_place_id;
+
+    const isRestaurant =
+      type === "restaurant" &&
+      Boolean(restaurantId);
+
     if (
       !open ||
-      type !== "attraction" ||
-      !data?.att_id
+      (
+        !isAttraction &&
+        !isRestaurant
+      )
     ) {
       setPreferenceRating(null);
       return;
     }
 
+    const entityType =
+      isRestaurant
+        ? "restaurant"
+        : "attraction";
+
+    const entityId =
+      isRestaurant
+        ? String(restaurantId)
+        : String(data.att_id);
+
     const key =
-      `attraction:${String(
-        data.att_id
-      )}`;
+      `${entityType}:${entityId}`;
 
     if (
       detailOpenKeyRef.current !==
@@ -1155,21 +1179,31 @@ export default function PlaceDetailDrawer({
       detailOpenedAtRef.current =
         Date.now();
 
-      void recordPlaceInteraction(
-        data,
-        "detail_open",
-        {
-          entityType:
-            "attraction",
-        }
-      );
+      if (
+        entityType ===
+        "restaurant"
+      ) {
+        void recordRestaurantInteraction(
+          data,
+          "detail_open"
+        );
+      } else {
+        void recordPlaceInteraction(
+          data,
+          "detail_open",
+          {
+            entityType:
+              "attraction",
+          }
+        );
+      }
     }
 
     let active = true;
 
     void getPlacePreferenceRating(
       data,
-      "attraction"
+      entityType
     ).then(
       value => {
         if (active) {
@@ -1198,15 +1232,28 @@ export default function PlaceDetailDrawer({
         if (
           dwellMs >= 10_000
         ) {
-          void recordPlaceInteraction(
-            data,
-            "detail_dwell",
-            {
-              entityType:
-                "attraction",
-              dwellMs,
-            }
-          );
+          if (
+            entityType ===
+            "restaurant"
+          ) {
+            void recordRestaurantInteraction(
+              data,
+              "detail_dwell",
+              {
+                dwellMs,
+              }
+            );
+          } else {
+            void recordPlaceInteraction(
+              data,
+              "detail_dwell",
+              {
+                entityType:
+                  "attraction",
+                dwellMs,
+              }
+            );
+          }
         }
 
         detailOpenedAtRef.current =
@@ -1702,9 +1749,23 @@ export default function PlaceDetailDrawer({
     async (
       value: number
     ) => {
+      const restaurantId =
+        data?.place_id ??
+        data?.restaurant_id ??
+        data?.google_place_id;
+
+      const canRate =
+        (
+          type === "attraction" &&
+          Boolean(data?.att_id)
+        ) ||
+        (
+          type === "restaurant" &&
+          Boolean(restaurantId)
+        );
+
       if (
-        type !== "attraction" ||
-        !data?.att_id ||
+        !canRate ||
         preferenceRatingSaving
       ) {
         return;
@@ -1719,16 +1780,30 @@ export default function PlaceDetailDrawer({
       );
 
       try {
-        await recordPlaceInteraction(
-          data,
-          "rating",
-          {
-            entityType:
-              "attraction",
-            rating:
-              value,
-          }
-        );
+        if (
+          type ===
+          "restaurant"
+        ) {
+          await recordRestaurantInteraction(
+            data,
+            "rating",
+            {
+              rating:
+                value,
+            }
+          );
+        } else {
+          await recordPlaceInteraction(
+            data,
+            "rating",
+            {
+              entityType:
+                "attraction",
+              rating:
+                value,
+            }
+          );
+        }
       } catch (error) {
         console.warn(
           "SAVE PLACE PREFERENCE RATING ERROR:",
@@ -2117,13 +2192,29 @@ export default function PlaceDetailDrawer({
             </div>
           </section>
 
-          {type === "attraction" &&
-            data?.att_id && (
+          {(
+            (
+              type ===
+              "attraction" &&
+              data?.att_id
+            ) ||
+            (
+              type ===
+              "restaurant" &&
+              (
+                data?.place_id ??
+                data?.restaurant_id ??
+                data?.google_place_id
+              )
+            )
+          ) && (
               <section className="mt-4 rounded-[18px] border border-[#ece3ed] bg-[#fbf8fc] px-4 py-3">
                 <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-bold text-[#4d4252]">
-                      สถานที่นี้ตรงกับความชอบคุณแค่ไหน?
+                      {type === "restaurant"
+                        ? "ร้านนี้ตรงกับความชอบคุณแค่ไหน?"
+                        : "สถานที่นี้ตรงกับความชอบคุณแค่ไหน?"}
                     </p>
                     <p className="mt-0.5 text-[11px] leading-4 text-[#938698]">
                       คำตอบนี้จะช่วยให้คำแนะนำครั้งต่อไปตรงกับคุณมากขึ้น
