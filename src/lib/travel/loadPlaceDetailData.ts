@@ -247,6 +247,32 @@ async function loadWeather(
   }
 }
 
+export async function loadPlaceDetailWeather(
+  current: any
+): Promise<PlaceDetailWeather | null> {
+  const latitude = Number(
+    current?.latitude ??
+      current?.location?.latitude
+  );
+
+  const longitude = Number(
+    current?.longitude ??
+      current?.location?.longitude
+  );
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
+    return null;
+  }
+
+  return loadWeather(
+    latitude,
+    longitude
+  );
+}
+
 async function loadProvinceAttractions(
   province: string,
   currentId: string | null
