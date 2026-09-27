@@ -16,6 +16,7 @@ import {
 
 import { supabase } from "@/lib/supabase";
 import { signInWithGoogle } from "@/services/auth";
+import travelWishLogo from "@/assets/ai/logo.png";
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -187,19 +188,11 @@ function RegisterPage() {
             to="/register"
             className="group flex items-center gap-3"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-gradient-to-br from-[#b89bcb] via-[#d9a4c8] to-[#a9dce8] shadow-[0_8px_24px_rgba(91,72,117,0.18)] transition-transform duration-300 group-hover:scale-105">
-              <Compass className="h-5 w-5 text-white" />
-            </div>
-
-            <div>
-              <div className="text-[17px] font-extrabold tracking-tight text-[#302b43]">
-                TravelWish
-              </div>
-
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8b8198]">
-                Personalized Travel
-              </div>
-            </div>
+            <img
+              src={travelWishLogo}
+              alt="TravelWish"
+              className="h-11 w-auto max-w-[190px] object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+            />
           </Link>
 
           {/* LOGIN */}
@@ -301,9 +294,11 @@ function RegisterPage() {
               <div className="mb-7 text-center">
                 {/* MOBILE LOGO */}
                 <div className="mb-5 flex justify-center lg:hidden">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#b89bcb] via-[#d9a4c8] to-[#a9dce8] shadow-[0_10px_30px_rgba(91,72,117,0.18)]">
-                    <Compass className="h-6 w-6 text-white" />
-                  </div>
+                  <img
+                    src={travelWishLogo}
+                    alt="TravelWish"
+                    className="h-14 w-auto max-w-[210px] object-contain"
+                  />
                 </div>
 
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#c8a9d8]/15 px-3 py-1.5 text-xs font-bold text-[#725d80]">
