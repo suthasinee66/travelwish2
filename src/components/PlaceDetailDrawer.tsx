@@ -3296,6 +3296,16 @@ export default function PlaceDetailDrawer({
                               type="button"
                               onClick={(event) => {
                                 event.stopPropagation();
+
+                                void recordPlaceInteraction(
+                                  place,
+                                  "add_to_trip",
+                                  {
+                                    entityType:
+                                      "attraction",
+                                  }
+                                );
+
                                 onAddToTrip({
                                   type: "attraction",
                                   data: place,
