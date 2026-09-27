@@ -160,12 +160,22 @@ async function enrichPlaceDetailIfNeeded(
   target: PlaceDetailTarget,
   existing: any
 ) {
+  if (!API_URL) {
+    return existing;
+  }
+
   if (
-    target.type !== "restaurant" ||
-    !API_URL ||
+    target.type === "restaurant" &&
     !restaurantNeedsDetailFetch(
       existing
     )
+  ) {
+    return existing;
+  }
+
+  if (
+    target.type !== "restaurant" &&
+    target.type !== "accommodation"
   ) {
     return existing;
   }
@@ -234,6 +244,9 @@ async function enrichPlaceDetailIfNeeded(
               : null,
           name,
           province,
+          force_refresh:
+            target.type ===
+            "accommodation",
         }),
       }
     );
@@ -798,14 +811,12 @@ async function loadFullRecord(
     return data;
   }
 
-  // สำคัญ: ข้อมูลจาก Supabase ต้องทับค่าที่ติดมากับ card เดิม
-  // โดยเฉพาะ accom_price_name ซึ่งอาจถูกแก้หลังสร้าง itinerary
+  // สำหรับที่พัก ข้อมูลราคาใน Supabase อาจเป็น dataset เก่า
+  // จึงยังไม่แสดงราคา จนกว่าจะ refresh จาก Google Places สำเร็จ
   return {
     ...data,
     ...freshAccommodation,
     accom_price_name:
-      freshAccommodation
-        .accom_price_name ??
       null,
   };
 }
@@ -1033,12 +1044,18 @@ export default function PlaceDetailDrawer({
 
         setRecord(data);
 
-        if (
-          target.type !== "restaurant" ||
-          !restaurantNeedsDetailFetch(
-            data
-          )
-        ) {
+        const shouldEnrich =
+          target.type ===
+            "accommodation" ||
+          (
+            target.type ===
+              "restaurant" &&
+            restaurantNeedsDetailFetch(
+              data
+            )
+          );
+
+        if (!shouldEnrich) {
           return;
         }
 
