@@ -6099,6 +6099,37 @@ console.log(
 const buildRoutePlaces = (items: any[]) => {
   const result: any[] = [];
 
+  // IMPORTANT:
+  // planner 1 row can contain BOTH place_id + restaurant_id.
+  // The right panel expands that single planner row into 2 cards.
+  // Therefore markdown times must be assigned by the FINAL CARD ORDER,
+  // not by the original planner-row index.
+  const getMarkdownRangeForNextCard = (
+    item: any
+  ) => {
+    const dayNumber =
+      Number(
+        item?.day
+      );
+
+    if (
+      !Number.isFinite(
+        dayNumber
+      )
+    ) {
+      return null;
+    }
+
+    return (
+      markdownDayTimeRanges[
+        dayNumber
+      ]?.[
+        result.length
+      ] ??
+      null
+    );
+  };
+
   items.forEach((item) => {
 
     // =========================
@@ -6109,6 +6140,11 @@ const buildRoutePlaces = (items: any[]) => {
       const place = findPlace(item.place_id);
 
       if (place) {
+        const markdownRange =
+          getMarkdownRangeForNextCard(
+            item
+          );
+
         result.push({
           ...item,
           type: "place",
@@ -6121,6 +6157,22 @@ const buildRoutePlaces = (items: any[]) => {
             item.place_name ??
             "สถานที่",
           images: place.images,
+
+          // manual edit always wins; otherwise use the
+          // markdown row that matches this visible card.
+          markdown_start_time:
+            item.manual_start_time
+              ? item.markdown_start_time ??
+                null
+              : markdownRange?.start ??
+                null,
+
+          markdown_end_time:
+            item.manual_end_time
+              ? item.markdown_end_time ??
+                null
+              : markdownRange?.end ??
+                null,
         });
       }
     }
@@ -6134,6 +6186,11 @@ const buildRoutePlaces = (items: any[]) => {
         findRestaurant(item.restaurant_id);
 
       if (restaurant) {
+        const markdownRange =
+          getMarkdownRangeForNextCard(
+            item
+          );
+
         result.push({
           ...item,
           type: "restaurant",
@@ -6146,6 +6203,23 @@ const buildRoutePlaces = (items: any[]) => {
             item.restaurant_name ??
             "ร้านอาหาร",
           images: restaurant.images,
+
+          // This restaurant may come from the SAME planner row
+          // as the attraction above, so consume the NEXT markdown
+          // time range based on the rendered-card order.
+          markdown_start_time:
+            item.manual_start_time
+              ? item.markdown_start_time ??
+                null
+              : markdownRange?.start ??
+                null,
+
+          markdown_end_time:
+            item.manual_end_time
+              ? item.markdown_end_time ??
+                null
+              : markdownRange?.end ??
+                null,
         });
       }
     }
