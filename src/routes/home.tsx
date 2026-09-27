@@ -10105,10 +10105,56 @@ console.log("🔎 PLANNER MESSAGE:", planner);
 
 if (planner?.planner_json) {
 
+  const comparison =
+    decodeComparisonMessage(
+      planner.content
+    );
+
+  const preferredModel =
+    (
+      session?.ai_model === "gemini" ||
+      session?.ai_model === "gpt" ||
+      session?.ai_model === "claude"
+    )
+      ? session.ai_model as ComparisonModel
+      : "gemini";
+
+  const comparisonModel =
+    comparison
+      ? (
+          comparison[
+            preferredModel
+          ]
+            ? preferredModel
+            : (
+                ["gemini", "gpt", "claude"] as ComparisonModel[]
+              ).find(
+                model =>
+                  comparison[
+                    model
+                  ]
+              ) ??
+              "gemini"
+        )
+      : null;
+
+  const comparisonPlannerJson =
+    comparisonModel
+      ? comparison?.[
+          comparisonModel
+        ]?.plannerJson
+      : null;
+
   const json =
-    typeof planner.planner_json === "string"
-      ? JSON.parse(planner.planner_json)
-      : planner.planner_json;
+    Array.isArray(
+      comparisonPlannerJson
+    )
+      ? comparisonPlannerJson
+      : (
+          typeof planner.planner_json === "string"
+            ? JSON.parse(planner.planner_json)
+            : planner.planner_json
+        );
 
   console.log("🗺️ LOADED PLANNER:", json);
   console.log("IS ARRAY:", Array.isArray(json));
@@ -10116,9 +10162,23 @@ if (planner?.planner_json) {
 
   setPlannerJson(json);
   setPlan(
-    planner.content ??
-    null
+    comparisonModel
+      ? comparison?.[
+          comparisonModel
+        ]?.text ??
+        null
+      : planner.content ??
+        null
   );
+
+  if (comparisonModel) {
+    setSelectedModel(
+      comparisonModel
+    );
+    setComparisonMode(
+      true
+    );
+  }
 
   // มี planner_json = แสดง TripPlanPanel
   if (Array.isArray(json) && json.length > 0) {
@@ -11367,26 +11427,72 @@ const handleSend = async () => {
       ]);
 
       try {
-        const aiText =
-          await generalChatWithAI(
-            text,
-            messages,
-            selectedModel
+        if (comparisonMode) {
+          const variants =
+            await runThreeAIChat(
+              text,
+              messages
+            );
+
+          const activeModel =
+            variants[
+              selectedModel
+            ]?.text
+              ? selectedModel
+              : (
+                  ["gemini", "gpt", "claude"] as ComparisonModel[]
+                ).find(
+                  model =>
+                    variants[
+                      model
+                    ]?.text
+                ) ??
+                "gemini";
+
+          setMessages(prev => [
+            ...prev.slice(0, -1),
+            {
+              role: "ai",
+              text:
+                variants[
+                  activeModel
+                ]?.text ??
+                "",
+              comparison:
+                variants,
+              activeModel,
+            }
+          ]);
+
+          await persistChatMessage(
+            chatId,
+            "ai",
+            encodeComparisonMessage(
+              variants
+            )
           );
+        } else {
+          const aiText =
+            await generalChatWithAI(
+              text,
+              messages,
+              selectedModel
+            );
 
-        setMessages(prev => [
-          ...prev.slice(0, -1),
-          {
-            role: "ai",
-            text: aiText
-          }
-        ]);
+          setMessages(prev => [
+            ...prev.slice(0, -1),
+            {
+              role: "ai",
+              text: aiText
+            }
+          ]);
 
-        await persistChatMessage(
-      chatId,
-      "ai",
-      aiText
-    );
+          await persistChatMessage(
+            chatId,
+            "ai",
+            aiText
+          );
+        }
       } catch (error) {
         console.error(
           "❌ GENERAL CHAT ERROR:",
