@@ -10794,13 +10794,23 @@ const handleTripComplete = async (
     tripToSave
   );
 
+  const confirmationMessage =
+    "ได้เลยครับ ✨ ต้องการให้ผมจัดแพลนจากข้อมูลที่มีตอนนี้เลยไหม?";
+
   setMessages(prev => [
     ...prev,
     {
       role: "ai",
-      text: "ได้เลยครับ ✨ ต้องการให้ผมจัดแพลนจากข้อมูลที่มีตอนนี้เลยไหม?"
+      text:
+        confirmationMessage
     }
   ]);
+
+  await persistChatMessage(
+    chatId,
+    "ai",
+    confirmationMessage
+  );
 
   setWaitingPlanConfirm(true);
 };
