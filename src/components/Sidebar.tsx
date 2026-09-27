@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase";
 import ai1Icon from "@/assets/ai/ai1.svg";
 import ai2Icon from "@/assets/ai/ai2.svg";
 import ai3Icon from "@/assets/ai/ai3.svg";
+import travelWishLogo from "@/assets/ai/logo.png";
 
 function getModelIcon(model: string | null) {
     if (!model) return null;
@@ -185,11 +186,12 @@ export default function Sidebar({
 
     const sidebarContent = <>
     {/* ================= HEADER ================= */}
-    <div className="px-5 py-5 flex items-center gap-2 shrink-0 text-[#6f456f]">
-        <Sparkles className="h-6 w-6" />
-        <span className="text-lg font-semibold tracking-tight">
-            TravelWise.
-        </span>
+    <div className="px-5 py-4 flex items-center shrink-0">
+        <img
+            src={travelWishLogo}
+            alt="TravelWish"
+            className="h-10 w-auto max-w-[170px] object-contain object-left"
+        />
     </div>
 
 
