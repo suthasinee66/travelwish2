@@ -1264,6 +1264,9 @@ export default function PlaceDetailDrawer({
     open,
     type,
     data?.att_id,
+    data?.place_id,
+    data?.restaurant_id,
+    data?.google_place_id,
   ]);
 
   useEffect(() => {
@@ -1683,6 +1686,18 @@ export default function PlaceDetailDrawer({
           entityType:
             "attraction",
         }
+      );
+    } else if (
+      type === "restaurant" &&
+      (
+        data?.place_id ??
+        data?.restaurant_id ??
+        data?.google_place_id
+      )
+    ) {
+      void recordRestaurantInteraction(
+        data,
+        "image_view"
       );
     }
 
