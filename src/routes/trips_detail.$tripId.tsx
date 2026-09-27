@@ -957,6 +957,73 @@ const selectedDayPlaces = useMemo(() => {
   );
 }, [mapPlaces, selectedDay]);
 
+const accommodationMapPoint =
+  useMemo(
+    () => {
+      const accommodation =
+        trip?.accommodation;
+
+      const latitude =
+        Number(
+          accommodation?.latitude
+        );
+
+      const longitude =
+        Number(
+          accommodation?.longitude
+        );
+
+      if (
+        !Number.isFinite(
+          latitude
+        ) ||
+        !Number.isFinite(
+          longitude
+        ) ||
+        latitude === 0 ||
+        longitude === 0
+      ) {
+        return null;
+      }
+
+      return {
+        type:
+          "accommodation",
+        id:
+          accommodation?.id ??
+          "saved-hotel",
+        name:
+          accommodation?.name ??
+          "ที่พัก",
+        location: {
+          latitude,
+          longitude,
+        },
+      };
+    },
+    [
+      trip?.accommodation,
+    ]
+  );
+
+const mapFitPlaces =
+  useMemo(
+    () => [
+      ...selectedDayPlaces,
+      ...(
+        accommodationMapPoint
+          ? [
+              accommodationMapPoint,
+            ]
+          : []
+      ),
+    ],
+    [
+      selectedDayPlaces,
+      accommodationMapPoint,
+    ]
+  );
+
 const liveTripPoints = useMemo(() => {
   const currentDayPlaces =
     selectedDay === "all"
@@ -992,10 +1059,14 @@ const liveTripPoints = useMemo(() => {
       name:
         accommodation?.name ??
         "ที่พัก",
-      latitude:
-        hotelLat,
-      longitude:
-        hotelLng,
+      type:
+        "accommodation",
+      location: {
+        latitude:
+          hotelLat,
+        longitude:
+          hotelLng,
+      },
     });
   }
 
@@ -1026,14 +1097,19 @@ const liveTripPoints = useMemo(() => {
     currentDayPlaces.length > 0
   ) {
     points.push({
-      id: "saved-hotel-return",
+      id:
+        "saved-hotel-return",
       name:
         accommodation?.name ??
         "ที่พัก",
-      latitude:
-        hotelLat,
-      longitude:
-        hotelLng,
+      type:
+        "accommodation",
+      location: {
+        latitude:
+          hotelLat,
+        longitude:
+          hotelLng,
+      },
     });
   }
 
@@ -1065,6 +1141,19 @@ const mapCenter = useMemo(() => {
     };
   }
 
+  if (
+    accommodationMapPoint
+  ) {
+    return {
+      lat:
+        accommodationMapPoint
+          .location.latitude,
+      lng:
+        accommodationMapPoint
+          .location.longitude,
+    };
+  }
+
   return {
     lat: 13.7563,
     lng: 100.5018,
@@ -1073,6 +1162,7 @@ const mapCenter = useMemo(() => {
   mapPlaces,
   selectedDayPlaces,
   selectedDay,
+  accommodationMapPoint,
 ]);
 
   // =========================================================
@@ -2860,12 +2950,41 @@ const mapCenter = useMemo(() => {
       draggable={true}
       disableDefaultUI={false}
     >
-        <DayMapUpdater places={selectedDayPlaces} />
+        <DayMapUpdater places={mapFitPlaces} />
         <TrafficLayerController
           enabled={
             liveTrafficEnabled
           }
         />
+
+      {accommodationMapPoint && (
+        <Marker
+          key="saved-trip-hotel-marker"
+          position={{
+            lat:
+              accommodationMapPoint
+                .location.latitude,
+            lng:
+              accommodationMapPoint
+                .location.longitude,
+          }}
+          icon={{
+            url:
+              "data:image/svg+xml;charset=UTF-8," +
+              encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">' +
+                '<rect x="3" y="3" width="32" height="32" rx="11" fill="#6f456f" stroke="#ffffff" stroke-width="2.5"/>' +
+                '<text x="19" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#ffffff">H</text>' +
+                "</svg>"
+              ),
+          }}
+          title={
+            accommodationMapPoint
+              .name
+          }
+        />
+      )}
+
       {selectedDayPlaces.map(
         (item: any) => {
           const key =
@@ -3020,6 +3139,66 @@ const mapCenter = useMemo(() => {
   }}
   onDayChange={(day) => {
     setSelectedDay(day);
+  }}
+  onAccommodationChange={(hotel) => {
+    setTrip(
+      (prev: any) => {
+        if (!prev) {
+          return prev;
+        }
+
+        if (!hotel) {
+          return {
+            ...prev,
+            accommodation:
+              null,
+          };
+        }
+
+        return {
+          ...prev,
+          accommodation: {
+            id:
+              hotel.acc_id ??
+              hotel.id ??
+              null,
+            name:
+              hotel.acc_name_th ??
+              hotel.acc_name_en ??
+              hotel.name ??
+              "ที่พัก",
+            address:
+              hotel.acc_address ??
+              hotel.address ??
+              null,
+            latitude:
+              hotel.latitude ??
+              null,
+            longitude:
+              hotel.longitude ??
+              null,
+            images:
+              Array.isArray(
+                hotel.images
+              )
+                ? hotel.images
+                : [],
+            source:
+              hotel.source ??
+              "travelwish",
+            source_url:
+              hotel.source_url ??
+              null,
+            booking_provider:
+              hotel.booking_provider ??
+              null,
+            locked:
+              hotel.locked ??
+              true,
+          },
+        };
+      }
+    );
   }}
   onOpenPlaceDetail={(target) => {
     setPlaceDetailTarget(
