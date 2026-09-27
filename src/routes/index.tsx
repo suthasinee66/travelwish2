@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import heroImg from "@/assets/hero-travel.jpg";
+import travelWishLogo from "@/assets/ai/logo.png";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/")({
@@ -482,33 +483,11 @@ function Index() {
             href="#home"
             className="flex items-center gap-2"
           >
-            <div
-              className="
-                flex
-                h-9
-                w-9
-                items-center
-                justify-center
-                rounded-xl
-                bg-gradient-to-br
-                from-[#c8a9d8]
-                to-[#e9a8c9]
-                shadow-sm
-              "
-            >
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-
-            <span
-              className="
-                text-xl
-                font-extrabold
-                tracking-tight
-                text-[#573d63]
-              "
-            >
-              TravelWise.
-            </span>
+            <img
+              src={travelWishLogo}
+              alt="TravelWish"
+              className="h-10 w-auto max-w-[190px] object-contain object-left"
+            />
           </a>
 
           {/* Desktop navigation */}
@@ -1499,26 +1478,12 @@ function Index() {
             {/* Brand */}
 
             <div className="md:col-span-2">
-              <div className="mb-4 flex items-center gap-2">
-                <div
-                  className="
-                    flex
-                    h-10
-                    w-10
-                    items-center
-                    justify-center
-                    rounded-2xl
-                    bg-gradient-to-br
-                    from-[#c8a9d8]
-                    to-[#e9a8c9]
-                  "
-                >
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-
-                <h3 className="text-2xl font-bold">
-                  TravelWise.
-                </h3>
+              <div className="mb-4">
+                <img
+                  src={travelWishLogo}
+                  alt="TravelWish"
+                  className="h-11 w-auto max-w-[210px] object-contain object-left"
+                />
               </div>
 
               <p
@@ -1615,7 +1580,7 @@ function Index() {
               text-[#8b8498]
             "
           >
-            © {new Date().getFullYear()} TravelWise.
+            © {new Date().getFullYear()} TravelWish.
             All rights reserved.
           </div>
         </div>
