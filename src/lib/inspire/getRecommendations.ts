@@ -45,7 +45,7 @@ export async function getRecommendations(
       maxResults:
         String(maxResults),
       key: apiKey,
-      order: "relevance",
+      order: "viewCount",
       regionCode: "TH",
       relevanceLanguage: "th",
       safeSearch: "moderate",
@@ -80,32 +80,159 @@ export async function getRecommendations(
     return [];
   }
 
-  return data.items
-    .filter(
-      (item: any) =>
-        item?.id?.videoId
+  const searchItems =
+    data.items
+      .filter(
+        (item: any) =>
+          item?.id?.videoId
+      );
+
+  const videoIds =
+    searchItems
+      .map(
+        (item: any) =>
+          String(
+            item.id.videoId
+          )
+      )
+      .filter(Boolean);
+
+  let statisticsById =
+    new Map<
+      string,
+      {
+        viewCount: number;
+        likeCount: number | null;
+      }
+    >();
+
+  if (
+    videoIds.length > 0
+  ) {
+    try {
+      const statsParams =
+        new URLSearchParams({
+          part: "statistics",
+          id:
+            videoIds.join(","),
+          key: apiKey,
+        });
+
+      const statsRes =
+        await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?${statsParams.toString()}`
+        );
+
+      if (statsRes.ok) {
+        const statsData =
+          await statsRes.json();
+
+        statisticsById =
+          new Map(
+            (
+              statsData.items ??
+              []
+            ).map(
+              (video: any) => [
+                String(
+                  video.id
+                ),
+                {
+                  viewCount:
+                    Number(
+                      video
+                        ?.statistics
+                        ?.viewCount ??
+                      0
+                    ),
+                  likeCount:
+                    video
+                      ?.statistics
+                      ?.likeCount !=
+                    null
+                      ? Number(
+                          video
+                            .statistics
+                            .likeCount
+                        )
+                      : null,
+                },
+              ]
+            )
+          );
+      } else {
+        console.warn(
+          "YOUTUBE STATISTICS API ERROR:",
+          await statsRes.text()
+        );
+      }
+    } catch (statsError) {
+      console.warn(
+        "YOUTUBE STATISTICS LOAD ERROR:",
+        statsError
+      );
+    }
+  }
+
+  return searchItems
+    .map(
+      (item: any) => {
+        const id =
+          String(
+            item.id.videoId
+          );
+
+        const statistics =
+          statisticsById.get(
+            id
+          );
+
+        return {
+          id,
+          title:
+            item.snippet?.title ??
+            "",
+          thumbnail:
+            item.snippet
+              ?.thumbnails
+              ?.medium?.url ??
+            item.snippet
+              ?.thumbnails
+              ?.default?.url ??
+            "",
+          channelTitle:
+            item.snippet
+              ?.channelTitle ??
+            "",
+          publishedAt:
+            item.snippet
+              ?.publishedAt ??
+            null,
+          viewCount:
+            statistics
+              ?.viewCount ??
+            0,
+          likeCount:
+            statistics
+              ?.likeCount ??
+            null,
+          videoUrl:
+            `https://www.youtube.com/embed/${id}`,
+        };
+      }
     )
-    .map((item: any) => ({
-      id:
-        item.id.videoId,
-      title:
-        item.snippet?.title ??
-        "",
-      thumbnail:
-        item.snippet?.thumbnails
-          ?.medium?.url ??
-        item.snippet?.thumbnails
-          ?.default?.url ??
-        "",
-      channelTitle:
-        item.snippet
-          ?.channelTitle ??
-        "",
-      publishedAt:
-        item.snippet
-          ?.publishedAt ??
-        null,
-      videoUrl:
-        `https://www.youtube.com/embed/${item.id.videoId}`,
-    }));
+    .sort(
+      (
+        left: any,
+        right: any
+      ) =>
+        Number(
+          right.viewCount ??
+          0
+        ) -
+        Number(
+          left.viewCount ??
+          0
+        )
+    );
 }
