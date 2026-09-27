@@ -16,6 +16,7 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ProfileSetupRouteImport } from './routes/profile-setup'
 import { Route as PersonalSurveyRouteImport } from './routes/personal-survey'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as InspirationRouteImport } from './routes/inspiration'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as Explore_recommend_allRouteImport } from './routes/explore_recommend_all'
@@ -65,6 +66,11 @@ const PersonalSurveyRoute = PersonalSurveyRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InspirationRoute = InspirationRouteImport.update({
+  id: '/inspiration',
+  path: '/inspiration',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/explore_recommend_all': typeof Explore_recommend_allRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
+  '/inspiration': typeof InspirationRoute
   '/login': typeof LoginRoute
   '/personal-survey': typeof PersonalSurveyRoute
   '/profile-setup': typeof ProfileSetupRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/explore_recommend_all': typeof Explore_recommend_allRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
+  '/inspiration': typeof InspirationRoute
   '/login': typeof LoginRoute
   '/personal-survey': typeof PersonalSurveyRoute
   '/profile-setup': typeof ProfileSetupRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/explore_recommend_all': typeof Explore_recommend_allRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/home': typeof HomeRoute
+  '/inspiration': typeof InspirationRoute
   '/login': typeof LoginRoute
   '/personal-survey': typeof PersonalSurveyRoute
   '/profile-setup': typeof ProfileSetupRoute
@@ -228,6 +237,7 @@ export interface FileRouteTypes {
     | '/explore_recommend_all'
     | '/forgot-password'
     | '/home'
+    | '/inspiration'
     | '/login'
     | '/personal-survey'
     | '/profile-setup'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/explore_recommend_all'
     | '/forgot-password'
     | '/home'
+    | '/inspiration'
     | '/login'
     | '/personal-survey'
     | '/profile-setup'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/explore_recommend_all'
     | '/forgot-password'
     | '/home'
+    | '/inspiration'
     | '/login'
     | '/personal-survey'
     | '/profile-setup'
@@ -301,6 +313,7 @@ export interface RootRouteChildren {
   Explore_recommend_allRoute: typeof Explore_recommend_allRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   HomeRoute: typeof HomeRoute
+  InspirationRoute: typeof InspirationRoute
   LoginRoute: typeof LoginRoute
   PersonalSurveyRoute: typeof PersonalSurveyRoute
   ProfileSetupRoute: typeof ProfileSetupRoute
@@ -372,6 +385,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inspiration': {
+      id: '/inspiration'
+      path: '/inspiration'
+      fullPath: '/inspiration'
+      preLoaderRoute: typeof InspirationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forgot-password': {
@@ -485,6 +505,7 @@ const rootRouteChildren: RootRouteChildren = {
   Explore_recommend_allRoute: Explore_recommend_allRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   HomeRoute: HomeRoute,
+  InspirationRoute: InspirationRoute,
   LoginRoute: LoginRoute,
   PersonalSurveyRoute: PersonalSurveyRoute,
   ProfileSetupRoute: ProfileSetupRoute,
