@@ -40,6 +40,38 @@ function getModelIcon(model: string | null) {
     return null;
 }
 
+function isCompareChat(chat: any) {
+    return chat?.comparison_mode === true;
+}
+
+function CompareChatIcon() {
+    return (
+        <div
+            className="
+                mt-0.5
+                mr-2
+                flex
+                h-[20px]
+                w-[28px]
+                shrink-0
+                items-center
+                -space-x-1.5
+            "
+            title="Compare 3 AI"
+        >
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#7b3fb1] text-[8px] font-bold text-white">
+                1
+            </span>
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#6f456f] text-[8px] font-bold text-white">
+                2
+            </span>
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#57405e] text-[8px] font-bold text-white">
+                3
+            </span>
+        </div>
+    );
+}
+
 function getModelLabel(model: string | null) {
     if (!model) return "AI";
 
@@ -307,7 +339,9 @@ export default function Sidebar({
                         "
                     >
 
-                        {getModelIcon(chat.ai_model) ? (
+                        {isCompareChat(chat) ? (
+                            <CompareChatIcon />
+                        ) : getModelIcon(chat.ai_model) ? (
 
                             <img
                                 src={getModelIcon(chat.ai_model)!}
