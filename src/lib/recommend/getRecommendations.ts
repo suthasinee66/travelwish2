@@ -1,9 +1,17 @@
 import { supabase } from "@/lib/supabase";
+import {
+  buildDynamicUserVector,
+  cosineSimilarity,
+  loadLearnedPreferenceProfile,
+  normalizeTopicVector,
+  type LearnedPreferenceProfile,
+} from "./adaptivePreference";
 
 export const getRecommendations = async (
   pref: any,
   places?: any[],
   onReady?: (places: any[]) => void,
+  learnedOverride?: LearnedPreferenceProfile | null,
 ) => {
   if (!pref) return [];
 
@@ -73,6 +81,35 @@ export const getRecommendations = async (
       null,
       2
     )
+  );
+
+  const learnedPreference =
+    learnedOverride ??
+    await loadLearnedPreferenceProfile();
+
+  const {
+    vector: dynamicUserVector,
+    weights: dynamicWeights,
+  } =
+    buildDynamicUserVector(
+      pref,
+      learnedPreference
+    );
+
+  console.log(
+    "🧠 ADAPTIVE USER PROFILE:",
+    {
+      interactionCount:
+        learnedPreference
+          ?.interaction_count ??
+        0,
+      version:
+        learnedPreference
+          ?.version ??
+        0,
+      weights:
+        dynamicWeights,
+    }
   );
 
 
@@ -158,9 +195,29 @@ export const getRecommendations = async (
         }
 
 
+        const placeVector =
+          normalizeTopicVector(
+            place.topic_vector
+          );
+
+        const adaptiveSimilarity =
+          cosineSimilarity(
+            dynamicUserVector,
+            placeVector
+          );
+
+        const adaptiveScore =
+          adaptiveSimilarity * 6;
+
+        score += adaptiveScore;
+
         return {
           ...place,
           score,
+          adaptive_score:
+            adaptiveScore,
+          adaptive_similarity:
+            adaptiveSimilarity,
         };
 
       }
