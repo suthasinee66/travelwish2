@@ -49,6 +49,251 @@ const getAllDaysColor = (
     ALL_DAYS_COLORS.length
   ];
 
+const COMPARISON_MESSAGE_PREFIX =
+  "__TRAVELWISH_COMPARE_V1__";
+
+function getPlannerStopSignature(
+  plannerValue: unknown
+) {
+  let items: any[] = [];
+
+  try {
+    const parsed =
+      typeof plannerValue === "string"
+        ? JSON.parse(
+            plannerValue
+          )
+        : plannerValue;
+
+    items =
+      Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(
+            (parsed as any)
+              ?.selectedPlaces
+          )
+          ? (parsed as any)
+              .selectedPlaces
+          : [];
+  } catch {
+    items = [];
+  }
+
+  const result: string[] =
+    [];
+
+  items.forEach(
+    (item: any) => {
+      const day =
+        Number(
+          item?.day
+        ) || 0;
+
+      const placeId =
+        item?.place_id ??
+        item?.att_id;
+
+      if (placeId) {
+        result.push(
+          `${day}:place:${String(
+            placeId
+          )}`
+        );
+      }
+
+      if (
+        item?.restaurant_id
+      ) {
+        result.push(
+          `${day}:restaurant:${String(
+            item.restaurant_id
+          )}`
+        );
+      }
+    }
+  );
+
+  return result.join(
+    "|"
+  );
+}
+
+function getSavedTripStopSignature(
+  tripData: any
+) {
+  const result: string[] =
+    [];
+
+  (
+    tripData?.trip_days ??
+    []
+  )
+    .slice()
+    .sort(
+      (
+        a: any,
+        b: any
+      ) =>
+        Number(
+          a.day_number
+        ) -
+        Number(
+          b.day_number
+        )
+    )
+    .forEach(
+      (day: any) => {
+        (
+          day.trip_items ??
+          []
+        )
+          .slice()
+          .sort(
+            (
+              a: any,
+              b: any
+            ) =>
+              Number(
+                a.sort_order
+              ) -
+              Number(
+                b.sort_order
+              )
+          )
+          .forEach(
+            (item: any) => {
+              const dayNumber =
+                Number(
+                  day.day_number
+                ) || 0;
+
+              if (
+                item.item_type ===
+                "restaurant"
+              ) {
+                result.push(
+                  `${dayNumber}:restaurant:${String(
+                    item.restaurant_id
+                  )}`
+                );
+              } else {
+                result.push(
+                  `${dayNumber}:place:${String(
+                    item.att_id
+                  )}`
+                );
+              }
+            }
+          );
+      }
+    );
+
+  return result.join(
+    "|"
+  );
+}
+
+function resolveSourcePlanMarkdown(
+  content: unknown,
+  sourcePlannerJson: unknown,
+  tripData: any
+) {
+  if (
+    typeof content !==
+    "string"
+  ) {
+    return "";
+  }
+
+  if (
+    !content.startsWith(
+      COMPARISON_MESSAGE_PREFIX
+    )
+  ) {
+    return content;
+  }
+
+  try {
+    const payload =
+      JSON.parse(
+        content.slice(
+          COMPARISON_MESSAGE_PREFIX
+            .length
+        )
+      );
+
+    const variants =
+      payload?.variants &&
+      typeof payload.variants ===
+        "object"
+        ? Object.values(
+            payload.variants
+          ) as any[]
+        : [];
+
+    const savedSignature =
+      getSavedTripStopSignature(
+        tripData
+      );
+
+    const sourceSignature =
+      getPlannerStopSignature(
+        sourcePlannerJson
+      );
+
+    const matchedBySavedTrip =
+      variants.find(
+        variant =>
+          typeof variant?.text ===
+            "string" &&
+          savedSignature &&
+          getPlannerStopSignature(
+            variant
+              ?.plannerJson
+          ) ===
+            savedSignature
+      );
+
+    if (
+      matchedBySavedTrip?.text
+    ) {
+      return matchedBySavedTrip
+        .text;
+    }
+
+    const matchedBySourcePlanner =
+      variants.find(
+        variant =>
+          typeof variant?.text ===
+            "string" &&
+          sourceSignature &&
+          getPlannerStopSignature(
+            variant
+              ?.plannerJson
+          ) ===
+            sourceSignature
+      );
+
+    if (
+      matchedBySourcePlanner?.text
+    ) {
+      return matchedBySourcePlanner
+        .text;
+    }
+
+    return (
+      variants.find(
+        variant =>
+          typeof variant?.text ===
+          "string"
+      )?.text ??
+      ""
+    );
+  } catch {
+    return "";
+  }
+}
+
 
 export const Route = createFileRoute(
   "/trips_detail/$tripId"
@@ -268,7 +513,7 @@ function TripsDetail() {
           } = await supabase
             .from("chat_messages")
             .select(
-              "content, created_at"
+              "content, planner_json, created_at"
             )
             .eq(
               "session_id",
@@ -302,12 +547,13 @@ function TripsDetail() {
             );
           } else {
             setSourcePlanMarkdown(
-              typeof sourcePlannerMessage
-                ?.content ===
-                "string"
-                ? sourcePlannerMessage
-                    .content
-                : ""
+              resolveSourcePlanMarkdown(
+                sourcePlannerMessage
+                  ?.content,
+                sourcePlannerMessage
+                  ?.planner_json,
+                data
+              )
             );
           }
         }
@@ -2755,140 +3001,17 @@ const mapCenter = useMemo(() => {
   existingTripId={String(tripId)}
   existingTripTitle={trip?.title || ""}
   onExistingTripSaved={(title) => {
-    setTrip((prev: any) => {
-      if (!prev) {
-        return prev;
-      }
-
-      const nextTripDays =
-        (prev.trip_days ?? []).map(
-          (day: any) => {
-            const dayIndex =
-              Number(
-                day.day_number
-              ) - 1;
-
-            const routeItems =
-              liveRoutesByDay?.[
-                dayIndex
-              ];
-
-            if (
-              !Array.isArray(
-                routeItems
-              )
-            ) {
-              return day;
-            }
-
-            const byIdentity =
-              new Map(
-                routeItems.map(
-                  (
-                    routeItem: any,
-                    index: number
-                  ) => [
-                    routeItem.type ===
-                      "restaurant"
-                      ? `restaurant:${String(
-                          routeItem.restaurant_id
-                        )}`
-                      : `place:${String(
-                          routeItem.place_id
-                        )}`,
-                    {
-                      routeItem,
-                      index,
-                    },
-                  ]
-                )
-              );
-
-            return {
-              ...day,
-              trip_items:
-                (
-                  day.trip_items ??
-                  []
-                )
-                  .map(
-                    (
-                      savedItem: any
-                    ) => {
-                      const key =
-                        savedItem.item_type ===
-                          "restaurant"
-                          ? `restaurant:${String(
-                              savedItem.restaurant_id
-                            )}`
-                          : `place:${String(
-                              savedItem.att_id
-                            )}`;
-
-                      const match =
-                        byIdentity.get(
-                          key
-                        );
-
-                      if (!match) {
-                        return savedItem;
-                      }
-
-                      const startTime =
-                        match.routeItem
-                          .start_time ??
-                        null;
-
-                      const endTime =
-                        match.routeItem
-                          .end_time ??
-                        null;
-
-                      const cleanNotes =
-                        decodeTripItemNotes(
-                          savedItem.notes
-                        ).notes;
-
-                      return {
-                        ...savedItem,
-
-                        sort_order:
-                          match.index +
-                          1,
-
-                        duration_minutes:
-                          match.routeItem
-                            .scheduled_duration_minutes ??
-                          savedItem.duration_minutes,
-
-                        notes:
-                          cleanNotes,
-                      };
-                    }
-                  )
-                  .sort(
-                    (
-                      a: any,
-                      b: any
-                    ) =>
-                      Number(
-                        a.sort_order
-                      ) -
-                      Number(
-                        b.sort_order
-                      )
-                  ),
-            };
+    // Keep TripPlanPanel's live edited route intact after Update.
+    // Rebuilding trip_items here used the OLD parent snapshot and
+    // caused the panel to reset/reorder immediately after saving.
+    setTrip((prev: any) =>
+      prev
+        ? {
+            ...prev,
+            title,
           }
-        );
-
-      return {
-        ...prev,
-        title,
-        trip_days:
-          nextTripDays,
-      };
-    });
+        : prev
+    );
   }}
   onRouteChange={(routesByDay) => {
     setLiveRoutesByDay({
