@@ -1182,288 +1182,18 @@ if (!isGuest) {
     );
 }
 
-const trendResearchPrompt = `
-คุณคือ TravelWish Independent Discovery AI
-
-แนะนำสถานที่ 15 แห่งในจังหวัด ${tripData.province}
-จากข้อมูลผู้ใช้และข้อมูลสดจากเว็บ โดยคุณยังไม่เห็นผลจาก TDMC หรือ Recommendation Algorithm
-
-สถานที่อาจเป็นแลนด์มาร์ก คาเฟ่ ย่าน ตลาด จุดถ่ายรูป
-ธรรมชาติ วัฒนธรรม กิจกรรม หรือประสบการณ์ที่กำลังได้รับความนิยมในช่วงปัจจุบัน
-
-วันที่อ้างอิงปัจจุบัน:
-${new Date().toISOString().slice(0, 10)}
-
-USER PROFILE + PERSONALIZATION
-${JSON.stringify(userContext, null, 2)}
-
-CURRENT TRIP
-${JSON.stringify(tripData, null, 2)}
-
-กติกา:
-- เน้นข้อมูลล่าสุด โดยเฉพาะช่วงประมาณ 30-90 วันที่ผ่านมาเมื่อมีข้อมูล
-- มองหาสัญญาณจากบทความล่าสุด ข่าว travel/lifestyle แหล่งท่องเที่ยว
-  หรือหน้าเว็บที่สะท้อนความนิยมปัจจุบัน
-- ห้ามเรียกสถานที่ว่า viral/current trend ถ้าไม่มีสัญญาณปัจจุบันรองรับ
-- ต้องอยู่ในจังหวัด ${tripData.province}
-- เลือกเฉพาะสถานที่หรือประสบการณ์ที่มีชื่อจริงและตรวจสอบต่อกับ Google Places ได้
-- ให้ความสำคัญกับ trend ที่เข้ากับ preference/personality ของผู้ใช้
-- ไม่ต้องเลือกสถานที่เพียงเพราะดัง ถ้าไม่เข้ากับผู้ใช้
-- ต้องคืนสถานที่ 15 รายการตาม JSON schema
-- ห้ามอ้างอิงหรือเดาอันดับจาก TDMC เพราะรอบนี้คุณไม่ได้รับข้อมูล TDMC
-- หลีกเลี่ยงชื่อซ้ำภายใน 15 รายการ
-- ตอบตาม JSON schema เท่านั้น
-`;
-
-let liveTrendContext: any = {
-    province:
-        tripData.province,
-    researched_at:
-        new Date().toISOString(),
-    trends: []
-};
-
-try {
-    console.log(
-        "🔥 กำลังค้นหา CURRENT / VIRAL TRAVEL TRENDS..."
-    );
-
-    const trendRaw =
-        await generateWithSelectedModel(
-            selectedModel,
-            trendResearchPrompt,
-            {
-                responseMode:
-                    "trend_context"
-            }
-        );
-
-    const cleanedTrend =
-        trendRaw
-            .replace(
-                /^\`\`\`json\s*/i,
-                ""
-            )
-            .replace(
-                /^\`\`\`\s*/i,
-                ""
-            )
-            .replace(
-                /\`\`\`$/i,
-                ""
-            )
-            .trim();
-
-    const parsedTrend =
-        JSON.parse(
-            cleanedTrend
-        );
-
-    if (
-        parsedTrend &&
-        Array.isArray(
-            parsedTrend.trends
-        )
-    ) {
-        liveTrendContext = {
-            ...parsedTrend,
-            trends:
-                parsedTrend.trends
-                    .filter(
-                        (trend: any) =>
-                            trend &&
-                            trend.name
-                    )
-                    .slice(0, 15)
-        };
-    }
-
-    console.log(
-        "🔥 LIVE TREND CANDIDATES:",
-        liveTrendContext.trends
-    );
-} catch (error) {
-    console.warn(
-        "⚠️ LIVE TREND SEARCH FAILED — continue with TDMC:",
-        error
-    );
-}
-
-
-const aiDiscoveryProposals =
-    (
-        Array.isArray(
-            liveTrendContext.trends
-        )
-            ? liveTrendContext.trends
-            : []
-    )
-        .slice(0, 15)
-        .map(
-            (
-                trend: any,
-                index: number
-            ) => ({
-                key:
-                    `ai-discovery-${index + 1}`,
-
-                name_th:
-                    String(
-                        trend.name ?? ""
-                    ).trim(),
-
-                name_en:
-                    null,
-
-                detail_th:
-                    [
-                        trend.why_trending,
-                        trend.current_signal
-                    ]
-                        .filter(Boolean)
-                        .join(" • "),
-
-                category:
-                    trend.kind
-                        ? [String(trend.kind)]
-                        : [],
-
-                type:
-                    trend.kind ?? null,
-
-                highlight:
-                    trend.why_trending ?? null,
-
-                activity:
-                    null,
-
-                suitable_duration:
-                    null,
-
-                travel_type: [],
-
-                activities:
-                    Array.isArray(
-                        trend.best_for
-                    )
-                        ? trend.best_for
-                        : [],
-
-                atmosphere: [],
-
-                budget: [],
-
-                travel_companion: [],
-
-                personalization_reason:
-                    trend.why_trending ??
-                    "AI discovery candidate"
-            })
-        )
-        .filter(
-            (place: any) =>
-                place.name_th
-        );
-
-const resolvedAIDiscovery =
-    await resolveAIProposedPlaces(
-        aiDiscoveryProposals,
-        tripData.province,
-        selectedModel
-    );
-
-const aiDiscoveryCandidates =
-    aiDiscoveryProposals
-        .map(
-            (
-                proposal: any,
-                index: number
-            ) => {
-                const resolved =
-                    resolvedAIDiscovery.get(
-                        proposal.key
-                    );
-
-                if (
-                    !resolved?.att_id
-                ) {
-                    return null;
-                }
-
-                const trend =
-                    liveTrendContext
-                        .trends?.[
-                            index
-                        ];
-
-                return {
-                    source:
-                        "ai_discovery",
-
-                    ai_rank:
-                        index + 1,
-
-                    trend: {
-                        kind:
-                            trend?.kind ?? null,
-
-                        why_trending:
-                            trend?.why_trending ?? null,
-
-                        current_signal:
-                            trend?.current_signal ?? null,
-
-                        confidence:
-                            trend?.confidence ?? null,
-
-                        best_for:
-                            Array.isArray(
-                                trend?.best_for
-                            )
-                                ? trend.best_for
-                                : []
-                    },
-
-                    attraction: {
-                        id:
-                            String(
-                                resolved.att_id
-                            ),
-
-                        name_th:
-                            resolved.name_th,
-
-                        name_en:
-                            resolved.name_en ?? null,
-
-                        category:
-                            resolved.category ?? [],
-
-                        type:
-                            resolved.type ?? null,
-
-                        highlight:
-                            resolved.highlight ?? null,
-
-                        activity:
-                            resolved.activity ?? null,
-
-                        suitable_duration:
-                            resolved.suitable_duration ?? null,
-
-                        detail_th:
-                            resolved.detail_th ?? null
-                    },
-
-                    nearbyRestaurants: []
-                };
-            }
-        )
-        .filter(Boolean)
-        .slice(0, 15);
-
+// =========================================================
+// AI CALL BUDGET
+//
+// Planner ใช้ AI หลักเพียง 2 รอบต่อ model:
+// 1) Discovery + Final Selection JSON
+// 2) Final Markdown
+//
+// Google Places verification, TDMC ranking และ Route Optimization
+// ไม่ใช่ AI call.
+// =========================================================
 console.log(
-    `🤖 AI DISCOVERY VERIFIED = ${aiDiscoveryCandidates.length}/15`
+    "🧠 AI MAIN CALLS PER MODEL = 2 (planner_json + markdown)"
 );
 
 const ranked =
@@ -1553,16 +1283,16 @@ const plannerRanked =
                 : []
     }));
 
-const combinedCandidatePool = [
-    ...aiDiscoveryCandidates,
-    ...plannerRanked.map(
+const aiDiscoveryCandidates: any[] = [];
+
+const combinedCandidatePool =
+    plannerRanked.map(
         (candidate: any) => ({
             ...candidate,
             source:
                 "tdmc"
         })
-    )
-];
+    );
 
 console.log(
     "🧩 FINAL CANDIDATE POOL:",
@@ -1594,20 +1324,26 @@ const prompt = `
 เป้าหมายของคุณคือสร้าง Personalized Itinerary
 โดยใช้ข้อมูลผู้ใช้ทั้งหมดจริง ๆ ไม่ใช่แค่เลือกตาม ranking
 
-คุณจะได้รับ candidate จาก 2 ระบบที่ทำงานแยกจากกันก่อนหน้านี้:
-1. AI DISCOVERY 15 — AI รอบแรกหาโดยใช้ข้อมูลผู้ใช้ + ข้อมูลสดจากเว็บ โดยไม่เห็น TDMC
-2. TDMC TOP 30 — Recommendation Algorithm จัดอันดับจากฐานข้อมูลโดยไม่ใช้ผล AI Discovery
+รอบนี้เป็น AI รอบหลักที่ 1 จากทั้งหมด 2 รอบ
 
-รอบนี้คือ FINAL DECISION
-ให้พิจารณา candidate ทั้งสองชุดร่วมกันเพื่อสร้าง itinerary ที่เหมาะกับผู้ใช้ที่สุด
+ในคำตอบ JSON เดียว ให้ทำ 2 งานพร้อมกัน:
+1. DISCOVERY — เสนอ candidate ใหม่ได้สูงสุด 15 แห่งที่มีอยู่จริงในจังหวัด
+   ${tripData.province} และเหมาะกับผู้ใช้
+2. FINAL SELECTION — เลือก itinerary โดยใช้ทั้ง TDMC TOP 30
+   และ candidate ใหม่ที่คุณเสนอเอง
+
+ระบบจะนำ proposedNewPlaces ไปตรวจสอบกับ Google Places หลังคุณตอบ
+ดังนั้นสถานที่ใหม่ที่เลือกต้องอ้างด้วย proposed_place_key และมี
+fallback_place_id จาก TDMC เสมอ เผื่อสถานที่ใหม่ตรวจสอบไม่ผ่าน
 
 หลักสำคัญ:
-- เลือกได้เฉพาะสถานที่ที่อยู่ใน COMBINED CANDIDATE POOL เท่านั้น
-- ห้ามสร้างหรือเสนอ attraction ใหม่ที่อยู่นอก pool
-- AI Discovery ไม่ได้ชนะ TDMC อัตโนมัติเพราะเป็นกระแส
-- TDMC ไม่ได้ชนะ AI Discovery อัตโนมัติเพราะมี rank
+- TDMC เป็น candidate จากฐานข้อมูลที่เชื่อถือได้
+- คุณสามารถเสนอ attraction ใหม่ได้เมื่อช่วย personalization หรือ freshness จริง
+- สถานที่ใหม่ต้องเป็นสถานที่จริงและอยู่ในจังหวัด ${tripData.province}
+- อย่าสร้างสถานที่สมมติ
+- ไม่ต้องเพิ่มสถานที่ใหม่เพียงเพื่อให้ครบ 15 แห่ง
 - ให้ดู personalization, freshness, route, pace, budget และ companion ร่วมกัน
-- หลีกเลี่ยงสถานที่ซ้ำ แม้สถานที่เดียวกันจะปรากฏจากทั้งสองแหล่ง
+- หลีกเลี่ยงสถานที่ซ้ำ
 
 ห้ามตอบเป็นบทความ
 ห้ามเขียนเกริ่นนำ
@@ -1647,39 +1383,38 @@ ${JSON.stringify(tripData, null, 2)}
 - ต้องปรับ attraction / restaurant / route ให้เข้ากับที่พักที่ locked แทน
 
 ==================================================
-3. COMBINED CANDIDATE POOL — AI 15 + TDMC 30
+3. TDMC TOP 30 + IN-CALL AI DISCOVERY
 ==================================================
 
-AI DISCOVERY:
-- AI รอบแรกหา candidate ก่อนเห็น TDMC
-- ใช้ข้อมูลผู้ใช้ + current/viral signal จากเว็บ
-- source = "ai_discovery"
-
 TDMC:
-- มาจาก Recommendation Algorithm
-- tdmc rank ยิ่งน้อยยิ่งเป็น candidate ที่ algorithm ให้ความสำคัญ
+- มาจาก Recommendation Algorithm และฐานข้อมูล TravelWish
+- rank ยิ่งน้อยยิ่งเป็น candidate ที่ algorithm ให้ความสำคัญ
 - source = "tdmc"
 
-จำนวนเป้าหมาย:
-- AI Discovery = 15
-- TDMC = 30
-- รวมสูงสุด = 45 candidates
-
+TDMC CANDIDATES:
 ${JSON.stringify(combinedCandidatePool)}
 
+AI DISCOVERY ในรอบเดียวกัน:
+- คุณสามารถเสนอ proposedNewPlaces ได้สูงสุด 15 แห่ง
+- ต้องเป็นสถานที่จริงในจังหวัด ${tripData.province}
+- ใช้ key เช่น "new-place-1"
+- ถ้าเลือกสถานที่ใหม่นั้นใน selectedPlaces:
+  - source = "ai_external"
+  - place_id = null
+  - proposed_place_key = key ที่ตรงกับ proposedNewPlaces
+  - fallback_place_id = attraction.id จาก TDMC ที่ใช้แทนได้ถ้า verify ไม่ผ่าน
+- ถ้าเลือก TDMC:
+  - source = "tdmc"
+  - place_id = attraction.id
+  - proposed_place_key = null
+  - fallback_place_id = null
+
 กฎ FINAL SELECTION:
-- เลือก attraction ได้เฉพาะจากรายการด้านบน
-- source ใน selectedPlaces ต้องเป็น "ai_discovery" หรือ "tdmc"
-- place_id ต้องใช้ attraction.id ที่อยู่ใน candidate pool เท่านั้น
-- place_name ต้องตรงกับ attraction.name_th
-- proposed_place_key = null เสมอ
-- fallback_place_id = null เสมอ
-- ห้ามสร้าง attraction ใหม่ในรอบนี้
-- proposedNewPlaces ต้องเป็น [] เสมอ
-- หาก candidate AI Discovery ซ้ำกับ TDMC ให้เลือกเพียงครั้งเดียว
-- สามารถเลือกจาก AI Discovery มากกว่า 1 จุดได้หากเหมาะกับผู้ใช้จริง
-- ไม่จำเป็นต้องรักษาสัดส่วน 80/20 แบบเดิม
-- ให้ตัดสินจากคุณภาพของ candidate ทั้งหมดและข้อมูลผู้ใช้เป็นหลัก
+- ใช้ TDMC เป็นฐานที่เชื่อถือได้
+- ใช้ AI Discovery เฉพาะเมื่อเพิ่มความเหมาะสมหรือความสดใหม่ของแผนจริง
+- ห้ามสร้าง id เอง
+- สถานที่ AI external จะถูก Google Places verify หลังจบรอบนี้
+- ห้ามใช้สถานที่ซ้ำตลอดทริป
 
 ==================================================
 4. PERSONALIZATION RULES
@@ -1783,7 +1518,16 @@ ${JSON.stringify(combinedCandidatePool)}
 ตอบ JSON รูปแบบนี้เท่านั้น
 
 {
-  "proposedNewPlaces": [],
+  "proposedNewPlaces": [
+    {
+      "key": "new-place-1",
+      "name_th": "ชื่อสถานที่จริง",
+      "name_en": "English name if known",
+      "type": "ประเภทสถานที่",
+      "personalization_reason": "เหตุผลสั้น ๆ ว่าทำไมเหมาะกับผู้ใช้",
+      "trend_reason": "เหตุผลด้านความสดใหม่/ความน่าสนใจ ถ้ามี มิฉะนั้น null"
+    }
+  ],
   "proposedNewRestaurants": [
     {
       "key": "new-restaurant-1",
@@ -1827,9 +1571,9 @@ ${JSON.stringify(combinedCandidatePool)}
       "day": 1,
       "title": "ชื่อธีมของวัน",
       "period": "Afternoon",
-      "source": "ai_discovery",
-      "place_id": "attraction.id จาก AI Discovery candidate",
-      "place_name": "ชื่อสถานที่จาก AI Discovery",
+      "source": "ai_external",
+      "place_id": null,
+      "place_name": "ชื่อสถานที่ใหม่ที่เสนอ",
       "place_duration_minutes": 90,
       "place_activities": [
         "ทำกิจกรรมหลักของสถานที่",
@@ -1837,8 +1581,8 @@ ${JSON.stringify(combinedCandidatePool)}
       ],
       "place_activity_summary": "ทำกิจกรรมหลักและใช้เวลาสำรวจสถานที่",
       "place_notes": "เวลาเป็นระยะเวลาโดยประมาณ ไม่ใช่เวลานาฬิกาที่ fix",
-      "proposed_place_key": null,
-      "fallback_place_id": null,
+      "proposed_place_key": "new-place-1",
+      "fallback_place_id": "attraction.id จาก TDMC ที่ใช้สำรองได้",
       "restaurant_source": "ai_external",
       "restaurant_id": null,
       "restaurant_name": "ชื่อร้านอาหารใหม่",
@@ -1896,22 +1640,22 @@ start_time / end_time ไม่ต้องสร้างใน AI รอบน
 ==================================================
 
 source = "tdmc":
-- place_id ต้องมาจาก TDMC candidate ใน COMBINED CANDIDATE POOL
+- place_id ต้องมาจาก TDMC CANDIDATES
 - place_name ต้องตรงกับ attraction.name_th
 - proposed_place_key = null
 - fallback_place_id = null
 
-source = "ai_discovery":
-- place_id ต้องมาจาก AI Discovery candidate ที่ผ่าน Google Places verification แล้ว
-- place_name ต้องตรงกับ attraction.name_th
-- proposed_place_key = null
-- fallback_place_id = null
-
-ห้ามใช้ source = "ai_external" สำหรับ attraction ในรอบ Final Selection
-ห้ามเพิ่ม attraction ที่ไม่อยู่ใน COMBINED CANDIDATE POOL
+source = "ai_external":
+- place_id = null
+- proposed_place_key ต้องตรงกับ key ใน proposedNewPlaces
+- place_name ต้องตรงกับชื่อสถานที่จริงใน proposedNewPlaces
+- fallback_place_id ต้องเป็น attraction.id จาก TDMC CANDIDATES
+- ห้ามสร้าง id เอง
+- ระบบจะ verify ด้วย Google Places หลังจาก JSON รอบนี้เสร็จ
+- ถ้า verify ไม่ผ่าน ระบบจะใช้ fallback_place_id
 
 restaurant_source = "database":
-- restaurant_id ต้องมาจาก nearbyRestaurants ของสถานที่นั้น
+- restaurant_id ต้องมาจาก nearbyRestaurants เมื่อมีรายการให้ใช้
 - proposed_restaurant_key = null
 
 restaurant_source = "ai_external":
@@ -1921,7 +1665,7 @@ restaurant_source = "ai_external":
 
 fallback_place_id สำคัญมาก:
 ระบบจะใช้เมื่อไม่สามารถยืนยันสถานที่ใหม่ได้
-ดังนั้นต้องเลือกสถานที่สำรองจาก Top 30 ที่มีลักษณะใกล้เคียงกับจุดประสงค์ของสถานที่ใหม่
+ดังนั้นต้องเลือกสถานที่สำรองจาก TDMC ที่มีลักษณะใกล้เคียงกับจุดประสงค์ของสถานที่ใหม่
 
 ห้ามมีข้อความใด ๆ นอก JSON
 `
@@ -1936,9 +1680,8 @@ console.log("📦 ข้อมูลผู้ใช้");
 console.log(trip);
 
 console.log(
-    "📍 Combined candidates sent to final AI =",
-    combinedCandidatePool.length,
-    `(AI ${aiDiscoveryCandidates.length} + TDMC ${ranked.length})`
+    "📍 TDMC candidates sent to AI round 1 =",
+    combinedCandidatePool.length
 );
 
     console.log(
@@ -1965,6 +1708,10 @@ console.log("🔢 Estimated Input Tokens =", estimatedPromptTokens);
 );
 
 const start = performance.now();
+
+console.log(
+    `🧠 AI ROUND 1/2 [${selectedModel.toUpperCase()}]: discovery + planner JSON`
+);
 
 const raw = await generateWithSelectedModel(
     selectedModel,
@@ -2105,14 +1852,48 @@ try {
     );
 }
 
-const proposedNewPlaces: any[] = [];
+const proposedNewPlaces =
+    Array.isArray(
+        result.proposedNewPlaces
+    )
+        ? result.proposedNewPlaces
+            .filter(
+                (place: any) =>
+                    place &&
+                    place.key &&
+                    (
+                        place.name_th ||
+                        place.name
+                    )
+            )
+            .slice(
+                0,
+                15
+            )
+        : [];
 
 const proposedNewRestaurants =
     Array.isArray(
         result.proposedNewRestaurants
     )
         ? result.proposedNewRestaurants
+            .slice(
+                0,
+                15
+            )
         : [];
+
+console.log(
+    "🌐 VERIFY IN-CALL AI DISCOVERY:",
+    proposedNewPlaces.length
+);
+
+const resolvedAIPlaces =
+    await resolveAIProposedPlaces(
+        proposedNewPlaces,
+        tripData.province,
+        selectedModel
+    );
 
 const allowedCandidateIds =
     new Set(
@@ -2136,7 +1917,7 @@ const candidateById =
         )
     );
 
-const selectedFromPool =
+const selectedFromPlanner =
     (
         Array.isArray(
             result.selectedPlaces
@@ -2144,53 +1925,126 @@ const selectedFromPool =
             ? result.selectedPlaces
             : []
     )
-        .filter(
-            (item: any) =>
-                item?.place_id &&
-                allowedCandidateIds.has(
-                    String(
-                        item.place_id
-                    )
-                )
-        )
         .map(
             (item: any) => {
-                const id =
+                const directId =
+                    item?.place_id
+                        ? String(
+                            item.place_id
+                        )
+                        : null;
+
+                if (
+                    directId &&
+                    allowedCandidateIds.has(
+                        directId
+                    )
+                ) {
+                    const candidate =
+                        candidateById.get(
+                            directId
+                        );
+
+                    return {
+                        ...item,
+                        source:
+                            "tdmc",
+                        place_id:
+                            directId,
+                        place_name:
+                            candidate
+                                ?.attraction
+                                ?.name_th ??
+                            item.place_name,
+                        proposed_place_key:
+                            null,
+                        fallback_place_id:
+                            null
+                    };
+                }
+
+                const proposedKey =
                     String(
-                        item.place_id
-                    );
+                        item
+                            ?.proposed_place_key ??
+                        ""
+                    ).trim();
 
-                const candidate =
-                    candidateById.get(
-                        id
-                    );
+                if (proposedKey) {
+                    const resolved =
+                        resolvedAIPlaces.get(
+                            proposedKey
+                        );
 
-                return {
-                    ...item,
+                    if (
+                        resolved?.att_id
+                    ) {
+                        return {
+                            ...item,
+                            source:
+                                "ai_discovery",
+                            place_id:
+                                String(
+                                    resolved.att_id
+                                ),
+                            place_name:
+                                resolved.name_th ??
+                                item.place_name,
+                            proposed_place_key:
+                                proposedKey
+                        };
+                    }
 
-                    source:
-                        candidate?.source ===
-                            "ai_discovery"
-                            ? "ai_discovery"
-                            : "tdmc",
+                    const fallbackId =
+                        item?.fallback_place_id
+                            ? String(
+                                item
+                                    .fallback_place_id
+                            )
+                            : null;
 
-                    place_id:
-                        id,
+                    if (
+                        fallbackId &&
+                        allowedCandidateIds.has(
+                            fallbackId
+                        )
+                    ) {
+                        const fallbackCandidate =
+                            candidateById.get(
+                                fallbackId
+                            );
 
-                    place_name:
-                        candidate
-                            ?.attraction
-                            ?.name_th ??
-                        item.place_name,
+                        console.warn(
+                            "⚠️ AI PLACE VERIFY FAILED — USE TDMC FALLBACK:",
+                            {
+                                proposedKey,
+                                fallbackId
+                            }
+                        );
 
-                    proposed_place_key:
-                        null,
+                        return {
+                            ...item,
+                            source:
+                                "tdmc",
+                            place_id:
+                                fallbackId,
+                            place_name:
+                                fallbackCandidate
+                                    ?.attraction
+                                    ?.name_th ??
+                                item.place_name,
+                            proposed_place_key:
+                                null,
+                            fallback_place_id:
+                                null
+                        };
+                    }
+                }
 
-                    fallback_place_id:
-                        null
-                };
+                return null;
             }
-        );
+        )
+        .filter(Boolean);
 
 const clampDurationMinutes = (
     value: unknown,
@@ -2228,33 +2082,26 @@ const normalizeStringArray = (
         : [];
 
 const selectedWithActivityMetadata =
-    selectedFromPool.map(
+    selectedFromPlanner.map(
         (item: any) => ({
             ...item,
-
             place_duration_minutes:
                 clampDurationMinutes(
                     item.place_duration_minutes,
-                    Number(
-                        item.place_duration_minutes
-                    )
+                    90
                 ),
-
             place_activities:
                 normalizeStringArray(
                     item.place_activities
                 ),
-
             place_activity_summary:
                 String(
                     item.place_activity_summary
                 ).trim(),
-
             place_notes:
                 String(
                     item.place_notes
                 ).trim(),
-
             restaurant_period:
                 item.restaurant_id ||
                 item.proposed_restaurant_key
@@ -2263,18 +2110,14 @@ const selectedWithActivityMetadata =
                         "Lunch"
                     )
                     : null,
-
             restaurant_duration_minutes:
                 item.restaurant_id ||
                 item.proposed_restaurant_key
                     ? clampDurationMinutes(
                         item.restaurant_duration_minutes,
-                        Number(
-                            item.restaurant_duration_minutes
-                        )
+                        75
                     )
                     : null,
-
             restaurant_activities:
                 item.restaurant_id ||
                 item.proposed_restaurant_key
@@ -2282,7 +2125,6 @@ const selectedWithActivityMetadata =
                         item.restaurant_activities
                     )
                     : [],
-
             restaurant_activity_summary:
                 item.restaurant_id ||
                 item.proposed_restaurant_key
@@ -2294,7 +2136,6 @@ const selectedWithActivityMetadata =
                         null
                     )
                     : null,
-
             restaurant_notes:
                 item.restaurant_id ||
                 item.proposed_restaurant_key
@@ -2309,19 +2150,16 @@ const selectedWithActivityMetadata =
         })
     );
 
-const algorithmFirstSelectedPlaces =
-    selectedWithActivityMetadata;
-
 const resolvedAIRestaurants =
     await resolveAIProposedRestaurants(
         proposedNewRestaurants,
-        algorithmFirstSelectedPlaces,
+        selectedWithActivityMetadata,
         tripData.province,
         selectedModel
     );
 
 const selectedPlaces =
-    algorithmFirstSelectedPlaces.map(
+    selectedWithActivityMetadata.map(
         (item: any) => {
             if (
                 item?.restaurant_source !==
@@ -2347,21 +2185,17 @@ const selectedPlaces =
             ) {
                 return {
                     ...item,
-
                     restaurant_source:
                         "ai_verified",
-
                     restaurant_id:
                         String(
                             resolvedRestaurant
                                 .place_id
                         ),
-
                     restaurant_name:
                         resolvedRestaurant
                             .place_name_th ??
                         item.restaurant_name,
-
                     proposed_restaurant_key:
                         key
                 };
@@ -2369,16 +2203,12 @@ const selectedPlaces =
 
             return {
                 ...item,
-
                 restaurant_source:
                     "ai_unresolved",
-
                 restaurant_id:
                     null,
-
                 restaurant_name:
                     null,
-
                 proposed_restaurant_key:
                     key
             };
