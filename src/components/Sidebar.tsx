@@ -194,16 +194,6 @@ export default function Sidebar({
                 w-full
                 items-center
                 justify-center
-                rounded-[24px]
-                border
-                border-white/90
-                bg-white/88
-                px-3
-                py-2.5
-                shadow-[0_12px_32px_rgba(91,72,117,0.12)]
-                ring-1
-                ring-[#eadfeb]/70
-                backdrop-blur-xl
             "
         >
             <img
@@ -211,7 +201,7 @@ export default function Sidebar({
                 alt="TravelWish"
                 className="
                     h-auto
-                    max-h-[82px]
+                    max-h-[100px]
                     w-full
                     max-w-[205px]
                     object-contain

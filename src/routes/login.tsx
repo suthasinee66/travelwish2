@@ -249,11 +249,6 @@ function LoginPage() {
             to="/login"
             className="group flex items-center gap-3"
           >
-            <img
-              src={travelWishLogo}
-              alt="TravelWish"
-              className="h-auto max-h-[72px] w-[220px] rounded-[20px] border border-white/90 bg-white/90 px-3 py-2 object-contain ring-1 ring-[#eadfeb]/70 shadow-[0_10px_28px_rgba(91,72,117,0.12)] transition-transform duration-300 group-hover:scale-[1.015]"
-            />
           </Link>
 
           {/* REGISTER */}
@@ -354,11 +349,7 @@ function LoginPage() {
               <div className="mb-7 text-center">
                 {/* MOBILE LOGO */}
                 <div className="mb-5 flex justify-center lg:hidden">
-                  <img
-                    src={travelWishLogo}
-                    alt="TravelWish"
-                    className="h-auto max-h-[88px] w-[250px] rounded-[22px] border border-white/90 bg-white/95 px-3.5 py-2.5 object-contain ring-1 ring-[#eadfeb]/70 shadow-[0_12px_32px_rgba(91,72,117,0.14)]"
-                  />
+                  
                 </div>
 
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#c8a9d8]/15 px-3 py-1.5 text-xs font-bold text-[#725d80]">

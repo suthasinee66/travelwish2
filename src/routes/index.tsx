@@ -486,7 +486,7 @@ function Index() {
             <img
               src={travelWishLogo}
               alt="TravelWish"
-              className="h-auto max-h-[64px] w-[205px] rounded-[18px] border border-white/90 bg-white/90 px-3 py-2 object-contain object-left ring-1 ring-[#eadfeb]/60 shadow-[0_8px_24px_rgba(91,72,117,0.10)]"
+              className="h-auto max-h-[70px] w-[full px] "
             />
           </a>
 
@@ -1482,7 +1482,7 @@ function Index() {
                 <img
                   src={travelWishLogo}
                   alt="TravelWish"
-                  className="h-auto max-h-[76px] w-[235px] rounded-[20px] border border-white/90 bg-white/92 px-3.5 py-2.5 object-contain object-left ring-1 ring-[#eadfeb]/60 shadow-[0_10px_28px_rgba(91,72,117,0.10)]"
+                  className="h-auto max-h-[120px] w-[full px] "
                 />
               </div>
 
