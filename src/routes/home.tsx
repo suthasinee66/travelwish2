@@ -10012,6 +10012,22 @@ if (
   setSelectedModel(session.ai_model);
 }
 
+const sessionHasComparison =
+  session?.comparison_mode ===
+    true ||
+  data.some(
+    message =>
+      typeof message?.content ===
+        "string" &&
+      message.content.startsWith(
+        COMPARISON_MESSAGE_PREFIX
+      )
+  );
+
+setComparisonMode(
+  sessionHasComparison
+);
+
 const formatted = data.map((m) => {
   const comparison =
     decodeComparisonMessage(
@@ -10614,6 +10630,8 @@ const updateChatSessionTrip = async (
             trip,
           ai_model:
             selectedModel,
+          comparison_mode:
+            comparisonMode,
         }
       );
 
@@ -10640,6 +10658,10 @@ const updateChatSessionTrip = async (
       .update({
         title,
         trip_preferences: trip,
+        ai_model:
+          selectedModel,
+        comparison_mode:
+          comparisonMode,
       })
       .eq("id", sessionId)
       .select()
@@ -10696,6 +10718,8 @@ const ensureChatSession = async (
           tripToSave,
         aiModel:
           selectedModel,
+        comparisonMode:
+          comparisonMode,
       });
 
     setCurrentChatId(
@@ -10736,6 +10760,8 @@ const ensureChatSession = async (
       trip_preferences:
         tripToSave,
       ai_model: selectedModel,
+      comparison_mode:
+        comparisonMode,
     })
     .select()
     .single();
@@ -12093,8 +12119,71 @@ const handleSend = async () => {
 
 
       if (!error) {
+        const sessions =
+          data || [];
 
-        setChatSessions(data || []);
+        if (
+          sessions.length === 0
+        ) {
+          setChatSessions([]);
+          return;
+        }
+
+        const sessionIds =
+          sessions.map(
+            chat =>
+              String(chat.id)
+          );
+
+        const {
+          data:
+            comparisonMessages,
+        } =
+          await supabase
+            .from(
+              "chat_messages"
+            )
+            .select(
+              "session_id, content"
+            )
+            .in(
+              "session_id",
+              sessionIds
+            )
+            .like(
+              "content",
+              `${COMPARISON_MESSAGE_PREFIX}%`
+            );
+
+        const compareIds =
+          new Set(
+            (
+              comparisonMessages ??
+              []
+            ).map(
+              message =>
+                String(
+                  message.session_id
+                )
+            )
+          );
+
+        setChatSessions(
+          sessions.map(
+            chat => ({
+              ...chat,
+              comparison_mode:
+                chat
+                  .comparison_mode ===
+                  true ||
+                compareIds.has(
+                  String(
+                    chat.id
+                  )
+                ),
+            })
+          )
+        );
 
       }
 
@@ -13833,19 +13922,28 @@ hover:bg-gray-100
 
     {/* Send */}
     <button
+      type="button"
       onClick={handleSend}
+      aria-label="Send message"
       className="
-        h-8
-        w-8
+        h-9
+        w-9
         rounded-full
-        bg-foreground
-        text-background
+        bg-[#6f456f]
+        text-white
         flex
         items-center
         justify-center
+        shadow-[0_4px_12px_rgba(111,69,111,0.22)]
+        transition
+        hover:bg-[#5f395f]
+        active:scale-95
       "
     >
-      <ArrowUp className="h-4 w-4" />
+      <ArrowUp
+        className="h-4 w-4 text-white"
+        strokeWidth={2.5}
+      />
     </button>
 
   </div>
