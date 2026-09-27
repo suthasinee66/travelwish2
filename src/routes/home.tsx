@@ -14623,7 +14623,7 @@ hover:bg-gray-100
                 </div>
 
                 <p className="mt-1 text-[11px] leading-5 text-[#85798a]">
-                  ลองใช้ Pixinerary อีกแอปของเรา
+                  ลองใช้ Pixinerary 
                   อัปโหลดรูปภาพแล้วให้ AI ช่วยสร้างแผนการเดินทางจากรูปที่คุณมี
                 </p>
               </div>
