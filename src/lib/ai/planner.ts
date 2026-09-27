@@ -907,12 +907,26 @@ export async function loadAllRestaurants(province: string) {
  Main Planner
 */
 
+export type CreatePlannerOptions = {
+    persistResult?: boolean;
+    persistSession?: boolean;
+};
+
 export async function createPlanner(
     trip: TripPlanInput,
     chatId: string,
     userId: string,
-    selectedModel: AIModel = "gemini"
+    selectedModel: AIModel = "gemini",
+    options: CreatePlannerOptions = {}
 ) {
+
+    const persistResult =
+        options.persistResult ??
+        true;
+
+    const persistSession =
+        options.persistSession ??
+        true;
 
     console.log("==================================================");
     console.log("🚀 เริ่มสร้างแผนเที่ยว");
@@ -3435,6 +3449,7 @@ const finalTripData = {
 
 // บันทึก AI-recommended accommodation กลับเข้า chat session
 if (
+    persistSession &&
     !isGuest &&
     plannerAccommodation
 ) {
@@ -3674,7 +3689,10 @@ const plannerWithDayStartTimes =
     );
 
 
-if (!isGuest) {
+if (
+    persistResult &&
+    !isGuest
+) {
     console.log("💾 กำลังบันทึก planner ลง database...");
 
     const {
@@ -3704,7 +3722,9 @@ if (!isGuest) {
     }
 } else {
     console.log(
-        "👤 Guest planner: skip chat_messages persistence"
+        persistResult
+            ? "👤 Guest planner: skip chat_messages persistence"
+            : "🧪 Comparison planner: caller will persist result"
     );
 }
 
