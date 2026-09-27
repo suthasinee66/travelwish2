@@ -12,6 +12,8 @@ import {
   Users,
   Search,
   Map,
+  Trash2,
+  LoaderCircle,
 } from "lucide-react";
 
 export const Route = createFileRoute("/trips")({
@@ -26,6 +28,18 @@ function Trips() {
   const [trips, setTrips] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [
+    deleteTarget,
+    setDeleteTarget,
+  ] = useState<any | null>(
+    null
+  );
+  const [
+    deletingTripId,
+    setDeletingTripId,
+  ] = useState<string | null>(
+    null
+  );
 
   // ============================================================
   // LOAD TRIPS
@@ -138,6 +152,135 @@ async function createTrip() {
 
   loadTrips();
 }
+  // ============================================================
+  // DELETE TRIP
+  // ============================================================
+  async function deleteTrip(
+    tripId: string
+  ) {
+    if (
+      !user ||
+      deletingTripId
+    ) {
+      return;
+    }
+
+    setDeletingTripId(
+      tripId
+    );
+
+    try {
+      // โหลด trip_day ids ก่อน เพื่อให้ลบลูกออกได้ชัดเจน
+      // แม้ DB จะไม่ได้ตั้ง ON DELETE CASCADE ไว้
+      const {
+        data: tripDays,
+        error: daysError,
+      } = await supabase
+        .from("trip_days")
+        .select("id")
+        .eq(
+          "trip_id",
+          tripId
+        );
+
+      if (daysError) {
+        throw daysError;
+      }
+
+      const tripDayIds =
+        (tripDays ?? [])
+          .map(
+            (day: any) =>
+              day.id
+          )
+          .filter(Boolean);
+
+      if (
+        tripDayIds.length > 0
+      ) {
+        const {
+          error:
+            itemsDeleteError,
+        } = await supabase
+          .from("trip_items")
+          .delete()
+          .in(
+            "trip_day_id",
+            tripDayIds
+          );
+
+        if (
+          itemsDeleteError
+        ) {
+          throw itemsDeleteError;
+        }
+
+        const {
+          error:
+            daysDeleteError,
+        } = await supabase
+          .from("trip_days")
+          .delete()
+          .in(
+            "id",
+            tripDayIds
+          );
+
+        if (
+          daysDeleteError
+        ) {
+          throw daysDeleteError;
+        }
+      }
+
+      const {
+        error: tripDeleteError,
+      } = await supabase
+        .from("trips")
+        .delete()
+        .eq(
+          "id",
+          tripId
+        )
+        .eq(
+          "profile_id",
+          user.id
+        );
+
+      if (
+        tripDeleteError
+      ) {
+        throw tripDeleteError;
+      }
+
+      setTrips(
+        current =>
+          current.filter(
+            trip =>
+              String(
+                trip.id
+              ) !==
+              String(
+                tripId
+              )
+          )
+      );
+
+      setDeleteTarget(
+        null
+      );
+    } catch (error) {
+      console.error(
+        "❌ DELETE TRIP ERROR:",
+        error
+      );
+    } finally {
+      setDeletingTripId(
+        null
+      );
+    }
+  }
+
   // ============================================================
   // FORMAT DATE
   // ============================================================
@@ -475,6 +618,46 @@ function openTrip(tripId: string) {
                         "
                       />
 
+                      {/* DELETE */}
+                      <button
+                        type="button"
+                        aria-label="ลบทริป"
+                        title="ลบทริป"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(
+                            trip
+                          );
+                        }}
+                        className="
+                          absolute
+                          right-2
+                          top-2
+                          z-10
+                          flex
+                          h-8
+                          w-8
+                          items-center
+                          justify-center
+                          rounded-full
+                          border
+                          border-white/70
+                          bg-white/90
+                          text-red-500
+                          shadow-sm
+                          backdrop-blur
+                          transition
+                          hover:bg-red-50
+                          hover:text-red-600
+                          active:scale-95
+                        "
+                      >
+                        <Trash2
+                          size={15}
+                          strokeWidth={2.1}
+                        />
+                      </button>
+
                       {/* STOPS */}
 
                       <span
@@ -602,6 +785,191 @@ function openTrip(tripId: string) {
       {/* ======================================================
           CREATE TRIP MODAL
       ====================================================== */}
+
+      {deleteTarget && (
+        <div
+          className="
+            travel-modal-overlay
+            fixed
+            inset-0
+            z-[70]
+            flex
+            items-center
+            justify-center
+            bg-black/35
+            p-4
+          "
+          onClick={() => {
+            if (!deletingTripId) {
+              setDeleteTarget(
+                null
+              );
+            }
+          }}
+        >
+          <div
+            style={{
+              backgroundColor:
+                "#fffdfb",
+              opacity: 1,
+              backgroundImage:
+                "none",
+              backdropFilter:
+                "none",
+              WebkitBackdropFilter:
+                "none",
+            }}
+            className="
+              w-full
+              max-w-[390px]
+              rounded-[26px]
+              border
+              border-[#eadfeb]
+              bg-[#fffdfb]
+              p-6
+              text-center
+              shadow-[0_24px_70px_rgba(91,72,117,0.22)]
+            "
+            onClick={e =>
+              e.stopPropagation()
+            }
+          >
+            <div
+              className="
+                mx-auto
+                flex
+                h-14
+                w-14
+                items-center
+                justify-center
+                rounded-full
+                bg-red-50
+                text-red-500
+              "
+            >
+              <Trash2
+                size={24}
+                strokeWidth={2}
+              />
+            </div>
+
+            <h3 className="
+              mt-4
+              text-lg
+              font-bold
+              text-[#40364b]
+            ">
+              ลบทริปนี้?
+            </h3>
+
+            <p className="
+              mt-2
+              text-sm
+              leading-6
+              text-[#7f7285]
+            ">
+              {deleteTarget.title ||
+                "Untitled Trip"}
+            </p>
+
+            <p className="
+              mt-1
+              text-xs
+              leading-5
+              text-[#9a8da0]
+            ">
+              เมื่อลบแล้ว ข้อมูลแผนใน Trips จะถูกลบออกและไม่สามารถย้อนกลับได้
+            </p>
+
+            <div className="
+              mt-6
+              grid
+              grid-cols-2
+              gap-2
+            ">
+              <button
+                type="button"
+                disabled={
+                  Boolean(
+                    deletingTripId
+                  )
+                }
+                onClick={() =>
+                  setDeleteTarget(
+                    null
+                  )
+                }
+                className="
+                  min-h-11
+                  rounded-full
+                  border
+                  border-[#e3d8e6]
+                  bg-white
+                  px-4
+                  text-sm
+                  font-semibold
+                  text-[#66596b]
+                  transition
+                  hover:bg-[#faf7fb]
+                  disabled:opacity-50
+                "
+              >
+                ยกเลิก
+              </button>
+
+              <button
+                type="button"
+                disabled={
+                  Boolean(
+                    deletingTripId
+                  )
+                }
+                onClick={() =>
+                  void deleteTrip(
+                    String(
+                      deleteTarget.id
+                    )
+                  )
+                }
+                className="
+                  flex
+                  min-h-11
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-full
+                  bg-red-500
+                  px-4
+                  text-sm
+                  font-semibold
+                  text-white
+                  transition
+                  hover:bg-red-600
+                  disabled:cursor-not-allowed
+                  disabled:opacity-60
+                "
+              >
+                {deletingTripId ? (
+                  <>
+                    <LoaderCircle
+                      size={15}
+                      className="animate-spin"
+                    />
+                    กำลังลบ
+                  </>
+                ) : (
+                  <>
+                    <Trash2
+                      size={15}
+                    />
+                    ลบทริป
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showCreateModal && (
 
