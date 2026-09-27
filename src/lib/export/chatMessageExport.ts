@@ -817,7 +817,6 @@ export function buildChatMessageExportHtml(
     * {
       box-sizing: border-box;
       font-family:
-        Tahoma,
         "Noto Sans Thai",
         Arial,
         sans-serif;
@@ -830,7 +829,6 @@ export function buildChatMessageExportHtml(
       background: var(--page-gray);
       color: var(--ink);
       font-family:
-        Tahoma,
         "Noto Sans Thai",
         Arial,
         sans-serif;
@@ -1007,7 +1005,6 @@ export function buildChatMessageExportHtml(
       font-weight: 700;
       letter-spacing: .055em;
       font-family:
-        Tahoma,
         "Noto Sans Thai",
         Arial,
         sans-serif;
@@ -1100,7 +1097,6 @@ export function buildChatMessageExportHtml(
       color: #8f73a5;
       font-weight: 800;
       font-family:
-        Tahoma,
         "Noto Sans Thai",
         Arial,
         sans-serif;
