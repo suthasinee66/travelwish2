@@ -78,6 +78,15 @@ import {
   isGuestUser,
   type GuestPreferences,
 } from "@/lib/guest/guestPreferences";
+import {
+  appendGuestChatMessage,
+  createGuestChatSession,
+  getGuestChatSession,
+  isGuestChatId,
+  listGuestChatSessions,
+  updateGuestChatSession,
+  updateLatestGuestPlannerMessage,
+} from "@/lib/guest/guestChatStorage";
 import { THAI_REGIONS, normalizeThaiRegion } from "@/lib/travel/thaiRegions";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { useTravelStore } from "@/store/travelStore";
@@ -9601,35 +9610,71 @@ const aiModels = [
 
     console.log("LOAD CHAT:", chatId);
 
-    const { data, error } = await supabase
-      .from("chat_messages")
-      .select("*")
-      .eq(
-        "session_id",
-        chatId
-      )
-      .order(
-        "created_at",
-        {
-          ascending: true
-        }
-      );
+    let data: any[] = [];
+    let session: any = null;
 
+    if (isGuestChatId(chatId)) {
+      const guestSession =
+        getGuestChatSession(
+          chatId
+        );
 
-    if (error) {
-      console.error(error);
-      return;
+      if (!guestSession) {
+        console.warn(
+          "⚠️ ไม่พบ Guest chat ใน localStorage:",
+          chatId
+        );
+        return;
+      }
+
+      data =
+        guestSession.messages ?? [];
+
+      session =
+        guestSession;
+    } else {
+      const {
+        data: remoteMessages,
+        error,
+      } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .eq(
+          "session_id",
+          chatId
+        )
+        .order(
+          "created_at",
+          {
+            ascending: true
+          }
+        );
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      data =
+        remoteMessages ?? [];
+
+      const {
+        data: remoteSession,
+      } = await supabase
+        .from("chat_sessions")
+        .select(
+          "trip_preferences, ai_model"
+        )
+        .eq("id", chatId)
+        .single();
+
+      session =
+        remoteSession;
     }
+
     console.log(data);
 console.log(data?.[0]);
 console.log(data?.[0]?.planner_json);
-
-
-    const { data: session } = await supabase
-  .from("chat_sessions")
-  .select("trip_preferences, ai_model")
-  .eq("id", chatId)
-  .single();
 
 if (session?.trip_preferences) {
   let restoredTrip =
@@ -9747,16 +9792,30 @@ if (session?.trip_preferences) {
         currentChatId ||
         chatId
       ) {
-        await supabase
-          .from("chat_sessions")
-          .update({
-            trip_preferences:
-              restoredTrip,
-          })
-          .eq(
-            "id",
+        if (
+          isGuestChatId(
             chatId
+          )
+        ) {
+          updateGuestChatSession(
+            chatId,
+            {
+              trip_preferences:
+                restoredTrip,
+            }
           );
+        } else {
+          await supabase
+            .from("chat_sessions")
+            .update({
+              trip_preferences:
+                restoredTrip,
+            })
+            .eq(
+              "id",
+              chatId
+            );
+        }
       }
     }
   }
