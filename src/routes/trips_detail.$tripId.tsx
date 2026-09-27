@@ -2986,11 +2986,51 @@ const mapCenter = useMemo(() => {
       )}
 
       {selectedDayPlaces.map(
-        (item: any) => {
-          const key =
+        (
+          item: any,
+          markerIndex: number
+        ) => {
+          const markerEntityId =
             item.type === "restaurant"
-              ? `restaurant-${item.restaurant_id}-${item.day}`
-              : `place-${item.att_id}-${item.day}`;
+              ? (
+                  item.restaurant_id ??
+                  item.place_id ??
+                  item.id
+                )
+              : (
+                  item.place_id ??
+                  item.att_id ??
+                  item.id
+                );
+
+          // liveRoutesByDay มาจาก TripPlanPanel และใช้ place_id /
+          // restaurant_id เป็นหลัก แต่ข้อมูล saved trip บางชุดใช้ att_id / id
+          // ถ้าใช้ att_id อย่างเดียว key จะกลายเป็น "place-undefined-day"
+          // หลาย marker พร้อมกัน ทำให้ React reuse Google Marker ตัวเดิม
+          // และ label ค้างเป็นเลข 1 ซ้ำ ๆ เมื่อสลับวัน
+          const key = [
+            "trip-marker",
+            item.type ??
+              "place",
+            String(
+              markerEntityId ??
+              "unknown"
+            ),
+            String(
+              item.day ??
+              selectedDay
+            ),
+            String(
+              item.mapIndex ??
+              markerIndex + 1
+            ),
+            Number(
+              item.location?.latitude
+            ).toFixed(6),
+            Number(
+              item.location?.longitude
+            ).toFixed(6),
+          ].join("-");
 
           const markerColor =
             selectedDay === "all"
