@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
+import travelWishLogo from "@/assets/ai/logo.png";
 
 export const Route = createFileRoute("/auth/callback")({
   head: () => ({
@@ -320,19 +321,39 @@ function AuthCallbackPage() {
 
 function TravelWishLogo() {
   return (
-    <div className="flex items-center justify-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-[15px] bg-gradient-to-br from-[#b89bcb] via-[#d9a4c8] to-[#a9dce8] shadow-[0_8px_24px_rgba(91,72,117,0.18)]">
-        <Compass className="h-5 w-5 text-white" />
-      </div>
-
-      <div className="text-left">
-        <div className="text-[17px] font-extrabold tracking-tight text-[#302b43]">
-          TravelWish
-        </div>
-
-        <div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-[#8b8198]">
-          Personalized Travel
-        </div>
+    <div className="flex justify-center">
+      <div
+        className="
+          flex
+          min-h-[108px]
+          w-full
+          max-w-[320px]
+          items-center
+          justify-center
+          rounded-[26px]
+          border
+          border-white/95
+          bg-white/90
+          px-4
+          py-3
+          shadow-[0_14px_36px_rgba(91,72,117,0.13)]
+          ring-1
+          ring-[#eadfeb]/70
+          backdrop-blur-xl
+        "
+      >
+        <img
+          src={travelWishLogo}
+          alt="TravelWish"
+          className="
+            h-auto
+            max-h-[92px]
+            w-full
+            max-w-[285px]
+            object-contain
+            drop-shadow-[0_4px_10px_rgba(91,72,117,0.08)]
+          "
+        />
       </div>
     </div>
   );
