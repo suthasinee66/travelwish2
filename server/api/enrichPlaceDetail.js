@@ -34,6 +34,7 @@ const GOOGLE_FIELDS = [
   "rating",
   "userRatingCount",
   "priceLevel",
+  "priceRange",
   "businessStatus",
   "currentOpeningHours",
   "regularOpeningHours",
@@ -72,6 +73,118 @@ function photoUrls(place) {
         : null
     )
     .filter(Boolean);
+}
+
+function moneyAmount(
+  money
+) {
+  if (!money) {
+    return null;
+  }
+
+  const units =
+    Number(
+      money.units ??
+      0
+    );
+
+  const nanos =
+    Number(
+      money.nanos ??
+      0
+    );
+
+  if (
+    !Number.isFinite(units) ||
+    !Number.isFinite(nanos)
+  ) {
+    return null;
+  }
+
+  return (
+    units +
+    nanos / 1_000_000_000
+  );
+}
+
+function formatGoogleMoney(
+  money
+) {
+  const amount =
+    moneyAmount(money);
+
+  if (
+    amount == null ||
+    !Number.isFinite(amount)
+  ) {
+    return null;
+  }
+
+  const currency =
+    String(
+      money?.currencyCode ??
+      "THB"
+    )
+      .trim()
+      .toUpperCase();
+
+  try {
+    return new Intl.NumberFormat(
+      "th-TH",
+      {
+        style: "currency",
+        currency,
+        maximumFractionDigits:
+          0,
+      }
+    ).format(amount);
+  } catch {
+    return `${amount.toLocaleString("th-TH")} ${currency}`;
+  }
+}
+
+function liveAccommodationPriceLabel(
+  place
+) {
+  const start =
+    formatGoogleMoney(
+      place?.priceRange
+        ?.startPrice
+    );
+
+  const end =
+    formatGoogleMoney(
+      place?.priceRange
+        ?.endPrice
+    );
+
+  if (start && end) {
+    return `${start} – ${end}`;
+  }
+
+  if (start) {
+    return `เริ่มต้น ${start}`;
+  }
+
+  const labels = {
+    PRICE_LEVEL_FREE:
+      "ฟรี",
+    PRICE_LEVEL_INEXPENSIVE:
+      "ระดับราคาไม่แพง",
+    PRICE_LEVEL_MODERATE:
+      "ระดับราคาปานกลาง",
+    PRICE_LEVEL_EXPENSIVE:
+      "ระดับราคาสูง",
+    PRICE_LEVEL_VERY_EXPENSIVE:
+      "ระดับราคาสูงมาก",
+  };
+
+  return (
+    labels[
+      place?.priceLevel
+    ] ??
+    null
+  );
 }
 
 function googleMetadata(place) {
@@ -758,6 +871,13 @@ function buildPayload(
           ?.user_ratings_total ??
         null,
 
+      // ใช้ราคาจาก Google snapshot ปัจจุบันเท่านั้น
+      // ไม่ fallback ไป accom_price_name เก่าจาก dataset
+      accom_price_name:
+        liveAccommodationPriceLabel(
+          place
+        ),
+
       ...metadata,
 
       acc_updated_date:
@@ -1081,6 +1201,7 @@ router.post(
         google_place_id = null,
         name = null,
         province = null,
+        force_refresh = false,
       } = req.body ?? {};
 
       if (
@@ -1118,6 +1239,7 @@ router.post(
         );
 
       if (
+        !force_refresh &&
         existing &&
         hasCompleteGoogleSnapshot(
           existing,
