@@ -106,6 +106,9 @@ import {
   scheduleItineraryItems,
 } from "@/lib/itinerary/scheduler";
 import {
+  encodeTripItemNotes,
+} from "@/lib/itinerary/tripItemMetadata";
+import {
   detectTripPlanEdit,
   applyTripPlanEdit
 } from "@/lib/ai/tripEditor";
@@ -4170,6 +4173,7 @@ const saveTripToSupabase = async () => {
 
                     duration_minutes:
                       Number(
+                        item.scheduled_duration_minutes ??
                         item.place_duration_minutes ??
                         item.duration_minutes ??
                         90
@@ -4192,9 +4196,19 @@ const saveTripToSupabase = async () => {
                       null,
 
                     notes:
-                      item.place_notes ??
-                      item.notes ??
-                      null,
+                      encodeTripItemNotes(
+                        item.place_notes ??
+                        item.notes ??
+                        null,
+                        item.start_time ??
+                        null,
+                        item.end_time ??
+                        null,
+                        Boolean(
+                          item.manual_start_time ||
+                          item.manual_end_time
+                        )
+                      ),
                   });
                 }
 
@@ -4226,6 +4240,7 @@ const saveTripToSupabase = async () => {
 
                     duration_minutes:
                       Number(
+                        item.scheduled_duration_minutes ??
                         item.restaurant_duration_minutes ??
                         item.duration_minutes ??
                         75
@@ -4248,9 +4263,19 @@ const saveTripToSupabase = async () => {
                       null,
 
                     notes:
-                      item.restaurant_notes ??
-                      item.notes ??
-                      null,
+                      encodeTripItemNotes(
+                        item.restaurant_notes ??
+                        item.notes ??
+                        null,
+                        item.start_time ??
+                        null,
+                        item.end_time ??
+                        null,
+                        Boolean(
+                          item.manual_start_time ||
+                          item.manual_end_time
+                        )
+                      ),
                   });
                 }
 
@@ -5574,6 +5599,12 @@ const sensors = useSensors(
             manual_end_time:
               item.manual_end_time ??
               null,
+            saved_start_time:
+              item.saved_start_time ??
+              null,
+            saved_end_time:
+              item.saved_end_time ??
+              null,
           })),
 
         markdownTimes:
@@ -6804,11 +6835,13 @@ const scheduleRouteItemsWithTravelTime =
 
         const preferredStart =
           sourceItem.manual_start_time ??
+          sourceItem.saved_start_time ??
           sourceItem.markdown_start_time ??
           null;
 
         const preferredEnd =
           sourceItem.manual_end_time ??
+          sourceItem.saved_end_time ??
           sourceItem.markdown_end_time ??
           null;
 
@@ -6912,6 +6945,14 @@ const routeScheduleSignature =
 
               manualEnd:
                 item.manual_end_time ??
+                null,
+
+              savedStart:
+                item.saved_start_time ??
+                null,
+
+              savedEnd:
+                item.saved_end_time ??
                 null,
 
               markdownStart:
@@ -7048,6 +7089,14 @@ const allDaysScheduleSignature =
 
                   manualEnd:
                     item.manual_end_time ??
+                    null,
+
+                  savedStart:
+                    item.saved_start_time ??
+                    null,
+
+                  savedEnd:
+                    item.saved_end_time ??
                     null,
 
                   markdownStart:
