@@ -186,40 +186,38 @@ export default function Sidebar({
 
     const sidebarContent = <>
     {/* ================= HEADER ================= */}
-    <div className="px-5 py-4 flex items-center gap-3 shrink-0">
+    <div className="shrink-0 px-3 pb-3 pt-4">
         <div
             className="
                 flex
-                h-14
-                w-14
-                shrink-0
+                min-h-[96px]
+                w-full
                 items-center
                 justify-center
-                rounded-2xl
-                border-2
-                border-white
-                bg-white
-                p-1.5
+                rounded-[24px]
+                border
+                border-white/90
+                bg-white/88
+                px-3
+                py-2.5
+                shadow-[0_12px_32px_rgba(91,72,117,0.12)]
                 ring-1
-                ring-[#eadfeb]
-                shadow-[0_10px_28px_rgba(91,72,117,0.14)]
+                ring-[#eadfeb]/70
+                backdrop-blur-xl
             "
         >
             <img
                 src={travelWishLogo}
                 alt="TravelWish"
-                className="h-full w-full rounded-xl object-contain"
+                className="
+                    h-auto
+                    max-h-[82px]
+                    w-full
+                    max-w-[205px]
+                    object-contain
+                    drop-shadow-[0_3px_8px_rgba(91,72,117,0.08)]
+                "
             />
-        </div>
-
-        <div className="min-w-0">
-            <div className="truncate text-lg font-extrabold tracking-tight text-[#573d63]">
-                TravelWish
-            </div>
-
-            <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#8b7894]">
-                Your journey
-            </div>
         </div>
     </div>
 
