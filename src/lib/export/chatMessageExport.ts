@@ -507,219 +507,254 @@ export function buildChatMessageExportHtml(
         `
         : "";
 
-  const daySections =
-    dayNumbers
-      .map(
-        day => {
-          const dayStops =
-            stops.filter(
-              stop =>
-                stop.day ===
-                day
-            );
+  const daySectionByNumber =
+    new Map<
+      number,
+      string
+    >();
 
-          const dayTitle =
-            dayStops.find(
-              stop =>
-                stop.title
-            )?.title ??
-            `Day ${day}`;
+  dayNumbers.forEach(
+    day => {
+      const dayStops =
+        stops.filter(
+          stop =>
+            stop.day ===
+            day
+        );
 
-          const dayImages =
-            Array.from(
-              new Set(
-                dayStops
-                  .map(
-                    stop =>
-                      imageMap[
-                        `${stop.kind}:${String(
-                          stop.id ??
-                          ""
-                        )}`
-                      ]
-                  )
-                  .filter(
-                    (
-                      image
-                    ): image is string =>
-                      typeof image ===
-                        "string" &&
-                      image.trim()
-                        .length > 0
-                  )
-              )
-            )
-              .slice(
-                0,
-                4
-              );
+      const dayTitle =
+        dayStops.find(
+          stop =>
+            stop.title
+        )?.title ??
+        `Day ${day}`;
 
-          if (
-            dayImages.length ===
-              0 &&
-            firstImage
-          ) {
-            dayImages.push(
-              firstImage
-            );
-          }
-
-          const rows =
+      const dayImages =
+        Array.from(
+          new Set(
             dayStops
               .map(
-                stop => {
-                  const time =
-                    stop.startTime &&
-                    stop.endTime
-                      ? `${stop.startTime}–${stop.endTime}`
-                      : labelPeriod(
-                          stop.period
-                        );
-
-                  const activityDetail =
-                    stop.summary ??
-                    stop.activities[0] ??
-                    "";
-
-                  const activityText =
-                    activityDetail
-                      ? `${stop.name} — ${activityDetail}`
-                      : stop.name;
-
-                  const noteParts = [
-                    stop.notes,
-                    stop.duration
-                      ? `${stop.duration} นาที`
-                      : null,
-                    stop.travelMinutes
-                      ? `เดินทาง ${stop.travelMinutes} นาที`
-                      : null,
-                    stop.routeKm
-                      ? `${Number(
-                          stop.routeKm
-                        ).toFixed(
-                          1
-                        )} กม. จากจุดก่อนหน้า`
-                      : null,
+                stop =>
+                  imageMap[
+                    `${stop.kind}:${String(
+                      stop.id ??
+                      ""
+                    )}`
                   ]
-                    .filter(Boolean)
-                    .join(" · ");
-
-                  return `
-                    <tr>
-                      <td class="time-cell">
-                        ${escapeHtml(
-                          time
-                        )}
-                      </td>
-
-                      <td class="activity-cell">
-                        <strong>
-                          ${escapeHtml(
-                            stop.name
-                          )}
-                        </strong>
-
-                        ${
-                          activityDetail
-                            ? `
-                              <span>
-                                ${escapeHtml(
-                                  activityDetail
-                                )}
-                              </span>
-                            `
-                            : ""
-                        }
-                      </td>
-
-                      <td class="notes-cell">
-                        ${escapeHtml(
-                          noteParts
-                        )}
-                      </td>
-                    </tr>
-                  `;
-                }
               )
-              .join("");
+              .filter(
+                (
+                  image
+                ): image is string =>
+                  typeof image ===
+                    "string" &&
+                  image.trim()
+                    .length > 0
+              )
+          )
+        )
+          .slice(
+            0,
+            4
+          );
 
-          return `
-            <section class="day-card">
-              <div class="day-image">
-                ${
-                  dayImages.length >
-                  0
-                    ? `
-                      <div
-                        class="day-image-grid day-image-count-${dayImages.length}"
-                      >
-                        ${dayImages
-                          .map(
-                            (
-                              image,
-                              imageIndex
-                            ) => `
-                              <div
-                                class="day-image-item day-image-item-${imageIndex + 1}"
-                              >
-                                <img
-                                  src="${escapeHtml(
-                                    image
-                                  )}"
-                                  alt=""
-                                />
-                              </div>
-                            `
-                          )
-                          .join("")}
-                      </div>
-                    `
-                    : `
-                      <div class="image-placeholder">
-                        ${escapeHtml(
-                          destination
-                        )}
-                      </div>
-                    `
-                }
+      if (
+        dayImages.length ===
+          0 &&
+        firstImage
+      ) {
+        dayImages.push(
+          firstImage
+        );
+      }
 
-                <div class="day-badge">
-                  <span>DAY</span>
-                  <strong>
-                    ${formatDayNumber(
-                      day
+      const rows =
+        dayStops
+          .map(
+            stop => {
+              const time =
+                stop.startTime &&
+                stop.endTime
+                  ? `${stop.startTime}–${stop.endTime}`
+                  : labelPeriod(
+                      stop.period
+                    );
+
+              const activityDetail =
+                stop.summary ??
+                stop.activities[0] ??
+                "";
+
+              const noteParts = [
+                stop.notes,
+                stop.duration
+                  ? `${stop.duration} นาที`
+                  : null,
+                stop.travelMinutes
+                  ? `เดินทาง ${stop.travelMinutes} นาที`
+                  : null,
+                stop.routeKm
+                  ? `${Number(
+                      stop.routeKm
+                    ).toFixed(
+                      1
+                    )} กม. จากจุดก่อนหน้า`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ");
+
+              return `
+                <tr>
+                  <td class="time-cell">
+                    ${escapeHtml(
+                      time
                     )}
-                  </strong>
-                </div>
-              </div>
+                  </td>
 
-              <div class="day-table-wrap">
-                <div class="day-title">
-                  ${escapeHtml(
-                    dayTitle
+                  <td class="activity-cell">
+                    <strong>
+                      ${escapeHtml(
+                        stop.name
+                      )}
+                    </strong>
+
+                    ${
+                      activityDetail
+                        ? `
+                          <span>
+                            ${escapeHtml(
+                              activityDetail
+                            )}
+                          </span>
+                        `
+                        : ""
+                    }
+                  </td>
+
+                  <td class="notes-cell">
+                    ${escapeHtml(
+                      noteParts
+                    )}
+                  </td>
+                </tr>
+              `;
+            }
+          )
+          .join("");
+
+      daySectionByNumber.set(
+        day,
+        `
+          <section class="day-card">
+            <div class="day-image">
+              ${
+                dayImages.length >
+                0
+                  ? `
+                    <div
+                      class="day-image-grid day-image-count-${dayImages.length}"
+                    >
+                      ${dayImages
+                        .map(
+                          (
+                            image,
+                            imageIndex
+                          ) => `
+                            <div
+                              class="day-image-item day-image-item-${imageIndex + 1}"
+                            >
+                              <img
+                                src="${escapeHtml(
+                                  image
+                                )}"
+                                alt=""
+                              />
+                            </div>
+                          `
+                        )
+                        .join("")}
+                    </div>
+                  `
+                  : `
+                    <div class="image-placeholder">
+                      ${escapeHtml(
+                        destination
+                      )}
+                    </div>
+                  `
+              }
+
+              <div class="day-badge">
+                <span>DAY</span>
+                <strong>
+                  ${formatDayNumber(
+                    day
                   )}
-                </div>
-
-                <table>
-                  <thead>
-                    <tr>
-                      <th>TIME:</th>
-                      <th>ACTIVITY:</th>
-                      <th>NOTES:</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    ${rows}
-                  </tbody>
-                </table>
+                </strong>
               </div>
-            </section>
-          `;
-        }
+            </div>
+
+            <div class="day-table-wrap">
+              <div class="day-title">
+                ${escapeHtml(
+                  dayTitle
+                )}
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>TIME:</th>
+                    <th>ACTIVITY:</th>
+                    <th>NOTES:</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  ${rows}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        `
+      );
+    }
+  );
+
+  const pageDayGroups:
+    number[][] = [];
+
+  if (
+    dayNumbers.length <= 3
+  ) {
+    pageDayGroups.push(
+      dayNumbers
+    );
+  } else {
+    // หน้าแรกมี header จึงวาง 3 วัน
+    // หน้าต่อไปไม่มี hero header วาง 4 วันต่อหน้าเพื่อบาลานซ์ A4
+    pageDayGroups.push(
+      dayNumbers.slice(
+        0,
+        3
       )
-      .join("");
+    );
+
+    for (
+      let index = 3;
+      index <
+      dayNumbers.length;
+      index += 4
+    ) {
+      pageDayGroups.push(
+        dayNumbers.slice(
+          index,
+          index + 4
+        )
+      );
+    }
+  }
 
   const createdLabel =
     input.createdAt
@@ -782,6 +817,7 @@ export function buildChatMessageExportHtml(
     * {
       box-sizing: border-box;
       font-family:
+        Tahoma,
         "Noto Sans Thai",
         Arial,
         sans-serif;
@@ -794,6 +830,7 @@ export function buildChatMessageExportHtml(
       background: var(--page-gray);
       color: var(--ink);
       font-family:
+        Tahoma,
         "Noto Sans Thai",
         Arial,
         sans-serif;
@@ -970,6 +1007,7 @@ export function buildChatMessageExportHtml(
       font-weight: 700;
       letter-spacing: .055em;
       font-family:
+        Tahoma,
         "Noto Sans Thai",
         Arial,
         sans-serif;
@@ -1062,6 +1100,7 @@ export function buildChatMessageExportHtml(
       color: #8f73a5;
       font-weight: 800;
       font-family:
+        Tahoma,
         "Noto Sans Thai",
         Arial,
         sans-serif;
@@ -1565,6 +1604,257 @@ export function buildChatMessageExportHtml(
       font-size: 7.4px;
     }
 
+    .export-page {
+      position: relative;
+      width: min(
+        210mm,
+        calc(100vw - 40px)
+      );
+      min-height: 297mm;
+      margin:
+        0
+        auto
+        18px;
+      overflow: hidden;
+      padding:
+        10mm
+        10mm
+        8mm
+        16mm;
+      background:
+        radial-gradient(
+          circle
+            at
+            88%
+            2%,
+          transparent
+            0
+            78px,
+          rgba(
+            255,
+            255,
+            255,
+            .20
+          )
+            79px
+            82px,
+          transparent
+            83px
+        ),
+        linear-gradient(
+          135deg,
+          #8f73a5
+            0%,
+          #b89bcb
+            48%,
+          #a9dce8
+            100%
+        );
+      box-shadow:
+        0
+        28px
+        76px
+        rgba(
+          0,
+          0,
+          0,
+          .22
+        );
+    }
+
+    .export-page::before {
+      content: "";
+      position: absolute;
+      left: -100px;
+      top: -90px;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background:
+        linear-gradient(
+          145deg,
+          #e9a8c9,
+          #f7edbd
+        );
+      opacity: .96;
+    }
+
+    .export-page::after {
+      content: "";
+      position: absolute;
+      right: -130px;
+      bottom: -120px;
+      width: 340px;
+      height: 340px;
+      border-radius: 50%;
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          .035
+        );
+    }
+
+    .export-page .days {
+      position: relative;
+      z-index: 3;
+    }
+
+    .export-page--first .days {
+      margin-top: 5mm;
+      display: grid;
+      gap: 4mm;
+    }
+
+    .export-page--first.export-page--days-3 .days {
+      grid-template-rows:
+        repeat(
+          3,
+          minmax(0, 1fr)
+        );
+    }
+
+    .export-page--continuation {
+      display: grid;
+      grid-template-rows:
+        auto
+        minmax(0, 1fr)
+        auto;
+    }
+
+    .continuation-header {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 4mm;
+      padding:
+        0
+        1mm;
+      color: white;
+    }
+
+    .continuation-header strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: .02em;
+    }
+
+    .continuation-header span {
+      display: block;
+      margin-top: 1mm;
+      font-size: 9px;
+      opacity: .82;
+    }
+
+    .continuation-header .page-number {
+      font-size: 10px;
+      font-weight: 700;
+      opacity: .85;
+      white-space: nowrap;
+    }
+
+    .export-page--continuation .days {
+      min-height: 0;
+      margin-top: 0;
+      display: grid;
+      gap: 4mm;
+      grid-template-rows:
+        repeat(
+          4,
+          minmax(0, 1fr)
+        );
+    }
+
+    .export-page--continuation .day-card,
+    .export-page--first .day-card {
+      height: 100%;
+      min-height: 0;
+      grid-template-columns:
+        44mm
+        minmax(0, 1fr);
+      border-radius: 5mm;
+    }
+
+    .export-page--continuation .day-image,
+    .export-page--continuation .day-image-grid,
+    .export-page--continuation .image-placeholder,
+    .export-page--first .day-image,
+    .export-page--first .day-image-grid,
+    .export-page--first .image-placeholder {
+      height: 100%;
+      min-height: 0;
+    }
+
+    .export-page--continuation .day-image-grid,
+    .export-page--first .day-image-grid {
+      gap: 1mm;
+      padding: 1mm;
+    }
+
+    .export-page--continuation .day-image-item,
+    .export-page--first .day-image-item {
+      border-radius: 2mm;
+    }
+
+    .export-page--continuation .day-table-wrap,
+    .export-page--first .day-table-wrap {
+      padding:
+        3mm
+        3.4mm
+        2.8mm;
+      overflow: visible;
+    }
+
+    .export-page--continuation .day-title,
+    .export-page--first .day-title {
+      margin-bottom: 1.4mm;
+      font-size: 8.8px;
+      line-height: 1.25;
+    }
+
+    .export-page--continuation th,
+    .export-page--first th {
+      padding:
+        0
+        1.4mm
+        1.2mm;
+      font-size: 8.1px;
+      letter-spacing: .02em;
+    }
+
+    .export-page--continuation td,
+    .export-page--first td {
+      padding:
+        1.35mm
+        1.4mm;
+      font-size: 7.9px;
+      line-height: 1.26;
+    }
+
+    .export-page--continuation .activity-cell span,
+    .export-page--first .activity-cell span {
+      margin-top: .45mm;
+      font-size: 7px;
+      line-height: 1.22;
+    }
+
+    .export-page--continuation .notes-cell,
+    .export-page--first .notes-cell {
+      font-size: 7.25px;
+      line-height: 1.25;
+    }
+
+    .export-page--continuation .footer,
+    .export-page--first .footer {
+      margin-top: 3mm;
+      font-size: 7.4px;
+    }
+
     @media (
       max-width:
         760px
@@ -1581,7 +1871,8 @@ export function buildChatMessageExportHtml(
         width: auto;
       }
 
-      .sheet {
+      .sheet,
+      .export-page {
         width: 100%;
         min-height: 100vh;
         padding:
@@ -1650,6 +1941,45 @@ export function buildChatMessageExportHtml(
         display:
           none
           !important;
+      }
+
+      .export-page {
+        width: 210mm !important;
+        min-width: 210mm !important;
+        max-width: 210mm !important;
+        height: 297mm !important;
+        min-height: 297mm !important;
+        margin: 0 !important;
+        padding:
+          10mm
+          10mm
+          8mm
+          16mm !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        break-after: page;
+        page-break-after: always;
+        -webkit-print-color-adjust:
+          exact;
+        print-color-adjust:
+          exact;
+      }
+
+      .export-page:last-of-type {
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      .export-page .side-label {
+        display: block !important;
+        left: 4mm !important;
+        top: 145mm !important;
+        font-size: 9.5mm !important;
+      }
+
+      .export-page .day-card {
+        break-inside: avoid-page;
+        page-break-inside: avoid;
       }
 
       .sheet {
@@ -1868,74 +2198,139 @@ export function buildChatMessageExportHtml(
     </button>
   </div>
 
-  <main class="sheet${dayNumbers.length <= 3 ? " sheet--one-page" : ""} sheet--days-${dayNumbers.length}">
-    <div class="side-label">
-      ITINERARY PLAN
-    </div>
+  ${pageDayGroups
+    .map(
+      (
+        pageDays,
+        pageIndex
+      ) => {
+        const isFirstPage =
+          pageIndex === 0;
 
-    <section class="header-card">
-      <div class="header-image">
-        ${
-          firstImage
+        const pageDaysHtml =
+          pageDays
+            .map(
+              day =>
+                daySectionByNumber.get(
+                  day
+                ) ??
+                ""
+            )
+            .join("");
+
+        const firstPageHeader =
+          isFirstPage
             ? `
-              <img
-                src="${escapeHtml(
-                  firstImage
-                )}"
-                alt=""
-              />
+              <section class="header-card">
+                <div class="header-image">
+                  ${
+                    firstImage
+                      ? `
+                        <img
+                          src="${escapeHtml(
+                            firstImage
+                          )}"
+                          alt=""
+                        />
+                      `
+                      : `
+                        <div class="header-placeholder">
+                          TRAVEL
+                        </div>
+                      `
+                  }
+                </div>
+
+                <div class="header-copy">
+                  <h1>
+                    <span>TRAVEL</span>
+                    ITINERARY
+                  </h1>
+
+                  <div class="trip-length">
+                    ${escapeHtml(
+                      tripLengthLabel
+                    )}
+                  </div>
+
+                  <div class="header-line"></div>
+
+                  <div class="trip-title">
+                    ${escapeHtml(
+                      title
+                    )}
+                  </div>
+
+                  ${dateMeta}
+                </div>
+              </section>
             `
             : `
-              <div class="header-placeholder">
-                TRAVEL
+              <div class="continuation-header">
+                <div>
+                  <strong>
+                    TRAVEL ITINERARY
+                  </strong>
+                  <span>
+                    ${escapeHtml(
+                      destination
+                    )}
+                    ·
+                    DAY ${formatDayNumber(
+                      pageDays[0]
+                    )}
+                    – DAY ${formatDayNumber(
+                      pageDays[
+                        pageDays.length -
+                        1
+                      ]
+                    )}
+                  </span>
+                </div>
+
+                <div class="page-number">
+                  PAGE ${pageIndex + 1}
+                  / ${pageDayGroups.length}
+                </div>
               </div>
-            `
-        }
-      </div>
+            `;
 
-      <div class="header-copy">
-        <h1>
-          <span>TRAVEL</span>
-          ITINERARY
-        </h1>
+        return `
+          <main
+            class="export-page ${
+              isFirstPage
+                ? `export-page--first export-page--days-${pageDays.length}`
+                : "export-page--continuation"
+            }"
+          >
+            <div class="side-label">
+              ITINERARY PLAN
+            </div>
 
-        <div class="trip-length">
-          ${escapeHtml(
-            tripLengthLabel
-          )}
-        </div>
+            ${firstPageHeader}
 
-        <div class="header-line"></div>
+            <div class="days">
+              ${pageDaysHtml}
+            </div>
 
-        <div class="trip-title">
-          ${escapeHtml(
-            title
-          )}
-        </div>
+            <footer class="footer">
+              <span>
+                TravelWish ·
+                ${escapeHtml(
+                  destination
+                )}
+              </span>
 
-        ${dateMeta}
-      </div>
-    </section>
-
-    <div class="days">
-      ${daySections}
-    </div>
-
-    <footer class="footer">
-      <span>
-        TravelWish ·
-        ${escapeHtml(
-          destination
-        )}
-      </span>
-
-      <span>
-        ${escapeHtml(
-          createdLabel
-        )}
-      </span>
-    </footer>
-  </main>
-</body>
+              <span>
+                ${escapeHtml(
+                  createdLabel
+                )}
+              </span>
+            </footer>
+          </main>
+        `;
+      }
+    )
+    .join("")}</body>
 </html>`;
 }
