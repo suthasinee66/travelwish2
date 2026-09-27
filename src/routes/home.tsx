@@ -157,6 +157,87 @@ export const Route = createFileRoute("/home")({
   component: Home,
 });
 
+type ComparisonModel =
+  | "gemini"
+  | "gpt"
+  | "claude";
+
+type ComparisonVariant = {
+  text: string;
+  plannerJson?: any[] | null;
+  error?: string | null;
+};
+
+type ComparisonVariants =
+  Partial<
+    Record<
+      ComparisonModel,
+      ComparisonVariant
+    >
+  >;
+
+const COMPARISON_MESSAGE_PREFIX =
+  "__TRAVELWISH_COMPARE_V1__";
+
+function encodeComparisonMessage(
+  variants: ComparisonVariants
+) {
+  return (
+    COMPARISON_MESSAGE_PREFIX +
+    JSON.stringify({
+      variants,
+    })
+  );
+}
+
+function decodeComparisonMessage(
+  content: unknown
+): ComparisonVariants | null {
+  if (
+    typeof content !== "string" ||
+    !content.startsWith(
+      COMPARISON_MESSAGE_PREFIX
+    )
+  ) {
+    return null;
+  }
+
+  try {
+    const payload =
+      JSON.parse(
+        content.slice(
+          COMPARISON_MESSAGE_PREFIX
+            .length
+        )
+      );
+
+    if (
+      !payload?.variants ||
+      typeof payload.variants !==
+        "object"
+    ) {
+      return null;
+    }
+
+    return payload.variants;
+  } catch {
+    return null;
+  }
+}
+
+function comparisonTextForModel(
+  message: any,
+  model: ComparisonModel
+) {
+  return (
+    message?.comparison?.[
+      model
+    ]?.text ??
+    message?.text ??
+    ""
+  );
+}
+
 function renderMarkdownBreaks(
   children: React.ReactNode
 ) {
@@ -9276,7 +9357,8 @@ function Home() {
   const inspireScrollRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
-  const [selectedModel, setSelectedModel] = useState<"gemini" | "gpt" | "claude">("gemini");
+  const [selectedModel, setSelectedModel] = useState<ComparisonModel>("gemini");
+  const [comparisonMode, setComparisonMode] = useState(true);
   const [showModelMenu, setShowModelMenu] = useState(false);
   const [plan, setPlan] = useState<any>(null);
   const [hasChatStarted, setHasChatStarted] = useState(false);
