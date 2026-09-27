@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Children, Fragment, useEffect, useState, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { getRecommendations } from "@/lib/recommend/getRecommendations";
 import { getRecommendations as getInspireVideos } from "@/lib/inspire/getRecommendations";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -8483,26 +8484,6 @@ mapCenter;
           : getDefaultTripTitle()
       );
 
-      const panelContent =
-        document.querySelector(
-          ".travel-panel-content"
-        );
-
-      if (
-        panelContent instanceof
-        HTMLElement
-      ) {
-        panelContent.scrollTo({
-          top: 0,
-          behavior: "smooth",
-        });
-      }
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-
       setShowSaveTripModal(true);
     }}
     className="travel-save-button px-6 py-2.5 rounded-xl font-semibold transition-all duration-200"
@@ -8515,13 +8496,16 @@ mapCenter;
 
 
       </div>
-{showSaveTripModal && (
+{showSaveTripModal &&
+  typeof document !== "undefined" &&
+  createPortal(
+    (
   <div
     className="
       travel-modal-overlay
       fixed
       inset-0
-      z-[100]
+      z-[500]
       bg-black/40
       flex
       items-center
@@ -8552,6 +8536,8 @@ mapCenter;
         p-6
         w-full
         max-w-md
+        max-h-[calc(100dvh-2rem)]
+        overflow-y-auto
         shadow-[0_24px_70px_rgba(91,72,117,0.22)]
       "
       onClick={(e) => e.stopPropagation()}
@@ -8642,7 +8628,10 @@ mapCenter;
 
     </div>
   </div>
-)}
+),
+    document.body
+  )
+}
 
 {appAlert && (
   <div
