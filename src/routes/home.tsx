@@ -10498,6 +10498,58 @@ const ensureChatSession = async (
 
   return data.id;
 };
+const persistChatMessage = async (
+  sessionId: string,
+  role: "user" | "ai",
+  content: string,
+  plannerJson?: any[] | null
+) => {
+  if (
+    isGuestUser(user) ||
+    isGuestChatId(sessionId)
+  ) {
+    appendGuestChatMessage(
+      sessionId,
+      {
+        userId:
+          user?.id ??
+          null,
+        role,
+        content,
+        plannerJson:
+          plannerJson ??
+          null,
+      }
+    );
+
+    return {
+      error: null,
+    };
+  }
+
+  const {
+    error,
+  } =
+    await supabase
+      .from("chat_messages")
+      .insert({
+        session_id:
+          sessionId,
+        user_id:
+          user?.id ??
+          null,
+        role,
+        content,
+        planner_json:
+          plannerJson ??
+          null,
+      });
+
+  return {
+    error,
+  };
+};
+
 const extractAccommodationUrlFromMessage = (
   message: string
 ) => {
@@ -10747,14 +10799,11 @@ const handleSend = async () => {
       { role: "user", text }
     ]);
 
-    await supabase
-      .from("chat_messages")
-      .insert({
-        session_id: chatId,
-        user_id: user.id,
-        role: "user",
-        content: text
-      });
+    await persistChatMessage(
+      chatId,
+      "user",
+      text
+    );
 
     // ให้ AI วิเคราะห์คำตอบ เช่น
     // "โอเค" → CREATE_PLAN
@@ -10821,6 +10870,23 @@ const handleSend = async () => {
             text: result.markdown
           }
         ]);
+
+        if (
+          isGuestUser(user) ||
+          isGuestChatId(chatId)
+        ) {
+          await persistChatMessage(
+            chatId,
+            "ai",
+            result.markdown,
+            result.planner_json
+          );
+
+          await updateChatSessionTrip(
+            chatId,
+            plannedTrip
+          );
+        }
       } catch (err) {
         console.error(
           "❌ CREATE PLANNER ERROR:",
@@ -10855,14 +10921,11 @@ const handleSend = async () => {
         }
       ]);
 
-      await supabase
-        .from("chat_messages")
-        .insert({
-          session_id: chatId,
-          user_id: user.id,
-          role: "ai",
-          content: reply
-        });
+      await persistChatMessage(
+      chatId,
+      "ai",
+      reply
+    );
 
       return;
     }
@@ -10908,14 +10971,11 @@ const handleSend = async () => {
           }
         ]);
 
-        await supabase
-          .from("chat_messages")
-          .insert({
-            session_id: chatId,
-            user_id: user.id,
-            role: "ai",
-            content: aiText
-          });
+        await persistChatMessage(
+      chatId,
+      "ai",
+      aiText
+    );
       } catch (error) {
         console.error(
           "❌ GENERAL CHAT ERROR:",
@@ -10968,14 +11028,11 @@ const handleSend = async () => {
           }
         ]);
 
-        await supabase
-          .from("chat_messages")
-          .insert({
-            session_id: chatId,
-            user_id: user.id,
-            role: "user",
-            content: text
-          });
+        await persistChatMessage(
+      chatId,
+      "user",
+      text
+    );
 
         try {
           const editResult =
@@ -11007,16 +11064,12 @@ const handleSend = async () => {
 
           const {
             error: saveEditError
-          } = await supabase
-            .from("chat_messages")
-            .insert({
-              session_id: chatId,
-              user_id: user.id,
-              role: "ai",
-              content: editResult.reply,
-              planner_json:
-                editResult.plannerJson
-            });
+          } = await persistChatMessage(
+            chatId,
+            "ai",
+            editResult.reply,
+            editResult.plannerJson
+          );
 
           if (saveEditError) {
             console.error(
@@ -11043,14 +11096,11 @@ const handleSend = async () => {
             }
           ]);
 
-          await supabase
-            .from("chat_messages")
-            .insert({
-              session_id: chatId,
-              user_id: user.id,
-              role: "ai",
-              content: fallbackReply
-            });
+          await persistChatMessage(
+      chatId,
+      "ai",
+      fallbackReply
+    );
 
           return;
         }
@@ -11175,14 +11225,11 @@ const handleSend = async () => {
       { role: "user", text }
     ]);
 
-    await supabase
-      .from("chat_messages")
-      .insert({
-        session_id: chatId,
-        user_id: user.id,
-        role: "user",
-        content: text
-      });
+    await persistChatMessage(
+      chatId,
+      "user",
+      text
+    );
 
     // จังหวัดเป็นข้อมูลเดียวที่จำเป็นสำหรับ query สถานที่
     if (!updatedTrip.province) {
@@ -11195,14 +11242,11 @@ const handleSend = async () => {
         { role: "ai", text: reply }
       ]);
 
-      await supabase
-        .from("chat_messages")
-        .insert({
-          session_id: chatId,
-          user_id: user.id,
-          role: "ai",
-          content: reply
-        });
+      await persistChatMessage(
+      chatId,
+      "ai",
+      reply
+    );
 
       return;
     }
@@ -11239,14 +11283,11 @@ const handleSend = async () => {
       { role: "ai", text: reply }
     ]);
 
-    await supabase
-      .from("chat_messages")
-      .insert({
-        session_id: chatId,
-        user_id: user.id,
-        role: "ai",
-        content: reply
-      });
+    await persistChatMessage(
+      chatId,
+      "ai",
+      reply
+    );
 
     return;
   }
@@ -11266,14 +11307,11 @@ const handleSend = async () => {
     userMessage
   ]);
 
-  await supabase
-    .from("chat_messages")
-    .insert({
-      session_id: chatId,
-      user_id: user.id,
-      role: "user",
-      content: text
-    });
+  await persistChatMessage(
+      chatId,
+      "user",
+      text
+    );
 
   setMessages(prev => [
     ...prev,
@@ -11301,14 +11339,11 @@ const handleSend = async () => {
       }
     ]);
 
-    await supabase
-      .from("chat_messages")
-      .insert({
-        session_id: chatId,
-        user_id: user.id,
-        role: "ai",
-        content: aiText
-      });
+    await persistChatMessage(
+      chatId,
+      "ai",
+      aiText
+    );
   } catch (error) {
     console.error(
       "❌ GENERAL CHAT AI ERROR:",
