@@ -54,6 +54,89 @@ function cleanText(value) {
   return text || null;
 }
 
+function normalizeProvinceName(value) {
+  let text =
+    String(value ?? "")
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/จังหวัด/g, "")
+      .replace(/^จ\.?\s*/g, "")
+      .replace(/\s+/g, "")
+      .replace(/[().,\-_/]/g, "")
+      .trim();
+
+  const aliases = {
+    "กรุงเทพ": "กรุงเทพมหานคร",
+    "กรุงเทพฯ": "กรุงเทพมหานคร",
+    "bangkok": "กรุงเทพมหานคร",
+    "bangkokmetropolitanadministration": "กรุงเทพมหานคร",
+    "bkk": "กรุงเทพมหานคร",
+  };
+
+  return aliases[text] ?? text;
+}
+
+function googleProvince(place) {
+  const components =
+    Array.isArray(
+      place?.addressComponents
+    )
+      ? place.addressComponents
+      : [];
+
+  const component =
+    components.find(
+      item =>
+        Array.isArray(
+          item?.types
+        ) &&
+        item.types.includes(
+          "administrative_area_level_1"
+        )
+    );
+
+  return (
+    component?.longText ??
+    component?.shortText ??
+    null
+  );
+}
+
+function placeMatchesProvince(
+  place,
+  province
+) {
+  const target =
+    normalizeProvinceName(
+      province
+    );
+
+  if (!target) {
+    return true;
+  }
+
+  const actual =
+    normalizeProvinceName(
+      googleProvince(place)
+    );
+
+  if (actual) {
+    return actual === target;
+  }
+
+  const address =
+    normalizeProvinceName(
+      place?.formattedAddress
+    );
+
+  return Boolean(
+    address &&
+    address.includes(
+      target
+    )
+  );
+}
+
 function photoUrls(place) {
   if (
     !GOOGLE_PLACES_API_KEY ||
@@ -362,6 +445,20 @@ async function searchPlace(
 
   return places
     .map((place) => {
+      if (
+        province &&
+        !placeMatchesProvince(
+          place,
+          province
+        )
+      ) {
+        return {
+          place,
+          score:
+            Number.NEGATIVE_INFINITY,
+        };
+      }
+
       const title =
         String(
           place?.displayName?.text ??
@@ -1082,6 +1179,62 @@ router.post(
           );
       }
 
+      if (
+        place?.id &&
+        resolvedProvince &&
+        !placeMatchesProvince(
+          place,
+          resolvedProvince
+        )
+      ) {
+        console.warn(
+          "🚫 REFRESH PLACE OUTSIDE PROVINCE:",
+          {
+            type,
+            id:
+              existing?.[
+                config.primaryKey
+              ] ??
+              id,
+            name:
+              resolvedName,
+            requestedProvince:
+              resolvedProvince,
+            googleProvince:
+              googleProvince(
+                place
+              ),
+            latitude:
+              place?.location?.latitude ??
+              null,
+            longitude:
+              place?.location?.longitude ??
+              null,
+          }
+        );
+
+        return res
+          .status(422)
+          .json({
+            error:
+              "Google Places คืนพิกัดที่อยู่นอกจังหวัดของรายการ",
+            code:
+              "PLACE_OUTSIDE_PROVINCE",
+            requestedProvince:
+              resolvedProvince,
+            googleProvince:
+              googleProvince(
+                place
+              ),
+            latitude:
+              place?.location?.latitude ??
+              null,
+            longitude:
+              place?.location?.longitude ??
+              null,
+          });
+      }
+
       const latitude =
         Number(
           place?.location?.latitude
@@ -1456,6 +1609,61 @@ router.post(
           .json({
             error:
               "ไม่พบข้อมูล Google Places สำหรับรายการนี้",
+          });
+      }
+
+      if (
+        resolvedProvince &&
+        !placeMatchesProvince(
+          place,
+          resolvedProvince
+        )
+      ) {
+        console.warn(
+          "🚫 ENRICH PLACE OUTSIDE PROVINCE:",
+          {
+            type,
+            id:
+              existing?.[
+                config.primaryKey
+              ] ??
+              id,
+            name:
+              resolvedName,
+            requestedProvince:
+              resolvedProvince,
+            googleProvince:
+              googleProvince(
+                place
+              ),
+            latitude:
+              place?.location?.latitude ??
+              null,
+            longitude:
+              place?.location?.longitude ??
+              null,
+          }
+        );
+
+        return res
+          .status(422)
+          .json({
+            error:
+              "Google Places คืนสถานที่ที่อยู่นอกจังหวัดของรายการ",
+            code:
+              "PLACE_OUTSIDE_PROVINCE",
+            requestedProvince:
+              resolvedProvince,
+            googleProvince:
+              googleProvince(
+                place
+              ),
+            latitude:
+              place?.location?.latitude ??
+              null,
+            longitude:
+              place?.location?.longitude ??
+              null,
           });
       }
 
