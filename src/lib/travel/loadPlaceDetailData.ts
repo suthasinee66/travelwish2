@@ -1,4 +1,7 @@
 import { supabase } from "@/lib/supabase";
+import {
+  rankRestaurantsByLearnedPreference,
+} from "@/lib/recommend/adaptivePreference";
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
@@ -389,32 +392,39 @@ async function loadNearbyRestaurants(
             : [];
 
         if (restaurants.length) {
-          return restaurants
-            .map((restaurant: any) => ({
-              ...restaurant,
-              distance:
-                isFiniteNumber(
-                  restaurant.distance
-                )
-                  ? Number(
-                      restaurant.distance
-                    )
-                  : distanceKm(
-                      latitude,
-                      longitude,
-                      Number(
-                        restaurant.latitude
-                      ),
-                      Number(
-                        restaurant.longitude
+          const normalized =
+            restaurants.map(
+              (restaurant: any) => ({
+                ...restaurant,
+                distance:
+                  isFiniteNumber(
+                    restaurant.distance
+                  )
+                    ? Number(
+                        restaurant.distance
                       )
-                    ),
-            }))
-            .sort(
-              (a: any, b: any) =>
-                a.distance - b.distance
-            )
-            .slice(0, 6);
+                    : distanceKm(
+                        latitude,
+                        longitude,
+                        Number(
+                          restaurant.latitude
+                        ),
+                        Number(
+                          restaurant.longitude
+                        )
+                      ),
+              })
+            );
+
+          const ranked =
+            await rankRestaurantsByLearnedPreference(
+              normalized
+            );
+
+          return ranked.slice(
+            0,
+            6
+          );
         }
       }
     } catch (error) {
@@ -440,28 +450,34 @@ async function loadNearbyRestaurants(
     return [];
   }
 
-  return (data ?? [])
-    .map((restaurant: any) => ({
-      ...restaurant,
-      distance: distanceKm(
-        latitude,
-        longitude,
-        Number(restaurant.latitude),
-        Number(restaurant.longitude)
-      ),
-    }))
-    .filter(
-      (restaurant: any) =>
-        Number.isFinite(
-          restaurant.distance
-        ) &&
-        restaurant.distance <= 10
-    )
-    .sort(
-      (a: any, b: any) =>
-        a.distance - b.distance
-    )
-    .slice(0, 6);
+  const fallbackRestaurants =
+    (data ?? [])
+      .map((restaurant: any) => ({
+        ...restaurant,
+        distance: distanceKm(
+          latitude,
+          longitude,
+          Number(restaurant.latitude),
+          Number(restaurant.longitude)
+        ),
+      }))
+      .filter(
+        (restaurant: any) =>
+          Number.isFinite(
+            restaurant.distance
+          ) &&
+          restaurant.distance <= 10
+      );
+
+  const rankedFallback =
+    await rankRestaurantsByLearnedPreference(
+      fallbackRestaurants
+    );
+
+  return rankedFallback.slice(
+    0,
+    6
+  );
 }
 
 export async function loadPlaceDetailRelatedData(
