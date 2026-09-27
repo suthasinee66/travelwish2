@@ -251,6 +251,11 @@ app.post("/api/ai", async (req, res) => {
       "Prompt Length:",
       prompt?.length
     );
+    console.log(
+      "Response Mode:",
+      responseMode ??
+      "default"
+    );
     console.log("====================================");
 
     // ========================================
@@ -348,8 +353,11 @@ app.post("/api/ai", async (req, res) => {
     };
 
     if (
-      responseMode === "planner_json" ||
-      responseMode === "accommodation_json"
+      model !== "claude" &&
+      (
+        responseMode === "planner_json" ||
+        responseMode === "accommodation_json"
+      )
     ) {
       requestPayload.reasoning = {
         effort: "low"
@@ -365,8 +373,10 @@ app.post("/api/ai", async (req, res) => {
           type:
             "openrouter:web_search",
           parameters: {
+            // ใช้ search engine เดียวกันทุกโมเดล
+            // เพื่อให้ AI 1 / AI 2 / AI 3 เปรียบเทียบกันได้ยุติธรรม
             engine:
-              "auto",
+              "exa",
             max_results:
               responseMode === "trend_context"
                 ? 25
@@ -784,10 +794,89 @@ app.post("/api/ai", async (req, res) => {
       };
     }
 
-    const response =
-      await openRouterAI.chat.completions.create(
-        requestPayload
+    let response;
+
+    try {
+      response =
+        await openRouterAI.chat.completions.create(
+          requestPayload
+        );
+    } catch (primaryError) {
+      const status =
+        primaryError?.status ??
+        primaryError
+          ?.response
+          ?.status ??
+        null;
+
+      const shouldRetryClaude =
+        model === "claude" &&
+        status === 400;
+
+      if (!shouldRetryClaude) {
+        throw primaryError;
+      }
+
+      console.warn(
+        "⚠️ CLAUDE PROVIDER 400 — RETRY SAFE PAYLOAD"
       );
+
+      console.warn(
+        "Claude error detail:",
+        primaryError?.error ??
+        primaryError?.body ??
+        primaryError
+          ?.response
+          ?.data ??
+        primaryError?.message
+      );
+
+      const safePayload = {
+        ...requestPayload,
+      };
+
+      // Anthropic providers can differ in which optional
+      // OpenAI-compatible sampling/reasoning parameters they accept.
+      delete safePayload.reasoning;
+      delete safePayload.temperature;
+
+      try {
+        response =
+          await openRouterAI.chat.completions.create(
+            safePayload
+          );
+      } catch (safeError) {
+        const safeStatus =
+          safeError?.status ??
+          safeError
+            ?.response
+            ?.status ??
+          null;
+
+        if (
+          safeStatus === 400 &&
+          safePayload.response_format
+        ) {
+          console.warn(
+            "⚠️ CLAUDE STRUCTURED OUTPUT 400 — RETRY PROMPT-ONLY JSON"
+          );
+
+          const promptOnlyPayload = {
+            ...safePayload,
+          };
+
+          delete promptOnlyPayload
+            .response_format;
+
+          response =
+            await openRouterAI.chat.completions.create(
+              promptOnlyPayload
+            );
+        } else {
+          throw safeError;
+        }
+      }
+    }
 
     const end =
       performance.now();
@@ -891,6 +980,14 @@ app.post("/api/ai", async (req, res) => {
     console.error(
       "Response:",
       error.response?.data
+    );
+
+    console.error(
+      "Error detail:",
+      error.error ??
+      error.body ??
+      error.cause ??
+      null
     );
 
     return res.status(
