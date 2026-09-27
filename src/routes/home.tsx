@@ -4513,8 +4513,52 @@ const saveEditedPlan = async () => {
     );
 
     // =====================================================
-    // 3. หา AI planner message
+    // 3. Guest เก็บ planner ที่แก้แล้วลง localStorage
+    //    Account ใช้ Supabase ตามเดิม
     // =====================================================
+
+    if (
+      isGuestChatId(
+        chatId
+      ) ||
+      isGuestUser(user)
+    ) {
+      const updated =
+        updateLatestGuestPlannerMessage(
+          chatId,
+          selectedPlaces
+        );
+
+      if (!updated) {
+        appendGuestChatMessage(
+          chatId,
+          {
+            userId:
+              user?.id ??
+              null,
+            role:
+              "ai",
+            content:
+              plan ??
+              "แผนการเดินทาง",
+            plannerJson:
+              selectedPlaces,
+          }
+        );
+      }
+
+      setPlannerJson(
+        selectedPlaces
+      );
+
+      showAppAlert(
+        "success",
+        "บันทึกแผนแล้ว",
+        "ลำดับและการแก้ไขแผนถูกบันทึกไว้ในอุปกรณ์นี้แล้ว"
+      );
+
+      return;
+    }
 
     const {
       data: plannerMessage,
@@ -9959,6 +10003,10 @@ if (planner?.planner_json) {
   console.log("LENGTH:", Array.isArray(json) ? json.length : 0);
 
   setPlannerJson(json);
+  setPlan(
+    planner.content ??
+    null
+  );
 
   // มี planner_json = แสดง TripPlanPanel
   if (Array.isArray(json) && json.length > 0) {
