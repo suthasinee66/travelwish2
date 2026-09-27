@@ -12550,6 +12550,98 @@ ${m.role === "user"
 
 `}
                 >
+{m.loading ? (
+  <div
+    className="
+      inline-flex
+      min-w-[220px]
+      items-center
+      gap-3
+      rounded-2xl
+      border
+      border-[#eadfeb]
+      bg-gradient-to-r
+      from-[#fffdfb]
+      via-[#f8f1fa]
+      to-[#fffdfb]
+      px-4
+      py-3
+      shadow-[0_8px_24px_rgba(91,58,97,0.06)]
+    "
+  >
+    <div
+      className="
+        relative
+        flex
+        h-9
+        w-9
+        shrink-0
+        items-center
+        justify-center
+        rounded-full
+        bg-[#6f456f]/10
+      "
+    >
+      <Sparkles
+        size={17}
+        className="animate-pulse text-[#6f456f]"
+      />
+
+      <span
+        className="
+          absolute
+          inset-0
+          rounded-full
+          border
+          border-[#b99bc3]/40
+          animate-ping
+        "
+      />
+    </div>
+
+    <div className="min-w-0">
+      <p className="text-sm font-semibold text-[#4f4454]">
+        {String(
+          m.text ??
+          "กำลังคิด"
+        )
+          .replace(
+            /^⏳\s*/,
+            ""
+          )
+          .replace(
+            /\.{3}$/,
+            ""
+          )}
+      </p>
+
+      <div className="mt-1.5 flex items-center gap-1">
+        {[0, 1, 2].map(
+          dot => (
+            <span
+              key={dot}
+              className="
+                h-1.5
+                w-1.5
+                rounded-full
+                bg-[#8a5b8d]
+                animate-bounce
+              "
+              style={{
+                animationDelay:
+                  `${dot * 140}ms`,
+              }}
+            />
+          )
+        )}
+
+        <span className="ml-1 text-[11px] text-[#9a8da0]">
+          AI กำลังจัดข้อมูลให้คุณ
+        </span>
+      </div>
+    </div>
+  </div>
+) : (
 <ReactMarkdown
   remarkPlugins={[remarkGfm]}
   components={{
@@ -12675,11 +12767,11 @@ ${m.role === "user"
       : m.text?.markdown ?? ""
   }
 </ReactMarkdown>
-
-
+)}
 
                   {
-                    m.role === "ai" && (
+                    m.role === "ai" &&
+                    !m.loading && (
 
                       <div
                         className="
