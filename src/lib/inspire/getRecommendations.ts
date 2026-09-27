@@ -1,7 +1,10 @@
 import { buildQuery } from "./buildQuery";
 
 export async function getRecommendations(
-  pref: any
+  pref: any,
+  options?: {
+    maxResults?: number;
+  }
 ) {
   const query =
     buildQuery(pref);
@@ -22,12 +25,25 @@ export async function getRecommendations(
     query
   );
 
+  const maxResults =
+    Math.min(
+      25,
+      Math.max(
+        1,
+        Number(
+          options?.maxResults ??
+          9
+        )
+      )
+    );
+
   const params =
     new URLSearchParams({
       part: "snippet",
       type: "video",
       q: query,
-      maxResults: "9",
+      maxResults:
+        String(maxResults),
       key: apiKey,
       order: "relevance",
       regionCode: "TH",
