@@ -11,6 +11,7 @@ import {
   ClipboardPenLine,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import travelWishLogo from "@/assets/ai/logo.png";
 
 export const Route = createFileRoute("/profile-setup")({
   component: ProfileSetup,
@@ -93,20 +94,12 @@ function ProfileSetup() {
         <div className="profile-header-inner">
 
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="profile-logo">
-              <Compass className="h-5 w-5" />
-            </div>
-
-            <div>
-              <h2 className="text-lg font-bold tracking-tight text-[#302b43]">
-                TravelWise
-              </h2>
-
-              <p className="text-[10px] font-medium tracking-[0.16em] uppercase text-[#8b7894]">
-                Your journey
-              </p>
-            </div>
+          <div className="flex items-center">
+            <img
+              src={travelWishLogo}
+              alt="TravelWish"
+              className="h-10 w-auto max-w-[190px] object-contain object-left"
+            />
           </div>
 
           {/* User icon */}
