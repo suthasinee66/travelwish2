@@ -2664,6 +2664,9 @@ let accommodationRecommendationReason:
     string | null =
     null;
 
+let accommodationRecommendations:
+    any[] = [];
+
 let fallbackAccommodationCandidate:
     any | null =
     null;
@@ -3014,8 +3017,11 @@ if (!plannerAccommodation) {
 คุณคือ TravelWish AI Accommodation Selector
 
 ผู้ใช้ยังไม่ได้เลือกที่พัก
-ให้เลือก "1 ที่พักหลัก" ที่เหมาะกับ itinerary นี้มากที่สุด
+ให้จัดอันดับ "Top 3 ที่พัก" ที่เหมาะกับ itinerary นี้มากที่สุด
 จาก ACCOMMODATION CANDIDATES ที่ระบบให้เท่านั้น
+
+ลำดับที่ 1 = ที่พักหลักที่คุณแนะนำมากที่สุด
+ลำดับที่ 2-3 = ตัวเลือกสำรองที่คุณยังเห็นว่าเหมาะกับผู้ใช้และทริป
 
 USER PROFILE
 ${JSON.stringify(
@@ -3069,8 +3075,20 @@ ${JSON.stringify(
 
 ตอบ JSON เท่านั้น:
 {
-  "accommodation_id": "id จาก candidate",
-  "reason": "เหตุผลสั้น ๆ ภาษาไทยว่าทำไมที่พักนี้เหมาะกับทริป"
+  "recommendations": [
+    {
+      "accommodation_id": "id จาก candidate",
+      "reason": "เหตุผลสั้น ๆ ภาษาไทยว่าทำไมที่พักนี้เหมาะกับทริป"
+    },
+    {
+      "accommodation_id": "id จาก candidate",
+      "reason": "เหตุผลสั้น ๆ ภาษาไทยว่าทำไมที่พักนี้เหมาะกับทริป"
+    },
+    {
+      "accommodation_id": "id จาก candidate",
+      "reason": "เหตุผลสั้น ๆ ภาษาไทยว่าทำไมที่พักนี้เหมาะกับทริป"
+    }
+  ]
 }
 `;
 
@@ -3105,28 +3123,142 @@ ${JSON.stringify(
                     accommodationCleaned
                 );
 
-            const chosenId =
-                String(
-                    accommodationChoice
-                        ?.accommodation_id ??
-                    ""
+            const rankedChoices =
+                (
+                    Array.isArray(
+                        accommodationChoice
+                            ?.recommendations
+                    )
+                        ? accommodationChoice
+                            .recommendations
+                        : []
+                )
+                    .map(
+                        (
+                            choice:
+                                any
+                        ) => {
+                            const candidate =
+                                accommodationCandidates
+                                    .find(
+                                        (
+                                            hotel:
+                                                any
+                                        ) =>
+                                            hotel.id ===
+                                            String(
+                                                choice
+                                                    ?.accommodation_id ??
+                                                ""
+                                            )
+                                    );
+
+                            if (!candidate) {
+                                return null;
+                            }
+
+                            return {
+                                candidate,
+                                reason:
+                                    String(
+                                        choice
+                                            ?.reason ??
+                                        ""
+                                    ).trim()
+                            };
+                        }
+                    )
+                    .filter(Boolean)
+                    .filter(
+                        (
+                            item:
+                                any,
+                            index:
+                                number,
+                            all:
+                                any[]
+                        ) =>
+                            all.findIndex(
+                                (
+                                    other:
+                                        any
+                                ) =>
+                                    other
+                                        .candidate
+                                        .id ===
+                                    item
+                                        .candidate
+                                        .id
+                            ) === index
+                    )
+                    .slice(
+                        0,
+                        3
+                    );
+
+            accommodationRecommendations =
+                rankedChoices.map(
+                    (
+                        item:
+                            any,
+                        index:
+                            number
+                    ) => ({
+                        rank:
+                            index + 1,
+
+                        id:
+                            item.candidate.id,
+
+                        name:
+                            item.candidate.name,
+
+                        address:
+                            item.candidate.address,
+
+                        district:
+                            item.candidate.district,
+
+                        star_level:
+                            item.candidate.star_level,
+
+                        price_label:
+                            item.candidate.price_label,
+
+                        low_rate:
+                            item.candidate.low_rate,
+
+                        high_rate:
+                            item.candidate.high_rate,
+
+                        rating:
+                            item.candidate.rating,
+
+                        user_ratings_total:
+                            item.candidate.user_ratings_total,
+
+                        route_center_distance_km:
+                            item
+                                .candidate
+                                .route_center_distance_km,
+
+                        reason:
+                            item.reason
+                    })
                 );
 
+            const topChoice =
+                rankedChoices[0] ??
+                null;
+
             const chosen =
-                accommodationCandidates
-                    .find(
-                        (
-                            hotel:
-                                any
-                        ) =>
-                            hotel.id ===
-                            chosenId
-                    );
+                topChoice
+                    ?.candidate ??
+                null;
 
             if (!chosen) {
                 console.warn(
-                    "⚠️ AI ACCOMMODATION ID NOT FOUND IN CANDIDATES:",
-                    chosenId
+                    "⚠️ AI ACCOMMODATION TOP 3 DID NOT MATCH CANDIDATES"
                 );
             }
 
@@ -3301,7 +3433,7 @@ ${JSON.stringify(
 
                 accommodationRecommendationReason =
                     String(
-                        accommodationChoice
+                        topChoice
                             ?.reason ??
                         ""
                     ).trim() ||
@@ -3315,7 +3447,10 @@ ${JSON.stringify(
                         accommodation:
                             plannerAccommodation,
                         reason:
-                            accommodationRecommendationReason
+                            accommodationRecommendationReason,
+
+                        top3:
+                            accommodationRecommendations
                     }
                 );
             }
@@ -3376,6 +3511,92 @@ ${JSON.stringify(
 
         accommodationRecommendationReason =
             "ใช้ที่พักสำรองที่อยู่ใกล้ศูนย์กลางเส้นทางมากที่สุด เนื่องจากบริการ AI เลือกที่พักไม่ตอบกลับสำเร็จ";
+
+        accommodationRecommendations =
+            [
+                fallbackAccommodationCandidate,
+                ...(
+                    accommodationRows ??
+                    []
+                )
+                    .map(
+                        (
+                            hotel:
+                                any
+                        ) =>
+                            accommodationCandidates
+                                .find(
+                                    (
+                                        candidate:
+                                            any
+                                    ) =>
+                                        candidate.id ===
+                                        String(
+                                            hotel.acc_id
+                                        )
+                                )
+                    )
+                    .filter(Boolean)
+            ]
+                .filter(
+                    (
+                        candidate:
+                            any,
+                        index:
+                            number,
+                        all:
+                            any[]
+                    ) =>
+                        all.findIndex(
+                            (
+                                other:
+                                    any
+                            ) =>
+                                other.id ===
+                                candidate.id
+                        ) === index
+                )
+                .slice(
+                    0,
+                    3
+                )
+                .map(
+                    (
+                        candidate:
+                            any,
+                        index:
+                            number
+                    ) => ({
+                        rank:
+                            index + 1,
+                        id:
+                            candidate.id,
+                        name:
+                            candidate.name,
+                        address:
+                            candidate.address,
+                        district:
+                            candidate.district,
+                        star_level:
+                            candidate.star_level,
+                        price_label:
+                            candidate.price_label,
+                        low_rate:
+                            candidate.low_rate,
+                        high_rate:
+                            candidate.high_rate,
+                        rating:
+                            candidate.rating,
+                        user_ratings_total:
+                            candidate.user_ratings_total,
+                        route_center_distance_km:
+                            candidate.route_center_distance_km,
+                        reason:
+                            index === 0
+                                ? accommodationRecommendationReason
+                                : "ตัวเลือกสำรองจากที่พักที่อยู่ใกล้ศูนย์กลางเส้นทาง"
+                    })
+                );
 
         console.warn(
             "🏨 ACCOMMODATION FALLBACK SELECTED:",
@@ -3739,7 +3960,9 @@ return {
     accommodation:
         plannerAccommodation,
     accommodation_reason:
-        accommodationRecommendationReason
+        accommodationRecommendationReason,
+    accommodation_recommendations:
+        accommodationRecommendations
 };
 }
 
