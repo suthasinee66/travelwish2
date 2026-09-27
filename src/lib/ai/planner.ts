@@ -2843,183 +2843,157 @@ if (!plannerAccommodation) {
                 .length >
             0
         ) {
-            const accommodationPrompt = `
-คุณคือ TravelWish AI Accommodation Selector
-
-ผู้ใช้ยังไม่ได้เลือกที่พัก
-ให้จัดอันดับ "Top 3 ที่พัก" ที่เหมาะกับ itinerary นี้มากที่สุด
-จาก ACCOMMODATION CANDIDATES ที่ระบบให้เท่านั้น
-
-ลำดับที่ 1 = ที่พักหลักที่คุณแนะนำมากที่สุด
-ลำดับที่ 2-3 = ตัวเลือกสำรองที่คุณยังเห็นว่าเหมาะกับผู้ใช้และทริป
-
-USER PROFILE
-${JSON.stringify(
-    userContext,
-    null,
-    2
-)}
-
-TRIP
-${JSON.stringify(
-    tripData,
-    null,
-    2
-)}
-
-SELECTED ITINERARY
-${JSON.stringify(
-    selectedPlaces,
-    null,
-    2
-)}
-
-SELECTED ATTRACTION DETAILS
-${JSON.stringify(
-    selectedAttractionDetails,
-    null,
-    2
-)}
-
-ACCOMMODATION CANDIDATES
-${JSON.stringify(
-    accommodationCandidates.map(
-        ({
-            raw,
-            ...candidate
-        }: any) =>
-            candidate
-    ),
-    null,
-    2
-)}
-
-หลักการเลือก:
-- ต้องเลือกจาก candidate เท่านั้น ห้ามสร้างชื่อโรงแรมใหม่
-- พิจารณาทำเลเทียบกับสถานที่ใน itinerary ทั้งทริป
-- พิจารณางบรวม จำนวนวัน companion และ personality_tags
-- ถ้ามีราคา ให้หลีกเลี่ยงที่พักที่ดูไม่สอดคล้องกับงบ
-- ถ้าผู้ใช้ชอบความสะดวก ให้ความสำคัญกับ route_center_distance_km
-- ถ้าคุณภาพใกล้กัน ให้พิจารณา rating, จำนวนรีวิว, star_level และความเหมาะสมกับผู้ใช้
-- ไม่จำเป็นต้องเลือกโรงแรมที่ใกล้ที่สุด ถ้าตัวอื่นเหมาะกับผู้ใช้และทริปมากกว่า
-
-ตอบ JSON เท่านั้น:
-{
-  "recommendations": [
-    {
-      "accommodation_id": "id จาก candidate",
-      "reason": "เหตุผลสั้น ๆ ภาษาไทยว่าทำไมที่พักนี้เหมาะกับทริป"
-    },
-    {
-      "accommodation_id": "id จาก candidate",
-      "reason": "เหตุผลสั้น ๆ ภาษาไทยว่าทำไมที่พักนี้เหมาะกับทริป"
-    },
-    {
-      "accommodation_id": "id จาก candidate",
-      "reason": "เหตุผลสั้น ๆ ภาษาไทยว่าทำไมที่พักนี้เหมาะกับทริป"
-    }
-  ]
-}
-`;
-
-            const accommodationRaw =
-                await generateWithSelectedModel(
-                    selectedModel,
-                    accommodationPrompt,
-                    {
-                        responseMode:
-                            "accommodation_json"
-                    }
+            const tripBudget =
+                Number(
+                    tripData.budget
                 );
 
-            const accommodationCleaned =
-                accommodationRaw
-                    .replace(
-                        /^\`\`\`json\s*/i,
-                        ""
+            const tripDays =
+                Math.max(
+                    1,
+                    Number(
+                        tripData.days ??
+                        1
                     )
-                    .replace(
-                        /^\`\`\`\s*/i,
-                        ""
-                    )
-                    .replace(
-                        /\`\`\`$/i,
-                        ""
-                    )
-                    .trim();
-
-            const accommodationChoice =
-                JSON.parse(
-                    accommodationCleaned
                 );
 
-            const rankedChoices =
-                (
-                    Array.isArray(
-                        accommodationChoice
-                            ?.recommendations
-                    )
-                        ? accommodationChoice
-                            .recommendations
-                        : []
-                )
+            const scoredAccommodation =
+                accommodationCandidates
                     .map(
                         (
-                            choice:
+                            candidate:
                                 any
                         ) => {
-                            const candidate =
-                                accommodationCandidates
-                                    .find(
-                                        (
-                                            hotel:
-                                                any
-                                        ) =>
-                                            hotel.id ===
-                                            String(
-                                                choice
-                                                    ?.accommodation_id ??
-                                                ""
-                                            )
+                            const distance =
+                                Number(
+                                    candidate
+                                        .route_center_distance_km ??
+                                    999
+                                );
+
+                            const rating =
+                                Number(
+                                    candidate.rating
+                                );
+
+                            const reviews =
+                                Number(
+                                    candidate
+                                        .user_ratings_total ??
+                                    0
+                                );
+
+                            const lowRate =
+                                Number(
+                                    candidate.low_rate
+                                );
+
+                            const highRate =
+                                Number(
+                                    candidate.high_rate
+                                );
+
+                            const nightlyRate =
+                                Number.isFinite(
+                                    lowRate
+                                ) &&
+                                lowRate > 0 &&
+                                Number.isFinite(
+                                    highRate
+                                ) &&
+                                highRate > 0
+                                    ? (
+                                        lowRate +
+                                        highRate
+                                    ) / 2
+                                    : (
+                                        Number.isFinite(
+                                            lowRate
+                                        ) &&
+                                        lowRate > 0
+                                            ? lowRate
+                                            : null
                                     );
 
-                            if (!candidate) {
-                                return null;
-                            }
+                            const looseNightlyBudget =
+                                Number.isFinite(
+                                    tripBudget
+                                ) &&
+                                tripBudget > 0
+                                    ? (
+                                        tripBudget /
+                                        tripDays
+                                    ) * 0.45
+                                    : null;
+
+                            const pricePenalty =
+                                nightlyRate != null &&
+                                looseNightlyBudget != null &&
+                                nightlyRate >
+                                    looseNightlyBudget
+                                    ? Math.min(
+                                        12,
+                                        (
+                                            nightlyRate -
+                                            looseNightlyBudget
+                                        ) /
+                                        Math.max(
+                                            1,
+                                            looseNightlyBudget
+                                        ) *
+                                        8
+                                    )
+                                    : 0;
+
+                            const ratingBonus =
+                                Number.isFinite(
+                                    rating
+                                )
+                                    ? Math.max(
+                                        0,
+                                        rating - 3
+                                    ) * 1.8
+                                    : 0;
+
+                            const reviewBonus =
+                                reviews > 0
+                                    ? Math.min(
+                                        2.5,
+                                        Math.log10(
+                                            reviews + 1
+                                        ) * 0.9
+                                    )
+                                    : 0;
+
+                            const score =
+                                distance +
+                                pricePenalty -
+                                ratingBonus -
+                                reviewBonus;
 
                             return {
                                 candidate,
-                                reason:
-                                    String(
-                                        choice
-                                            ?.reason ??
-                                        ""
-                                    ).trim()
+                                score,
+                                distance,
+                                rating:
+                                    Number.isFinite(
+                                        rating
+                                    )
+                                        ? rating
+                                        : null,
+                                reviews
                             };
                         }
                     )
-                    .filter(Boolean)
-                    .filter(
+                    .sort(
                         (
-                            item:
+                            left:
                                 any,
-                            index:
-                                number,
-                            all:
-                                any[]
+                            right:
+                                any
                         ) =>
-                            all.findIndex(
-                                (
-                                    other:
-                                        any
-                                ) =>
-                                    other
-                                        .candidate
-                                        .id ===
-                                    item
-                                        .candidate
-                                        .id
-                            ) === index
+                            left.score -
+                            right.score
                     )
                     .slice(
                         0,
@@ -3027,7 +3001,7 @@ ${JSON.stringify(
                     );
 
             accommodationRecommendations =
-                rankedChoices.map(
+                scoredAccommodation.map(
                     (
                         item:
                             any,
@@ -3068,29 +3042,39 @@ ${JSON.stringify(
                             item.candidate.user_ratings_total,
 
                         route_center_distance_km:
-                            item
-                                .candidate
+                            item.candidate
                                 .route_center_distance_km,
 
                         reason:
-                            item.reason
+                            [
+                                Number.isFinite(
+                                    item.distance
+                                )
+                                    ? `อยู่ห่างจากศูนย์กลางเส้นทางประมาณ ${item.distance.toFixed(1)} กม.`
+                                    : null,
+
+                                item.rating != null
+                                    ? `คะแนน ${item.rating.toFixed(1)}`
+                                    : null,
+
+                                item.reviews > 0
+                                    ? `${item.reviews.toLocaleString()} รีวิว`
+                                    : null
+                            ]
+                                .filter(
+                                    Boolean
+                                )
+                                .join(
+                                    " · "
+                                )
                     })
                 );
 
-            const topChoice =
-                rankedChoices[0] ??
-                null;
-
             const chosen =
-                topChoice
-                    ?.candidate ??
+                scoredAccommodation[
+                    0
+                ]?.candidate ??
                 null;
-
-            if (!chosen) {
-                console.warn(
-                    "⚠️ AI ACCOMMODATION TOP 3 DID NOT MATCH CANDIDATES"
-                );
-            }
 
             if (chosen) {
                 const rawHotel =
@@ -3122,7 +3106,7 @@ ${JSON.stringify(
                         ),
 
                     source:
-                        "ai_verified",
+                        "algorithm_verified",
 
                     locked:
                         false,
@@ -3135,8 +3119,12 @@ ${JSON.stringify(
                             : []
                 };
 
-                // Enrich โรงแรมที่ AI เลือกด้วย Google Places
-                // และบันทึกข้อมูลเต็มกลับ Supabase ก่อนใช้ใน TripPlan
+                accommodationRecommendationReason =
+                    accommodationRecommendations[
+                        0
+                    ]?.reason ??
+                    "เลือกจากทำเล คะแนน รีวิว และความเหมาะสมกับงบโดยไม่เรียก AI เพิ่ม";
+
                 try {
                     if (API_URL) {
                         const enrichResponse =
@@ -3210,7 +3198,7 @@ ${JSON.stringify(
                                         ),
 
                                     source:
-                                        "ai_verified",
+                                        "algorithm_verified",
 
                                     locked:
                                         false,
@@ -3261,21 +3249,12 @@ ${JSON.stringify(
                     );
                 }
 
-                accommodationRecommendationReason =
-                    String(
-                        topChoice
-                            ?.reason ??
-                        ""
-                    ).trim() ||
-                    null;
-
                 console.log(
-                    "🏨 AI RECOMMENDED ACCOMMODATION:",
+                    "🏨 ALGORITHM RECOMMENDED ACCOMMODATION:",
                     {
-                        model:
-                            selectedModel,
                         accommodation:
                             plannerAccommodation,
+
                         reason:
                             accommodationRecommendationReason,
 
@@ -3287,7 +3266,7 @@ ${JSON.stringify(
         }
     } catch (error) {
         console.warn(
-            "⚠️ AI ACCOMMODATION RECOMMENDATION FAILED:",
+            "⚠️ ACCOMMODATION ALGORITHM FAILED:",
             error
         );
     }
@@ -3340,7 +3319,7 @@ ${JSON.stringify(
         };
 
         accommodationRecommendationReason =
-            "ใช้ที่พักสำรองที่อยู่ใกล้ศูนย์กลางเส้นทางมากที่สุด เนื่องจากบริการ AI เลือกที่พักไม่ตอบกลับสำเร็จ";
+            "ใช้ที่พักสำรองที่อยู่ใกล้ศูนย์กลางเส้นทางมากที่สุด เนื่องจากการจัดอันดับที่พักหลักไม่สำเร็จ";
 
         accommodationRecommendations = [
             {
@@ -3661,6 +3640,10 @@ VERIFIED ITINERARY ITEMS ว่าในช่วงนี้มีอะไร�
 
 console.log(
     `📝 ${selectedModel.toUpperCase()} กำลังสร้าง Markdown...`
+);
+
+console.log(
+    `🧠 AI ROUND 2/2 [${selectedModel.toUpperCase()}]: final markdown`
 );
 
 const aiMessage =
