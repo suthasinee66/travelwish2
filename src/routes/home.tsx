@@ -1734,10 +1734,20 @@ function extractMarkdownDayTimeRanges(
     }
   }
 
-  // รองรับทั้ง 08:00–09:30 และ 08.00-09.30
-  // แล้ว normalize เป็น HH:MM เพื่อใช้กับ input[type=time]
+  // IMPORTANT:
+  // ห้ามเก็บ time range ทุกอันใน section เพราะในรายละเอียดสถานที่
+  // อาจมี "เปิดทุกวัน 09:00–16:00" ซึ่งไม่ใช่เวลา itinerary
+  // และจะทำให้เวลาของ card หลังจากนั้นเลื่อนไปทั้งหมด
+  //
+  // เราเก็บเฉพาะบรรทัดที่ดูเป็น itinerary slot:
+  // 1) มี Morning/Lunch/Afternoon/Evening/Dinner ฯลฯ
+  // 2) เป็นแถว Markdown table
+  // 3) time range อยู่ต้นบรรทัด (รองรับ free-form timeline)
+  const itineraryPeriodRegex =
+    /(?:^|[\s|:])(?:Morning|Breakfast|Brunch|Lunch|Afternoon|Evening|Dinner|Night)(?=$|[\s|:])/i;
+
   const timeRangeRegex =
-    /(\d{1,2})[:.](\d{2})\s*(?:–|—|-)\s*(\d{1,2})[:.](\d{2})/g;
+    /(\d{1,2})[:.](\d{2})\s*(?:–|—|-)\s*(\d{1,2})[:.](\d{2})/;
 
   headers.forEach(
     (
@@ -1762,45 +1772,104 @@ function extractMarkdownDayTimeRanges(
         end: string;
       }> = [];
 
-      let timeMatch:
-        RegExpExecArray |
-        null;
+      section
+        .split(
+          /\r?\n/
+        )
+        .forEach(
+          rawLine => {
+            const line =
+              rawLine.trim();
 
-      timeRangeRegex.lastIndex =
-        0;
+            if (!line) {
+              return;
+            }
 
-      while (
-        (
-          timeMatch =
-            timeRangeRegex.exec(
-              section
-            )
-        ) !== null
-      ) {
-        const startTime =
-          normalizeMarkdownClock(
-            timeMatch[1],
-            timeMatch[2]
-          );
+            const timeMatch =
+              line.match(
+                timeRangeRegex
+              );
 
-        const endTime =
-          normalizeMarkdownClock(
-            timeMatch[3],
-            timeMatch[4]
-          );
+            if (
+              !timeMatch
+            ) {
+              return;
+            }
 
-        if (
-          startTime &&
-          endTime
-        ) {
-          ranges.push({
-            start:
-              startTime,
-            end:
-              endTime,
-          });
-        }
-      }
+            const matchIndex =
+              timeMatch.index ??
+              0;
+
+            const prefix =
+              line
+                .slice(
+                  0,
+                  matchIndex
+                )
+                .replace(
+                  /[*_~>#\-]/g,
+                  ""
+                )
+                .trim();
+
+            const isPeriodLine =
+              itineraryPeriodRegex.test(
+                line
+              );
+
+            const isMarkdownTableRow =
+              line.startsWith(
+                "|"
+              ) &&
+              line
+                .slice(1)
+                .includes(
+                  "|"
+                );
+
+            // เช่น "09:30–11:00 — พิพิธภัณฑ์..."
+            // อนุญาต emoji/markdown สั้น ๆ นำหน้า แต่ไม่อนุญาต
+            // ประโยคยาวอย่าง "ข้อมูลที่ควรรู้: เปิดทุกวันเวลา 09:00–16:00"
+            const isTimeLeadingLine =
+              prefix.length <=
+                4 ||
+              /^\p{Extended_Pictographic}\uFE0F?$/u.test(
+                prefix
+              );
+
+            if (
+              !isPeriodLine &&
+              !isMarkdownTableRow &&
+              !isTimeLeadingLine
+            ) {
+              return;
+            }
+
+            const startTime =
+              normalizeMarkdownClock(
+                timeMatch[1],
+                timeMatch[2]
+              );
+
+            const endTime =
+              normalizeMarkdownClock(
+                timeMatch[3],
+                timeMatch[4]
+              );
+
+            if (
+              startTime &&
+              endTime
+            ) {
+              ranges.push({
+                start:
+                  startTime,
+                end:
+                  endTime,
+              });
+            }
+          }
+        );
 
       if (
         ranges.length > 0
