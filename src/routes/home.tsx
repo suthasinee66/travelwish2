@@ -10255,6 +10255,10 @@ function Home() {
   const [selectedModel, setSelectedModel] = useState<ComparisonModel>("gemini");
   const [comparisonMode, setComparisonMode] = useState(true);
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const [
+    showImageTripApp,
+    setShowImageTripApp,
+  ] = useState(false);
   const [plan, setPlan] = useState<any>(null);
   const [hasChatStarted, setHasChatStarted] = useState(false);
   const [tripPlaces, setTripPlaces] = useState<any[]>([]);
@@ -14541,24 +14545,151 @@ hover:bg-gray-100
   {/* LEFT SIDE */}
   <div className="flex items-center gap-2">
 
-    {/* Plus */}
-    <button
-      className="
-        h-8 w-8
-        rounded-full
-        hover:bg-accent
-        flex items-center justify-center
-      "
-    >
-      <Plus className="h-4 w-4" />
-    </button>
+    {/* Plus / Pixinerary */}
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="ตัวเลือกเพิ่มเติม"
+        aria-expanded={
+          showImageTripApp
+        }
+        onClick={() => {
+          setShowImageTripApp(
+            prev => !prev
+          );
+          setShowModelMenu(
+            false
+          );
+        }}
+        className="
+          h-8 w-8
+          rounded-full
+          hover:bg-accent
+          flex items-center justify-center
+          transition
+        "
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+
+      {showImageTripApp && (
+        <div
+          className="
+            absolute
+            bottom-11
+            left-0
+            z-[10020]
+            w-[290px]
+            overflow-hidden
+            rounded-2xl
+            border
+            border-[#eadfeb]
+            bg-[#fffdfb]
+            p-2
+            shadow-[0_18px_50px_rgba(70,49,80,0.18)]
+          "
+        >
+          <div
+            className="
+              rounded-xl
+              bg-[#f8f3f9]
+              p-3
+            "
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="
+                  flex
+                  h-10
+                  w-10
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-xl
+                  bg-white
+                  text-[#6f456f]
+                  shadow-sm
+                "
+              >
+                <Camera
+                  size={18}
+                  strokeWidth={1.9}
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold text-[#40364b]">
+                  สร้างแผนเที่ยวจากรูปภาพ
+                </div>
+
+                <p className="mt-1 text-[11px] leading-5 text-[#85798a]">
+                  ลองใช้ Pixinerary อีกแอปของเรา
+                  อัปโหลดรูปภาพแล้วให้ AI ช่วยสร้างแผนการเดินทางจากรูปที่คุณมี
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                window.open(
+                  "https://pixineraryy.vercel.app/login",
+                  "_blank",
+                  "noopener,noreferrer"
+                );
+
+                setShowImageTripApp(
+                  false
+                );
+              }}
+              className="
+                mt-3
+                flex
+                min-h-10
+                w-full
+                items-center
+                justify-center
+                gap-2
+                rounded-xl
+                bg-[#6f456f]
+                px-4
+                py-2
+                text-xs
+                font-semibold
+                text-white
+                transition
+                hover:bg-[#5d3a5e]
+                active:scale-[0.99]
+              "
+            >
+              <Camera
+                size={14}
+                strokeWidth={2}
+              />
+              เปิด Pixinerary
+              <ArrowUpRight
+                size={14}
+                strokeWidth={2}
+              />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
 
     {/* AI MODEL SELECTOR */}
     <div className="relative">
 
       <button
   type="button"
-  onClick={() => setShowModelMenu(prev => !prev)}
+  onClick={() => {
+    setShowModelMenu(
+      prev => !prev
+    );
+    setShowImageTripApp(
+      false
+    );
+  }}
   className="
     flex
     items-center
