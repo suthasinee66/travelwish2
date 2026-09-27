@@ -98,6 +98,10 @@ function TripsDetail() {
 
   const [trip, setTrip] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [
+    sourcePlanMarkdown,
+    setSourcePlanMarkdown,
+  ] = useState("");
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<number | "all">("all");
   const [
@@ -119,6 +123,7 @@ function TripsDetail() {
     const loadTrip = async () => {
       try {
         setLoading(true);
+        setSourcePlanMarkdown("");
 
         // -------------------------
         // User
@@ -241,6 +246,68 @@ function TripsDetail() {
                 Number(b.sort_order)
             ),
           }));
+
+        // =====================================================
+        // LOAD ORIGINAL AI MARKDOWN
+        //
+        // TripPlanPanel ใช้เวลาใน Markdown เป็น source of truth
+        // เหมือนหน้า Home ดังนั้นหน้า Trip Detail ห้ามส่ง plan=""
+        // เพราะ scheduler จะคำนวณเวลาใหม่เองและทำให้เวลาไม่ตรง
+        // =====================================================
+        if (
+          data.source_session_id
+        ) {
+          const {
+            data:
+              sourcePlannerMessage,
+            error:
+              sourcePlannerMessageError,
+          } = await supabase
+            .from("chat_messages")
+            .select(
+              "content, created_at"
+            )
+            .eq(
+              "session_id",
+              data.source_session_id
+            )
+            .eq(
+              "role",
+              "ai"
+            )
+            .not(
+              "planner_json",
+              "is",
+              null
+            )
+            .order(
+              "created_at",
+              {
+                ascending:
+                  false,
+              }
+            )
+            .limit(1)
+            .maybeSingle();
+
+          if (
+            sourcePlannerMessageError
+          ) {
+            console.warn(
+              "⚠️ LOAD SOURCE PLAN MARKDOWN FAILED:",
+              sourcePlannerMessageError
+            );
+          } else {
+            setSourcePlanMarkdown(
+              typeof sourcePlannerMessage
+                ?.content ===
+                "string"
+                ? sourcePlannerMessage
+                    .content
+                : ""
+            );
+          }
+        }
 
         setTrip(data);
       } catch (error) {
@@ -2640,7 +2707,7 @@ const mapCenter = useMemo(() => {
 
 <TripPlanPanel
   plannerJson={plannerJson}
-  plan=""
+  plan={sourcePlanMarkdown}
   tripInput={tripInput}
   allPlaces={allPlaces}
   restaurants={restaurants}
