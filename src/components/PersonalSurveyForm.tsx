@@ -1,5 +1,5 @@
 
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Compass,
@@ -707,6 +707,23 @@ export default function PersonalSurveyForm({
   const deepSurveyToggleRef =
     useRef<HTMLButtonElement | null>(null);
 
+  const deepSurveyScrollSnapshotRef =
+    useRef<{
+      buttonTop: number;
+      scrollContainer:
+        HTMLElement | null;
+      scrollTop: number;
+      windowScrollY: number;
+      containerOverflowAnchor:
+        string;
+      containerScrollBehavior:
+        string;
+      htmlOverflowAnchor:
+        string;
+      bodyOverflowAnchor:
+        string;
+    } | null>(null);
+
   const [atmosphere, setAtmosphere] = useState("");
   const [travelCompanion, setTravelCompanion] = useState("");
   const [budget, setBudget] = useState("");
@@ -760,48 +777,205 @@ export default function PersonalSurveyForm({
     return null;
   };
 
-  const toggleDeepSurvey = () => {
+  const restoreDeepSurveyAnchor = () => {
+    const snapshot =
+      deepSurveyScrollSnapshotRef.current;
+
     const button =
       deepSurveyToggleRef.current;
 
+    if (
+      !snapshot ||
+      !button
+    ) {
+      return;
+    }
+
+    const currentTop =
+      button.getBoundingClientRect()
+        .top;
+
+    const delta =
+      currentTop -
+      snapshot.buttonTop;
+
+    if (
+      Math.abs(delta) >
+      0.5
+    ) {
+      if (
+        snapshot.scrollContainer
+      ) {
+        snapshot
+          .scrollContainer
+          .scrollTop += delta;
+      } else {
+        window.scrollBy(
+          0,
+          delta
+        );
+      }
+    }
+  };
+
+  const releaseDeepSurveyScrollLock = () => {
+    const snapshot =
+      deepSurveyScrollSnapshotRef.current;
+
+    if (!snapshot) {
+      return;
+    }
+
+    if (
+      snapshot.scrollContainer
+    ) {
+      snapshot
+        .scrollContainer
+        .style
+        .overflowAnchor =
+          snapshot
+            .containerOverflowAnchor;
+
+      snapshot
+        .scrollContainer
+        .style
+        .scrollBehavior =
+          snapshot
+            .containerScrollBehavior;
+    }
+
+    document.documentElement
+      .style
+      .overflowAnchor =
+        snapshot
+          .htmlOverflowAnchor;
+
+    document.body
+      .style
+      .overflowAnchor =
+        snapshot
+          .bodyOverflowAnchor;
+
+    deepSurveyScrollSnapshotRef.current =
+      null;
+  };
+
+  const toggleDeepSurvey = (
+    button:
+      HTMLButtonElement
+  ) => {
     const scrollContainer =
       getScrollContainer(
         button
       );
 
-    const previousScrollTop =
+    deepSurveyScrollSnapshotRef.current = {
+      buttonTop:
+        button
+          .getBoundingClientRect()
+          .top,
+      scrollContainer,
+      scrollTop:
+        scrollContainer
+          ?.scrollTop ??
+        0,
+      windowScrollY:
+        window.scrollY,
+      containerOverflowAnchor:
+        scrollContainer
+          ?.style
+          .overflowAnchor ??
+        "",
+      containerScrollBehavior:
+        scrollContainer
+          ?.style
+          .scrollBehavior ??
+        "",
+      htmlOverflowAnchor:
+        document
+          .documentElement
+          .style
+          .overflowAnchor,
+      bodyOverflowAnchor:
+        document
+          .body
+          .style
+          .overflowAnchor,
+    };
+
+    // ป้องกัน browser ย้าย viewport ตาม focused button
+    button.blur();
+
+    if (scrollContainer) {
       scrollContainer
-        ? scrollContainer.scrollTop
-        : window.scrollY;
+        .style
+        .overflowAnchor =
+          "none";
+
+      scrollContainer
+        .style
+        .scrollBehavior =
+          "auto";
+    }
+
+    document.documentElement
+      .style
+      .overflowAnchor =
+        "none";
+
+    document.body
+      .style
+      .overflowAnchor =
+        "none";
 
     setShowDeepSurvey(
       current => !current
     );
-
-    // ป้องกัน browser scroll anchoring ตอนเพิ่ม/ลดคำถามจำนวนมาก
-    // โดยคืน scroll offset เดิมหลัง React วาด layout ใหม่
-    requestAnimationFrame(
-      () => {
-        requestAnimationFrame(
-          () => {
-            if (
-              scrollContainer
-            ) {
-              scrollContainer.scrollTop =
-                previousScrollTop;
-            } else {
-              window.scrollTo({
-                top:
-                  previousScrollTop,
-                behavior:
-                  "auto",
-              });
-            }
-          }
-        );
-      }
-    );
   };
+
+  useLayoutEffect(() => {
+    if (
+      !deepSurveyScrollSnapshotRef
+        .current
+    ) {
+      return;
+    }
+
+    // ชดเชยทันทีหลัง React เปลี่ยน layout ก่อน browser paint
+    restoreDeepSurveyAnchor();
+
+    const firstFrame =
+      requestAnimationFrame(
+        () => {
+          restoreDeepSurveyAnchor();
+
+          requestAnimationFrame(
+            () => {
+              restoreDeepSurveyAnchor();
+            }
+          );
+        }
+      );
+
+    const lateRestore =
+      window.setTimeout(
+        () => {
+          restoreDeepSurveyAnchor();
+          releaseDeepSurveyScrollLock();
+        },
+        180
+      );
+
+    return () => {
+      cancelAnimationFrame(
+        firstFrame
+      );
+
+      window.clearTimeout(
+        lateRestore
+      );
+    };
+  }, [showDeepSurvey]);
 
   const selectDeepAnswer = (
     question: DeepSurveyQuestion,
@@ -1496,8 +1670,13 @@ export default function PersonalSurveyForm({
             <button
               ref={deepSurveyToggleRef}
               type="button"
-              onClick={
-                toggleDeepSurvey
+              onMouseDown={(event) =>
+                event.preventDefault()
+              }
+              onClick={(event) =>
+                toggleDeepSurvey(
+                  event.currentTarget
+                )
               }
               style={{
                 overflowAnchor:
