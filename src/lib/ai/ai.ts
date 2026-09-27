@@ -10,6 +10,40 @@ const API_URL =
         ? "http://localhost:5000"
         : import.meta.env.VITE_API_URL;
 
+function normalizeMarkdownResponse(
+    value: string
+) {
+    let text =
+        String(value ?? "")
+            .trim();
+
+    // บางโมเดล (โดยเฉพาะ Claude) ชอบเกริ่นก่อนแล้ว
+    // ครอบ Markdown ทั้งก้อนด้วย ```markdown ... ```
+    // ให้ดึงเฉพาะเนื้อหาใน fence เพื่อให้ ReactMarkdown render จริง
+    const fencedMarkdown =
+        text.match(
+            /```(?:markdown|md)\s*\n?([\s\S]*?)```/i
+        );
+
+    if (fencedMarkdown?.[1]) {
+        return fencedMarkdown[1]
+            .trim();
+    }
+
+    // รองรับกรณีเปิด fence แต่โมเดลลืมปิด
+    text = text.replace(
+        /^```(?:markdown|md)?\s*\n?/i,
+        ""
+    );
+
+    text = text.replace(
+        /\n?```\s*$/i,
+        ""
+    );
+
+    return text.trim();
+}
+
 async function waitBeforeAIRetry(
     milliseconds: number
 ) {
@@ -152,7 +186,18 @@ export async function generateWithSelectedModel(
         );
     }
 
-    const content = String(data.content).trim();
+    const rawContent =
+        String(
+            data.content
+        ).trim();
+
+    const content =
+        options?.responseMode ===
+        "markdown"
+            ? normalizeMarkdownResponse(
+                rawContent
+            )
+            : rawContent;
 
     // บางโมเดลอาจครอบคำตอบจริงด้วย JSON เช่น
     // {"response":"## หัวข้อ\n..."}
