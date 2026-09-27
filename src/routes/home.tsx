@@ -415,6 +415,98 @@ const inspired = [
 ];
 
 
+const THAI_PROVINCES = [
+  "กรุงเทพมหานคร",
+  "กระบี่",
+  "กาญจนบุรี",
+  "กาฬสินธุ์",
+  "กำแพงเพชร",
+  "ขอนแก่น",
+  "จันทบุรี",
+  "ฉะเชิงเทรา",
+  "ชลบุรี",
+  "ชัยนาท",
+  "ชัยภูมิ",
+  "ชุมพร",
+  "เชียงราย",
+  "เชียงใหม่",
+  "ตรัง",
+  "ตราด",
+  "ตาก",
+  "นครนายก",
+  "นครปฐม",
+  "นครพนม",
+  "นครราชสีมา",
+  "นครศรีธรรมราช",
+  "นครสวรรค์",
+  "นนทบุรี",
+  "นราธิวาส",
+  "น่าน",
+  "บึงกาฬ",
+  "บุรีรัมย์",
+  "ปทุมธานี",
+  "ประจวบคีรีขันธ์",
+  "ปราจีนบุรี",
+  "ปัตตานี",
+  "พระนครศรีอยุธยา",
+  "พะเยา",
+  "พังงา",
+  "พัทลุง",
+  "พิจิตร",
+  "พิษณุโลก",
+  "เพชรบุรี",
+  "เพชรบูรณ์",
+  "แพร่",
+  "ภูเก็ต",
+  "มหาสารคาม",
+  "มุกดาหาร",
+  "แม่ฮ่องสอน",
+  "ยโสธร",
+  "ยะลา",
+  "ร้อยเอ็ด",
+  "ระนอง",
+  "ระยอง",
+  "ราชบุรี",
+  "ลพบุรี",
+  "ลำปาง",
+  "ลำพูน",
+  "เลย",
+  "ศรีสะเกษ",
+  "สกลนคร",
+  "สงขลา",
+  "สตูล",
+  "สมุทรปราการ",
+  "สมุทรสงคราม",
+  "สมุทรสาคร",
+  "สระแก้ว",
+  "สระบุรี",
+  "สิงห์บุรี",
+  "สุโขทัย",
+  "สุพรรณบุรี",
+  "สุราษฎร์ธานี",
+  "สุรินทร์",
+  "หนองคาย",
+  "หนองบัวลำภู",
+  "อ่างทอง",
+  "อำนาจเจริญ",
+  "อุดรธานี",
+  "อุตรดิตถ์",
+  "อุทัยธานี",
+  "อุบลราชธานี",
+];
+
+const normalizeProvinceSearch = (
+  value: unknown
+) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^จังหวัด\s*/u, "")
+    .replace(/^จ\.\s*/u, "")
+    .replace(/\s+/g, "");
+
+
+
 function WherePicker({
   tripInput,
   setTripInput,
@@ -450,13 +542,14 @@ function WherePicker({
               province: e.target.value,
             });
 
+            setShowProvinceDropdown(
+              true
+            );
           }}
           placeholder="Location"
           className="w-full border rounded-full px-5 py-4 outline-none"
         />
         {showProvinceDropdown &&
-          tripInput.province &&
-
           filteredProvinces.length > 0 && (
 
             <div className="absolute left-0 right-0 mt-2 bg-white border rounded-2xl shadow-lg max-h-60 overflow-y-auto z-50">
@@ -11305,19 +11398,57 @@ ${active
   }
 
   const provinces = [
-    ...new Set(
-      allPlaces
-        .map((p) => p.province)
-        .filter(Boolean)
-    ),
-  ].sort();
-
-
-  const filteredProvinces = provinces.filter((province) =>
-    province
-      .toLowerCase()
-      .includes(tripInput.province.toLowerCase())
+    ...new Set([
+      ...THAI_PROVINCES,
+      ...allPlaces
+        .map(
+          place =>
+            String(
+              place?.province ??
+              ""
+            ).trim()
+        )
+        .filter(Boolean),
+    ]),
+  ].sort(
+    (left, right) =>
+      left.localeCompare(
+        right,
+        "th"
+      )
   );
+
+  const provinceKeyword =
+    normalizeProvinceSearch(
+      tripInput.province
+    );
+
+  const filteredProvinces =
+    provinces
+      .filter(
+        province => {
+          if (
+            !provinceKeyword
+          ) {
+            return true;
+          }
+
+          const normalizedProvince =
+            normalizeProvinceSearch(
+              province
+            );
+
+          // "กรุงเทพ" matches "กรุงเทพมหานคร" naturally.
+          return normalizedProvince
+            .includes(
+              provinceKeyword
+            );
+        }
+      )
+      .slice(
+        0,
+        12
+      );
 
 
 
