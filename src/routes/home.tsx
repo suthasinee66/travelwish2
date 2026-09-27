@@ -9974,10 +9974,40 @@ if (
   setSelectedModel(session.ai_model);
 }
 
-const formatted = data.map((m) => ({
-  role: m.role,
-  text: m.content
-}));
+const formatted = data.map((m) => {
+  const comparison =
+    decodeComparisonMessage(
+      m.content
+    );
+
+  if (comparison) {
+    const firstModel =
+      (
+        ["gemini", "gpt", "claude"] as ComparisonModel[]
+      ).find(
+        model =>
+          comparison[model]
+            ?.text
+      ) ??
+      "gemini";
+
+    return {
+      role: m.role,
+      text:
+        comparison[firstModel]
+          ?.text ??
+        "",
+      comparison,
+      activeModel:
+        firstModel,
+    };
+  }
+
+  return {
+    role: m.role,
+    text: m.content,
+  };
+});
 
 setMessages(formatted);
 
@@ -10677,6 +10707,161 @@ const persistChatMessage = async (
 
   return {
     error,
+  };
+};
+
+const runThreeAIChat = async (
+  message: string,
+  previousMessages: any[]
+) => {
+  const models:
+    ComparisonModel[] = [
+      "gemini",
+      "gpt",
+      "claude",
+    ];
+
+  const settled =
+    await Promise.allSettled(
+      models.map(
+        async model => {
+          const modelHistory =
+            previousMessages.map(
+              item => ({
+                ...item,
+                text:
+                  comparisonTextForModel(
+                    item,
+                    model
+                  ),
+              })
+            );
+
+          const text =
+            await generalChatWithAI(
+              message,
+              modelHistory,
+              model
+            );
+
+          return {
+            model,
+            text,
+          };
+        }
+      )
+    );
+
+  const variants:
+    ComparisonVariants = {};
+
+  settled.forEach(
+    (result, index) => {
+      const model =
+        models[index];
+
+      if (
+        result.status ===
+        "fulfilled"
+      ) {
+        variants[model] = {
+          text:
+            result.value.text,
+        };
+      } else {
+        variants[model] = {
+          text:
+            "ไม่สามารถติดต่อ AI ตัวนี้ได้ กรุณาลองใหม่อีกครั้ง",
+          error:
+            String(
+              result.reason ??
+              "AI request failed"
+            ),
+        };
+      }
+    }
+  );
+
+  return variants;
+};
+
+const runThreeAIPlanner = async (
+  tripForPlanner: TripInput,
+  chatId: string
+) => {
+  const models:
+    ComparisonModel[] = [
+      "gemini",
+      "gpt",
+      "claude",
+    ];
+
+  const settled =
+    await Promise.allSettled(
+      models.map(
+        model =>
+          createPlanner(
+            tripForPlanner,
+            chatId,
+            user.id,
+            model,
+            {
+              persistResult:
+                false,
+              persistSession:
+                false,
+            }
+          )
+      )
+    );
+
+  const variants:
+    ComparisonVariants = {};
+
+  const plannerResults:
+    Partial<
+      Record<
+        ComparisonModel,
+        any
+      >
+    > = {};
+
+  settled.forEach(
+    (result, index) => {
+      const model =
+        models[index];
+
+      if (
+        result.status ===
+        "fulfilled"
+      ) {
+        plannerResults[model] =
+          result.value;
+
+        variants[model] = {
+          text:
+            result.value.markdown,
+          plannerJson:
+            result.value
+              .planner_json,
+        };
+      } else {
+        variants[model] = {
+          text:
+            "ไม่สามารถสร้างแผนจาก AI ตัวนี้ได้ กรุณาลองใหม่อีกครั้ง",
+          error:
+            String(
+              result.reason ??
+              "Planner failed"
+            ),
+        };
+      }
+    }
+  );
+
+  return {
+    variants,
+    plannerResults,
   };
 };
 
