@@ -53,6 +53,8 @@ type InspireVideo = {
   thumbnail: string;
   channelTitle: string;
   publishedAt?: string | null;
+  viewCount?: number | null;
+  likeCount?: number | null;
   videoUrl: string;
 };
 
@@ -115,6 +117,34 @@ function formatPublishedDate(
       year: "numeric",
     }
   ).format(date);
+}
+
+function formatViewCount(
+  value?: number | null
+) {
+  const numeric =
+    Number(
+      value ?? 0
+    );
+
+  if (
+    !Number.isFinite(
+      numeric
+    ) ||
+    numeric <= 0
+  ) {
+    return null;
+  }
+
+  return new Intl.NumberFormat(
+    "th-TH",
+    {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }
+  ).format(
+    numeric
+  );
 }
 
 function Inspiration() {
@@ -613,8 +643,8 @@ function Inspiration() {
                       sm:text-base
                     "
                   >
-                    หาไอเดียทริปใหม่จากวิดีโอท่องเที่ยวที่คัดตามความสนใจ
-                    บรรยากาศ และสไตล์การเดินทางของคุณ
+                    หาไอเดียทริปใหม่จากวิดีโอท่องเที่ยวยอดนิยมที่มียอดวิวสูง
+                    และยังตรงกับความสนใจ บรรยากาศ และสไตล์การเดินทางของคุณ
                   </p>
 
                   {preferenceChips
@@ -1163,6 +1193,25 @@ function Inspiration() {
                           )}
                         </p>
 
+                        {formatViewCount(
+                          featured
+                            .viewCount
+                        ) && (
+                          <p
+                            className="
+                              mt-1
+                              text-xs
+                              font-semibold
+                              text-[#6f456f]
+                            "
+                          >
+                            {formatViewCount(
+                              featured
+                                .viewCount
+                            )} views
+                          </p>
+                        )}
+
                         {formatPublishedDate(
                           featured
                             .publishedAt
@@ -1376,6 +1425,25 @@ function Inspiration() {
                                       .channelTitle
                                   )}
                                 </p>
+
+                                {formatViewCount(
+                                  video
+                                    .viewCount
+                                ) && (
+                                  <p
+                                    className="
+                                      mt-1
+                                      text-[11px]
+                                      font-semibold
+                                      text-[#6f456f]
+                                    "
+                                  >
+                                    {formatViewCount(
+                                      video
+                                        .viewCount
+                                    )} views
+                                  </p>
+                                )}
 
                                 {formatPublishedDate(
                                   video
