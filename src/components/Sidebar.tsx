@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -6,16 +6,12 @@ import {
     Briefcase,
     Compass,
     Heart,
-    Bell,
     Lightbulb,
-    Plus,
-    Sparkles,
     MoreHorizontal,
     Menu,
     X,
 } from "lucide-react";
 import { useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 import ai1Icon from "@/assets/ai/ai1.svg";
 import ai2Icon from "@/assets/ai/ai2.svg";
 import ai3Icon from "@/assets/ai/ai3.svg";
@@ -153,11 +149,6 @@ const navItems = [
         label: "Inspiration",
         to: "/inspiration",
     },
-    {
-        icon: Plus,
-        label: "Create",
-        action: "create",
-    },
 ];
 
 export default function Sidebar({
@@ -167,9 +158,6 @@ export default function Sidebar({
     onNewChat,
 }: any) {
 
-    const navigate = useNavigate();
-
-    const [showCreateModal, setShowCreateModal] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
@@ -221,62 +209,27 @@ export default function Sidebar({
             {navItems.map((n) => (
                 <div key={n.label}>
 
-                    {n.to ? (
-
-                        <Link
-                            to={n.to}
-                            onClick={() => setMobileOpen(false)}
-                            className="
-                                w-full
-                                flex
-                                items-center
-                                gap-3
-                                px-3
-                                py-2.5
-                                text-sm
-                                rounded-md
-                                hover:bg-accent
-                                text-sidebar-foreground
-                            "
-                        >
-                            <n.icon className="h-[18px] w-[18px]" />
-                            <span className="flex-1 text-left">
-                                {n.label}
-                            </span>
-                        </Link>
-
-                    ) : (
-
-                        <button
-                            onClick={() => {
-
-                                if (n.action === "create") {
-                                    setShowCreateModal(true);
-                                    setMobileOpen(false);
-                                }
-
-                            }}
-                            className="
-                                w-full
-                                flex
-                                items-center
-                                gap-3
-                                px-3
-                                py-2.5
-                                text-sm
-                                rounded-md
-                                hover:bg-accent
-                                text-sidebar-foreground
-                            "
-                        >
-                            <n.icon className="h-[18px] w-[18px]" />
-
-                            <span className="flex-1 text-left">
-                                {n.label}
-                            </span>
-                        </button>
-
-                    )}
+                    <Link
+                        to={n.to}
+                        onClick={() => setMobileOpen(false)}
+                        className="
+                            w-full
+                            flex
+                            items-center
+                            gap-3
+                            px-3
+                            py-2.5
+                            text-sm
+                            rounded-md
+                            hover:bg-accent
+                            text-sidebar-foreground
+                        "
+                    >
+                        <n.icon className="h-[18px] w-[18px]" />
+                        <span className="flex-1 text-left">
+                            {n.label}
+                        </span>
+                    </Link>
 
                 </div>
             ))}
@@ -495,190 +448,6 @@ export default function Sidebar({
                 {sidebarContent}
             </aside>
         )}
-            {showCreateModal && (
-
-                <div
-                    className="
-        travel-modal-overlay
-        fixed
-        inset-0
-        bg-black/40
-        flex
-        items-center
-        justify-center
-        z-[100]
-        p-4
-    "
-                    onClick={() => setShowCreateModal(false)}
-                >
-
-
-                    <div
-                        style={{
-                            backgroundColor: "#fffdfb",
-                            opacity: 1,
-                            backgroundImage: "none",
-                            backdropFilter: "none",
-                            WebkitBackdropFilter: "none",
-                        }}
-                        className="
-        travel-modal-card
-        bg-white
-        rounded-3xl
-        p-8
-        w-full max-w-[420px] max-h-[calc(100dvh-2rem)] overflow-y-auto
-        shadow-xl
-    "
-                        onClick={(e) => e.stopPropagation()}
-                    >
-
-
-                        <h2 className="text-2xl font-semibold">
-                            Create New Trip
-                        </h2>
-
-
-                        <p className="text-gray-500 mt-2">
-                            Choose how you want to plan your trip
-                        </p>
-
-
-
-                        <div className="mt-6 space-y-4">
-
-
-                            <button
-
-                                onClick={() => {
-
-                                    setShowCreateModal(false);
-
-                                    navigate({
-                                        to: "/create_withAI"
-                                    });
-
-                                }}
-
-                                className="
-w-full
-border
-rounded-2xl
-p-5
-text-left
-hover:bg-gray-50
-"
-
-                            >
-
-                                <div className="flex gap-3 items-center">
-
-
-                                    <div
-                                        className="
-h-10
-w-10
-rounded-full
-bg-black
-text-white
-flex
-items-center
-justify-center
-"
-                                    >
-                                        <Sparkles size={18} />
-                                    </div>
-
-
-                                    <div>
-
-                                        <h3 className="font-semibold">
-                                            Plan with AI
-                                        </h3>
-
-                                        <p className="text-sm text-gray-500">
-                                            AI creates your itinerary
-                                        </p>
-
-                                    </div>
-
-
-                                </div>
-
-
-                            </button>
-
-
-
-
-                            <button
-
-                                onClick={() => {
-
-                                    setShowCreateModal(false);
-
-                                    navigate({
-                                        to: "/create_withManual"
-                                    });
-
-                                }}
-
-                                className="
-w-full
-border
-rounded-2xl
-p-5
-text-left
-hover:bg-gray-50
-"
-
-                            >
-
-                                <div className="flex gap-3 items-center">
-
-
-                                    <div
-                                        className="
-h-10
-w-10
-rounded-full
-bg-gray-100
-flex
-items-center
-justify-center
-"
-                                    >
-                                        <Plus size={18} />
-                                    </div>
-
-
-                                    <div>
-
-                                        <h3 className="font-semibold">
-                                            Create Manually
-                                        </h3>
-
-                                        <p className="text-sm text-gray-500">
-                                            Choose places yourself
-                                        </p>
-
-                                    </div>
-
-
-                                </div>
-
-
-                            </button>
-
-
-                        </div>
-
-
-                    </div>
-
-
-                </div>
-
-            )}
         </>
     );
     
