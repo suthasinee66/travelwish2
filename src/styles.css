@@ -1039,9 +1039,18 @@ html {
 .travel-home h3,
 .travel-home h4,
 .travel-home label,
-.travel-home strong,
-.travel-home button {
+.travel-home strong {
   color: var(--travel-ink);
+}
+
+/*
+ * Buttons may explicitly use text-white on dark purple backgrounds.
+ * Do not globally force every button back to --travel-ink.
+ */
+.travel-home button.text-white,
+.travel-home a.text-white,
+.travel-home [role="button"].text-white {
+  color: #ffffff !important;
 }
 
 .travel-home p {
