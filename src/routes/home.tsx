@@ -240,6 +240,42 @@ function comparisonTextForModel(
   );
 }
 
+function normalizeChatMarkdownForRender(
+  value: unknown
+) {
+  let text =
+    typeof value === "string"
+      ? value
+      : (
+          value as any
+        )?.markdown ??
+        "";
+
+  text =
+    String(text ?? "")
+      .trim();
+
+  // รองรับทั้งข้อความใหม่และข้อความเก่าที่บันทึกไว้:
+  // เก็บข้อความเกริ่นนอก fence และแกะเฉพาะ markdown fence
+  text = text.replace(
+    /```(?:markdown|md)\s*\n?([\s\S]*?)```/gi,
+    (
+      _match,
+      markdownBody
+    ) =>
+      `\n\n${String(
+        markdownBody ?? ""
+      ).trim()}\n\n`
+  );
+
+  text = text.replace(
+    /```(?:markdown|md)\s*\n?/gi,
+    ""
+  );
+
+  return text.trim();
+}
+
 function renderMarkdownBreaks(
   children: React.ReactNode
 ) {
@@ -13412,9 +13448,9 @@ ${m.role === "user"
   }}
 >
   {
-    typeof m.text === "string"
-      ? m.text
-      : m.text?.markdown ?? ""
+    normalizeChatMarkdownForRender(
+      m.text
+    )
   }
 </ReactMarkdown>
 )}
