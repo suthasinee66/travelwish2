@@ -14,6 +14,7 @@ export type GuestChatSession = {
   title: string;
   trip_preferences: any;
   ai_model: "gemini" | "gpt" | "claude";
+  comparison_mode?: boolean;
   created_at: string;
   updated_at: string;
   messages: GuestChatMessage[];
@@ -111,7 +112,20 @@ export function listGuestChatSessions() {
       ({
         messages,
         ...session
-      }) => session
+      }) => ({
+        ...session,
+        comparison_mode:
+          session.comparison_mode ===
+            true ||
+          messages.some(
+            message =>
+              typeof message.content ===
+                "string" &&
+              message.content.startsWith(
+                "__TRAVELWISH_COMPARE_V1__"
+              )
+          ),
+      })
     );
 }
 
@@ -136,6 +150,7 @@ export function createGuestChatSession(
       | "gemini"
       | "gpt"
       | "claude";
+    comparisonMode?: boolean;
   }
 ) {
   const now =
@@ -155,6 +170,9 @@ export function createGuestChatSession(
         input.tripPreferences,
       ai_model:
         input.aiModel,
+      comparison_mode:
+        input.comparisonMode ??
+        false,
       created_at:
         now,
       updated_at:
@@ -182,6 +200,7 @@ export function updateGuestChatSession(
         | "title"
         | "trip_preferences"
         | "ai_model"
+        | "comparison_mode"
       >
     >
 ) {
