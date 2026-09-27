@@ -325,7 +325,7 @@ app.post("/api/ai", async (req, res) => {
               : responseMode === "trend_context"
                 ? "You are a travel trend researcher. Use live web search and return a concise JSON object containing only current, evidence-based travel trends and viral places relevant to the requested province."
                 : responseMode === "markdown"
-                  ? "You are a travel planning assistant. Return only the final Markdown itinerary text requested by the user."
+                  ? "You are a travel planning assistant. Return only the final Markdown itinerary. Do not add any preface, meta commentary, tool/search narration, or explanation before the itinerary. Do not wrap the Markdown in triple backticks or a markdown code fence."
                   : "You are a helpful travel planning assistant. Return valid JSON only.",
         },
         {
