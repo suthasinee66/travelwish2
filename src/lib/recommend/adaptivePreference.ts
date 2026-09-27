@@ -1184,3 +1184,843 @@ export function buildDynamicUserVector(
     weights,
   };
 }
+
+
+// ============================================================
+// Restaurant adaptive preference
+// แยกจาก attraction topic vector เพื่อไม่ให้ feature คนละชนิดปนกัน
+// ============================================================
+
+export const RESTAURANT_VECTOR_SIZE = 18;
+
+export type RestaurantLearnedPreferenceProfile = {
+  behavior_vector: number[];
+  explicit_vector: number[];
+  interaction_count: number;
+  version: number;
+  updated_at: string;
+};
+
+const RESTAURANT_FEATURE_RULES: Array<{
+  key: string;
+  keywords: string[];
+}> = [
+  {
+    key: "cafe_brunch",
+    keywords: [
+      "cafe",
+      "café",
+      "coffee",
+      "brunch",
+      "คาเฟ่",
+      "กาแฟ",
+    ],
+  },
+  {
+    key: "thai_local",
+    keywords: [
+      "thai",
+      "local",
+      "ไทย",
+      "ท้องถิ่น",
+      "พื้นเมือง",
+    ],
+  },
+  {
+    key: "japanese",
+    keywords: [
+      "japanese",
+      "sushi",
+      "ramen",
+      "ญี่ปุ่น",
+      "ซูชิ",
+      "ราเมง",
+    ],
+  },
+  {
+    key: "korean",
+    keywords: [
+      "korean",
+      "เกาหลี",
+    ],
+  },
+  {
+    key: "chinese",
+    keywords: [
+      "chinese",
+      "จีน",
+      "ติ่มซำ",
+      "dim sum",
+    ],
+  },
+  {
+    key: "western_italian",
+    keywords: [
+      "western",
+      "italian",
+      "pizza",
+      "pasta",
+      "ตะวันตก",
+      "อิตาเลียน",
+      "พิซซ่า",
+      "พาสต้า",
+    ],
+  },
+  {
+    key: "street_food",
+    keywords: [
+      "street food",
+      "food stall",
+      "อาหารริมทาง",
+      "สตรีทฟู้ด",
+    ],
+  },
+  {
+    key: "fine_dining",
+    keywords: [
+      "fine dining",
+      "chef",
+      "tasting menu",
+      "ไฟน์ไดนิ่ง",
+      "เชฟ",
+    ],
+  },
+  {
+    key: "buffet",
+    keywords: [
+      "buffet",
+      "บุฟเฟต์",
+    ],
+  },
+  {
+    key: "seafood",
+    keywords: [
+      "seafood",
+      "อาหารทะเล",
+      "ซีฟู้ด",
+    ],
+  },
+  {
+    key: "noodle",
+    keywords: [
+      "noodle",
+      "ramen",
+      "ก๋วยเตี๋ยว",
+      "บะหมี่",
+      "ราเมง",
+    ],
+  },
+  {
+    key: "dessert_bakery",
+    keywords: [
+      "dessert",
+      "bakery",
+      "cake",
+      "ขนม",
+      "เบเกอรี่",
+      "เค้ก",
+    ],
+  },
+  {
+    key: "healthy",
+    keywords: [
+      "healthy",
+      "salad",
+      "สุขภาพ",
+      "สลัด",
+    ],
+  },
+  {
+    key: "vegetarian_vegan",
+    keywords: [
+      "vegetarian",
+      "vegan",
+      "มังสวิรัติ",
+      "วีแกน",
+      "เจ",
+    ],
+  },
+  {
+    key: "viral_trending",
+    keywords: [
+      "viral",
+      "trending",
+      "popular",
+      "ดัง",
+      "ไวรัล",
+      "กระแส",
+    ],
+  },
+  {
+    key: "hidden_local_gem",
+    keywords: [
+      "hidden gem",
+      "local gem",
+      "ร้านลับ",
+      "เจ้าถิ่น",
+    ],
+  },
+  {
+    key: "bar_nightlife",
+    keywords: [
+      "bar",
+      "pub",
+      "cocktail",
+      "บาร์",
+      "ผับ",
+      "ค็อกเทล",
+    ],
+  },
+  {
+    key: "family_casual",
+    keywords: [
+      "family",
+      "casual",
+      "ครอบครัว",
+      "สบายๆ",
+      "สบาย ๆ",
+    ],
+  },
+];
+
+function restaurantText(
+  place: any
+) {
+  return [
+    place?.food_type_label,
+    place?.place_type,
+    place?.google_primary_type,
+    place?.place_recommend_food,
+    place?.place_hilight,
+    place?.place_detail,
+    place?.description,
+    place?.cuisine,
+    place?.cuisine_type,
+    place?.restaurant_type,
+    place?.types,
+  ]
+    .flatMap(
+      value =>
+        Array.isArray(value)
+          ? value
+          : [value]
+    )
+    .filter(
+      value =>
+        value != null
+    )
+    .map(
+      value =>
+        normalizeText(value)
+    )
+    .join(" ");
+}
+
+export function createRestaurantPreferenceVector(
+  place: any
+) {
+  const text =
+    restaurantText(place);
+
+  const vector =
+    RESTAURANT_FEATURE_RULES.map(
+      rule =>
+        rule.keywords.some(
+          keyword =>
+            text.includes(
+              normalizeText(
+                keyword
+              )
+            )
+        )
+          ? 1
+          : 0
+    );
+
+  return normalizeVector(
+    vector
+  );
+}
+
+function emptyRestaurantProfile():
+  RestaurantLearnedPreferenceProfile {
+  return {
+    behavior_vector:
+      Array.from(
+        {
+          length:
+            RESTAURANT_VECTOR_SIZE,
+        },
+        () => 0
+      ),
+    explicit_vector:
+      Array.from(
+        {
+          length:
+            RESTAURANT_VECTOR_SIZE,
+        },
+        () => 0
+      ),
+    interaction_count: 0,
+    version: 0,
+    updated_at:
+      new Date(0)
+        .toISOString(),
+  };
+}
+
+function normalizeRestaurantStoredVector(
+  value: unknown
+) {
+  if (
+    !Array.isArray(value) ||
+    value.length !==
+      RESTAURANT_VECTOR_SIZE
+  ) {
+    return emptyRestaurantProfile()
+      .behavior_vector;
+  }
+
+  return value.map(
+    item => {
+      const number =
+        Number(item);
+
+      return Number.isFinite(
+        number
+      )
+        ? number
+        : 0;
+    }
+  );
+}
+
+function sanitizeRestaurantProfile(
+  value: any
+):
+  RestaurantLearnedPreferenceProfile {
+  if (!value) {
+    return emptyRestaurantProfile();
+  }
+
+  return {
+    behavior_vector:
+      normalizeRestaurantStoredVector(
+        value.behavior_vector
+      ),
+    explicit_vector:
+      normalizeRestaurantStoredVector(
+        value.explicit_vector
+      ),
+    interaction_count:
+      Math.max(
+        0,
+        Number(
+          value.interaction_count ??
+            0
+        ) || 0
+      ),
+    version:
+      Math.max(
+        0,
+        Number(
+          value.version ??
+            0
+        ) || 0
+      ),
+    updated_at:
+      String(
+        value.updated_at ??
+          new Date(0)
+            .toISOString()
+      ),
+  };
+}
+
+function getLocalRestaurantProfileKey(
+  profileId?: string | null
+) {
+  return profileId
+    ? `travelwish_restaurant_learned_pref_${profileId}`
+    : "travelwish_restaurant_learned_pref_guest";
+}
+
+function readLocalRestaurantProfile(
+  profileId?: string | null
+) {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return emptyRestaurantProfile();
+  }
+
+  try {
+    const raw =
+      window.localStorage
+        .getItem(
+          getLocalRestaurantProfileKey(
+            profileId
+          )
+        );
+
+    return sanitizeRestaurantProfile(
+      raw
+        ? JSON.parse(raw)
+        : null
+    );
+  } catch {
+    return emptyRestaurantProfile();
+  }
+}
+
+function writeLocalRestaurantProfile(
+  profile:
+    RestaurantLearnedPreferenceProfile,
+  profileId?: string | null
+) {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
+
+  window.localStorage.setItem(
+    getLocalRestaurantProfileKey(
+      profileId
+    ),
+    JSON.stringify(
+      profile
+    )
+  );
+}
+
+export async function loadRestaurantLearnedPreferenceProfile(
+  explicitProfileId?:
+    string | null
+) {
+  const identity =
+    explicitProfileId !==
+    undefined
+      ? {
+          profileId:
+            explicitProfileId,
+          isGuest:
+            !explicitProfileId,
+        }
+      : await getIdentity();
+
+  const local =
+    readLocalRestaurantProfile(
+      identity.profileId
+    );
+
+  if (
+    identity.isGuest ||
+    !identity.profileId
+  ) {
+    return local;
+  }
+
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabase
+        .from(
+          "user_restaurant_learned_preferences"
+        )
+        .select(
+          "behavior_vector, explicit_vector, interaction_count, version, updated_at"
+        )
+        .eq(
+          "profile_id",
+          identity.profileId
+        )
+        .maybeSingle();
+
+    if (
+      error ||
+      !data
+    ) {
+      return local;
+    }
+
+    const remote =
+      sanitizeRestaurantProfile(
+        data
+      );
+
+    const newest =
+      remote.version >=
+      local.version
+        ? remote
+        : local;
+
+    writeLocalRestaurantProfile(
+      newest,
+      identity.profileId
+    );
+
+    return newest;
+  } catch {
+    return local;
+  }
+}
+
+export async function recordRestaurantInteraction(
+  place: any,
+  eventType:
+    AdaptiveEventType,
+  options:
+    RecordInteractionOptions = {}
+) {
+  const entityId =
+    getEntityId(
+      place,
+      "restaurant"
+    );
+
+  if (!entityId) {
+    return null;
+  }
+
+  const identity =
+    await getIdentity();
+
+  const placeVector =
+    createRestaurantPreferenceVector(
+      place
+    );
+
+  const current =
+    await loadRestaurantLearnedPreferenceProfile(
+      identity.profileId
+    );
+
+  const decay =
+    recencyDecay(
+      current.updated_at
+    );
+
+  const rating =
+    Number(
+      options.rating
+    );
+
+  const signal =
+    eventType ===
+      "rating" &&
+    Number.isFinite(rating)
+      ? ratingSignal(
+          rating
+        )
+      : eventWeight(
+          eventType,
+          Number(
+            options.eventValue ??
+              1
+          )
+        );
+
+  const next:
+    RestaurantLearnedPreferenceProfile = {
+      ...current,
+      behavior_vector: [
+        ...current.behavior_vector,
+      ],
+      explicit_vector: [
+        ...current.explicit_vector,
+      ],
+    };
+
+  if (
+    eventType ===
+    "rating"
+  ) {
+    next.explicit_vector =
+      updateLearnedVector(
+        current.explicit_vector,
+        placeVector,
+        signal,
+        0.5,
+        decay
+      );
+  } else {
+    next.behavior_vector =
+      updateLearnedVector(
+        current.behavior_vector,
+        placeVector,
+        signal,
+        eventType ===
+          "detail_open"
+          ? 0.12
+          : 0.24,
+        decay
+      );
+  }
+
+  next.interaction_count =
+    current.interaction_count +
+    1;
+
+  next.version =
+    current.version + 1;
+
+  next.updated_at =
+    new Date()
+      .toISOString();
+
+  writeLocalRestaurantProfile(
+    next,
+    identity.profileId
+  );
+
+  if (
+    eventType ===
+      "rating" &&
+    Number.isFinite(rating)
+  ) {
+    const feedback =
+      readLocalFeedback(
+        identity.profileId
+      );
+
+    feedback[
+      `restaurant:${entityId}`
+    ] = rating;
+
+    writeLocalFeedback(
+      feedback,
+      identity.profileId
+    );
+  }
+
+  if (
+    !identity.isGuest &&
+    identity.profileId
+  ) {
+    try {
+      await supabase
+        .from(
+          "user_place_events"
+        )
+        .insert({
+          profile_id:
+            identity.profileId,
+          entity_type:
+            "restaurant",
+          entity_id:
+            entityId,
+          event_type:
+            eventType,
+          event_value:
+            signal,
+          dwell_ms:
+            options.dwellMs ??
+            null,
+          topic_vector:
+            placeVector,
+        });
+
+      if (
+        eventType ===
+          "rating" &&
+        Number.isFinite(rating)
+      ) {
+        await supabase
+          .from(
+            "user_place_feedback"
+          )
+          .upsert(
+            {
+              profile_id:
+                identity.profileId,
+              entity_type:
+                "restaurant",
+              entity_id:
+                entityId,
+              rating,
+              liked:
+                rating >= 3,
+              updated_at:
+                new Date()
+                  .toISOString(),
+            },
+            {
+              onConflict:
+                "profile_id,entity_type,entity_id",
+            }
+          );
+      }
+
+      await supabase
+        .from(
+          "user_restaurant_learned_preferences"
+        )
+        .upsert(
+          {
+            profile_id:
+              identity.profileId,
+            behavior_vector:
+              next.behavior_vector,
+            explicit_vector:
+              next.explicit_vector,
+            interaction_count:
+              next.interaction_count,
+            version:
+              next.version,
+            updated_at:
+              next.updated_at,
+          },
+          {
+            onConflict:
+              "profile_id",
+          }
+        );
+    } catch (
+      error
+    ) {
+      console.warn(
+        "RESTAURANT ADAPTIVE SYNC SKIPPED:",
+        error
+      );
+    }
+  }
+
+  if (
+    typeof window !==
+    "undefined"
+  ) {
+    window.dispatchEvent(
+      new CustomEvent(
+        "travelwish-restaurant-preference-updated",
+        {
+          detail: {
+            version:
+              next.version,
+            entityId,
+            eventType,
+          },
+        }
+      )
+    );
+  }
+
+  return next;
+}
+
+export async function rankRestaurantsByLearnedPreference(
+  restaurants: any[]
+) {
+  if (
+    !Array.isArray(
+      restaurants
+    ) ||
+    restaurants.length <= 1
+  ) {
+    return restaurants ?? [];
+  }
+
+  const learned =
+    await loadRestaurantLearnedPreferenceProfile();
+
+  if (
+    learned.interaction_count <= 0
+  ) {
+    return [
+      ...restaurants,
+    ].sort(
+      (a, b) =>
+        Number(
+          a?.distance ??
+            Infinity
+        ) -
+        Number(
+          b?.distance ??
+            Infinity
+        )
+    );
+  }
+
+  const behavior =
+    normalizeVector(
+      learned.behavior_vector
+    );
+
+  const explicit =
+    normalizeVector(
+      learned.explicit_vector
+    );
+
+  const userVector =
+    normalizeVector(
+      behavior.map(
+        (
+          value,
+          index
+        ) =>
+          value * 0.55 +
+          (
+            explicit[
+              index
+            ] ?? 0
+          ) * 0.45
+      )
+    );
+
+  return restaurants
+    .map(
+      restaurant => {
+        const restaurantVector =
+          createRestaurantPreferenceVector(
+            restaurant
+          );
+
+        const affinity =
+          cosineSimilarity(
+            userVector,
+            restaurantVector
+          );
+
+        const distance =
+          Number(
+            restaurant?.distance
+          );
+
+        const distanceScore =
+          Number.isFinite(
+            distance
+          )
+            ? Math.exp(
+                -Math.max(
+                  0,
+                  distance
+                ) / 5
+              )
+            : 0;
+
+        return {
+          ...restaurant,
+          learned_restaurant_affinity:
+            affinity,
+          learned_restaurant_score:
+            affinity * 0.65 +
+            distanceScore * 0.35,
+        };
+      }
+    )
+    .sort(
+      (a, b) =>
+        Number(
+          b.learned_restaurant_score ??
+            0
+        ) -
+        Number(
+          a.learned_restaurant_score ??
+            0
+        )
+    );
+}
