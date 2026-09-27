@@ -9180,6 +9180,62 @@ const [tripInput, setTripInput] = useState<TripInput>({
     selectedBudget.length > 0 ||
     selectedCompanion.length > 0;
 
+  useEffect(() => {
+    const handleAdaptivePreferenceUpdated =
+      (
+        event: Event
+      ) => {
+        const detail =
+          (
+            event as CustomEvent<{
+              eventType?: string;
+            }>
+          ).detail;
+
+        if (
+          ![
+            "rating",
+            "save",
+            "unsave",
+            "add_to_trip",
+            "remove_from_trip",
+          ].includes(
+            String(
+              detail?.eventType ??
+              ""
+            )
+          )
+        ) {
+          return;
+        }
+
+        setRecommend([]);
+        setExplorePlaces([]);
+        setAllRecommend([]);
+
+        setRecommendAttempt(
+          current =>
+            current + 1
+        );
+      };
+
+    window.addEventListener(
+      "travelwish-preference-updated",
+      handleAdaptivePreferenceUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        "travelwish-preference-updated",
+        handleAdaptivePreferenceUpdated
+      );
+    };
+  }, [
+    setRecommend,
+    setExplorePlaces,
+    setAllRecommend,
+  ]);
+
     const loadUserTripPreference = async () => {
 
   if (!user?.id) return;
