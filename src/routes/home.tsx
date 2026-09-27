@@ -522,14 +522,16 @@ px-10
 py-3
 rounded-full
 font-semibold
+transition-all
+duration-200
 
 ${tripInput.province
 
             ?
-            "bg-black text-white"
+            "bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8] text-[#4f3b58] shadow-[0_8px_20px_rgba(184,155,203,0.28)] hover:brightness-[1.03]"
 
             :
-            "bg-gray-300 text-white"
+            "bg-gradient-to-r from-[#eadff0] via-[#f5dce9] to-[#dceff4] text-[#786a7e]"
 
           }
 
@@ -573,9 +575,9 @@ function DaysPicker({
 
       <button
         onClick={() => setActiveStep("who")}
-        className={`mt-8 ml-auto block px-8 py-3 rounded-full font-semibold ${tripInput.days
-          ? "bg-black text-white"
-          : "bg-gray-300 text-white"
+        className={`mt-8 ml-auto block px-8 py-3 rounded-full font-semibold transition-all duration-200 ${tripInput.days
+          ? "bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8] text-[#4f3b58] shadow-[0_8px_20px_rgba(184,155,203,0.28)] hover:brightness-[1.03]"
+          : "bg-gradient-to-r from-[#eadff0] via-[#f5dce9] to-[#dceff4] text-[#786a7e]"
           }`}
       >
         Next
@@ -621,10 +623,11 @@ function WhoPicker({
               rounded-xl
               px-5
               py-3
-              transition
+              transition-all
+              duration-200
               ${tripInput.companion === x
-                ? "bg-black text-white border-black"
-                : "hover:bg-gray-100"
+                ? "border-transparent bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8] text-[#4f3b58] shadow-[0_8px_20px_rgba(184,155,203,0.24)]"
+                : "border-[#e8dce9] bg-white text-[#66596b] hover:bg-[#faf6fb] hover:border-[#d8c5df]"
               }
             `}
           >
@@ -684,11 +687,13 @@ px-8
 py-3
 rounded-full
 font-semibold
+transition-all
+duration-200
 ${tripInput.budget
             ?
-            "bg-black text-white"
+            "bg-gradient-to-r from-[#b89bcb] via-[#e9a8c9] to-[#a9dce8] text-[#4f3b58] shadow-[0_8px_20px_rgba(184,155,203,0.28)] hover:brightness-[1.03]"
             :
-            "bg-gray-300 text-white"
+            "bg-gradient-to-r from-[#eadff0] via-[#f5dce9] to-[#dceff4] text-[#786a7e]"
           }
 `}
 
