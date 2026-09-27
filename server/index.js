@@ -473,25 +473,39 @@ app.post("/api/ai", async (req, res) => {
       requestPayload.response_format = {
         type: "json_schema",
         json_schema: {
-          name: "travelwish_accommodation_choice",
+          name: "travelwish_accommodation_ranking",
           strict: true,
           schema: {
             type: "object",
             additionalProperties: false,
             properties: {
-              accommodation_id: {
-                type: "string",
-                minLength: 1
-              },
-              reason: {
-                type: "string",
-                minLength: 1,
-                maxLength: 400
+              recommendations: {
+                type: "array",
+                minItems: 3,
+                maxItems: 3,
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    accommodation_id: {
+                      type: "string",
+                      minLength: 1
+                    },
+                    reason: {
+                      type: "string",
+                      minLength: 1,
+                      maxLength: 400
+                    }
+                  },
+                  required: [
+                    "accommodation_id",
+                    "reason"
+                  ]
+                }
               }
             },
             required: [
-              "accommodation_id",
-              "reason"
+              "recommendations"
             ]
           }
         }
