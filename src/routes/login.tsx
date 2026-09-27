@@ -249,6 +249,11 @@ function LoginPage() {
             to="/login"
             className="group flex items-center gap-3"
           >
+            <img
+              src={travelWishLogo}
+              alt="TravelWish"
+              className="h-14 w-auto max-w-[full px] "
+            />
           </Link>
 
           {/* REGISTER */}
@@ -349,7 +354,11 @@ function LoginPage() {
               <div className="mb-7 text-center">
                 {/* MOBILE LOGO */}
                 <div className="mb-5 flex justify-center lg:hidden">
-                  
+                  <img
+                    src={travelWishLogo}
+                    alt="TravelWish"
+                    className="h-16 w-auto max-w-[full px] "
+                  />
                 </div>
 
                 <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[#c8a9d8]/15 px-3 py-1.5 text-xs font-bold text-[#725d80]">
