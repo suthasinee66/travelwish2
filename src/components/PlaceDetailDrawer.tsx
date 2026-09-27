@@ -32,6 +32,10 @@ import {
   toggleAttractionSaved,
   type PlaceDetailRelatedData,
 } from "@/lib/travel/loadPlaceDetailData";
+import {
+  getPlacePreferenceRating,
+  recordPlaceInteraction,
+} from "@/lib/recommend/adaptivePreference";
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
@@ -854,6 +858,24 @@ export default function PlaceDetailDrawer({
   const [saving, setSaving] =
     useState(false);
 
+  const [
+    preferenceRating,
+    setPreferenceRating,
+  ] = useState<number | null>(
+    null
+  );
+
+  const [
+    preferenceRatingSaving,
+    setPreferenceRatingSaving,
+  ] = useState(false);
+
+  const detailOpenKeyRef =
+    useRef<string | null>(null);
+
+  const detailOpenedAtRef =
+    useRef<number | null>(null);
+
   const [similarSavedIds, setSimilarSavedIds] =
     useState<Set<string>>(new Set());
 
@@ -896,6 +918,9 @@ export default function PlaceDetailDrawer({
         nearbyPlaces: [],
       });
       setIsSaved(false);
+      setPreferenceRating(null);
+      detailOpenKeyRef.current = null;
+      detailOpenedAtRef.current = null;
       setMainImageIndex(0);
       setActiveTab("overview");
       setDescriptionExpanded(false);
@@ -1103,6 +1128,95 @@ export default function PlaceDetailDrawer({
     latitude,
     longitude,
     address,
+  ]);
+
+  useEffect(() => {
+    if (
+      !open ||
+      type !== "attraction" ||
+      !data?.att_id
+    ) {
+      setPreferenceRating(null);
+      return;
+    }
+
+    const key =
+      `attraction:${String(
+        data.att_id
+      )}`;
+
+    if (
+      detailOpenKeyRef.current !==
+      key
+    ) {
+      detailOpenKeyRef.current =
+        key;
+
+      detailOpenedAtRef.current =
+        Date.now();
+
+      void recordPlaceInteraction(
+        data,
+        "detail_open",
+        {
+          entityType:
+            "attraction",
+        }
+      );
+    }
+
+    let active = true;
+
+    void getPlacePreferenceRating(
+      data,
+      "attraction"
+    ).then(
+      value => {
+        if (active) {
+          setPreferenceRating(
+            value
+          );
+        }
+      }
+    );
+
+    return () => {
+      active = false;
+
+      const startedAt =
+        detailOpenedAtRef.current;
+
+      if (
+        startedAt &&
+        detailOpenKeyRef.current ===
+          key
+      ) {
+        const dwellMs =
+          Date.now() -
+          startedAt;
+
+        if (
+          dwellMs >= 10_000
+        ) {
+          void recordPlaceInteraction(
+            data,
+            "detail_dwell",
+            {
+              entityType:
+                "attraction",
+              dwellMs,
+            }
+          );
+        }
+
+        detailOpenedAtRef.current =
+          null;
+      }
+    };
+  }, [
+    open,
+    type,
+    data?.att_id,
   ]);
 
   useEffect(() => {
@@ -1511,6 +1625,20 @@ export default function PlaceDetailDrawer({
       return;
     }
 
+    if (
+      type === "attraction" &&
+      data?.att_id
+    ) {
+      void recordPlaceInteraction(
+        data,
+        "image_view",
+        {
+          entityType:
+            "attraction",
+        }
+      );
+    }
+
     setMainImageIndex((current) => {
       if (direction === "next") {
         return (
@@ -1549,6 +1677,17 @@ export default function PlaceDetailDrawer({
         );
 
       setIsSaved(nextSaved);
+
+      void recordPlaceInteraction(
+        data,
+        nextSaved
+          ? "save"
+          : "unsave",
+        {
+          entityType:
+            "attraction",
+        }
+      );
     } catch (error) {
       console.warn(
         "TOGGLE SAVED ERROR:",
@@ -1558,6 +1697,49 @@ export default function PlaceDetailDrawer({
       setSaving(false);
     }
   };
+
+  const handlePreferenceRating =
+    async (
+      value: number
+    ) => {
+      if (
+        type !== "attraction" ||
+        !data?.att_id ||
+        preferenceRatingSaving
+      ) {
+        return;
+      }
+
+      setPreferenceRatingSaving(
+        true
+      );
+
+      setPreferenceRating(
+        value
+      );
+
+      try {
+        await recordPlaceInteraction(
+          data,
+          "rating",
+          {
+            entityType:
+              "attraction",
+            rating:
+              value,
+          }
+        );
+      } catch (error) {
+        console.warn(
+          "SAVE PLACE PREFERENCE RATING ERROR:",
+          error
+        );
+      } finally {
+        setPreferenceRatingSaving(
+          false
+        );
+      }
+    };
 
   const scrollDrawerToTop = () => {
     requestAnimationFrame(() => {
@@ -1934,6 +2116,85 @@ export default function PlaceDetailDrawer({
                 )}
             </div>
           </section>
+
+          {type === "attraction" &&
+            data?.att_id && (
+              <section className="mt-4 rounded-[18px] border border-[#ece3ed] bg-[#fbf8fc] px-4 py-3">
+                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-[#4d4252]">
+                      สถานที่นี้ตรงกับความชอบคุณแค่ไหน?
+                    </p>
+                    <p className="mt-0.5 text-[11px] leading-4 text-[#938698]">
+                      คำตอบนี้จะช่วยให้คำแนะนำครั้งต่อไปตรงกับคุณมากขึ้น
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5 sm:flex">
+                    {[
+                      {
+                        value: 1,
+                        label: "ไม่ชอบ",
+                        emoji: "😕",
+                      },
+                      {
+                        value: 2,
+                        label: "เฉย ๆ",
+                        emoji: "😐",
+                      },
+                      {
+                        value: 3,
+                        label: "ชอบ",
+                        emoji: "🙂",
+                      },
+                      {
+                        value: 4,
+                        label: "ชอบมาก",
+                        emoji: "😍",
+                      },
+                    ].map(
+                      option => {
+                        const selected =
+                          preferenceRating ===
+                          option.value;
+
+                        return (
+                          <button
+                            key={
+                              option.value
+                            }
+                            type="button"
+                            disabled={
+                              preferenceRatingSaving
+                            }
+                            onClick={() =>
+                              void handlePreferenceRating(
+                                option.value
+                              )
+                            }
+                            className={`
+                              flex min-h-[48px] min-w-0 flex-col items-center justify-center rounded-xl border px-2 py-1.5 text-[10px] font-semibold transition
+                              disabled:cursor-wait disabled:opacity-60
+                              ${selected
+                                ? "border-[#b99bc3] bg-[#eee2f1] text-[#5f3565] shadow-sm"
+                                : "border-[#eadfeb] bg-white text-[#7c7080] hover:bg-[#f7f1f8]"
+                              }
+                            `}
+                          >
+                            <span className="text-base leading-none">
+                              {option.emoji}
+                            </span>
+                            <span className="mt-1 whitespace-nowrap">
+                              {option.label}
+                            </span>
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
 
           <section className="mt-4">
             {selectedImage ? (
@@ -3097,6 +3358,15 @@ export default function PlaceDetailDrawer({
                     record &&
                     onAddToTrip
                   ) {
+                    void recordPlaceInteraction(
+                      record,
+                      "add_to_trip",
+                      {
+                        entityType:
+                          "attraction",
+                      }
+                    );
+
                     onAddToTrip({
                       type,
                       data: record,
