@@ -11166,44 +11166,83 @@ const handleSend = async () => {
           tripForPlanner
         );
 
-        const result = await createPlanner(
-          tripForPlanner,
-          chatId,
-          user.id,
-          selectedModel
-        );
+        if (comparisonMode) {
+          const {
+            variants,
+            plannerResults,
+          } =
+            await runThreeAIPlanner(
+              tripForPlanner,
+              chatId
+            );
 
-        const plannedTrip = {
-          ...tripForPlanner,
+          const activeModel =
+            plannerResults[
+              selectedModel
+            ]
+              ? selectedModel
+              : (
+                  ["gemini", "gpt", "claude"] as ComparisonModel[]
+                ).find(
+                  model =>
+                    plannerResults[
+                      model
+                    ]
+                ) ??
+                "gemini";
 
-          accommodation:
-            result?.accommodation ??
-            tripForPlanner.accommodation ??
-            null
-        };
+          const result =
+            plannerResults[
+              activeModel
+            ];
 
-        setTripInput(plannedTrip);
-        setPlan(result.markdown);
-        setPlannerJson(result.planner_json);
-        setShowTripPlan(true);
-        setExploreOpen(false);
-
-        setMessages(prev => [
-          ...prev.slice(0, -1),
-          {
-            role: "ai",
-            text: result.markdown
+          if (!result) {
+            throw new Error(
+              "ทั้ง 3 AI สร้างแผนไม่สำเร็จ"
+            );
           }
-        ]);
 
-        if (
-          isGuestUser(user) ||
-          isGuestChatId(chatId)
-        ) {
+          const plannedTrip = {
+            ...tripForPlanner,
+            accommodation:
+              result?.accommodation ??
+              tripForPlanner.accommodation ??
+              null
+          };
+
+          setTripInput(
+            plannedTrip
+          );
+          setPlan(
+            result.markdown
+          );
+          setPlannerJson(
+            result.planner_json
+          );
+          setShowTripPlan(true);
+          setExploreOpen(false);
+
+          setMessages(prev => [
+            ...prev.slice(0, -1),
+            {
+              role: "ai",
+              text:
+                variants[
+                  activeModel
+                ]?.text ??
+                result.markdown,
+              comparison:
+                variants,
+              activeModel,
+            }
+          ]);
+
           await persistChatMessage(
             chatId,
             "ai",
-            result.markdown,
+            encodeComparisonMessage(
+              variants
+            ),
             result.planner_json
           );
 
@@ -11211,6 +11250,53 @@ const handleSend = async () => {
             chatId,
             plannedTrip
           );
+        } else {
+          const result = await createPlanner(
+            tripForPlanner,
+            chatId,
+            user.id,
+            selectedModel
+          );
+
+          const plannedTrip = {
+            ...tripForPlanner,
+
+            accommodation:
+              result?.accommodation ??
+              tripForPlanner.accommodation ??
+              null
+          };
+
+          setTripInput(plannedTrip);
+          setPlan(result.markdown);
+          setPlannerJson(result.planner_json);
+          setShowTripPlan(true);
+          setExploreOpen(false);
+
+          setMessages(prev => [
+            ...prev.slice(0, -1),
+            {
+              role: "ai",
+              text: result.markdown
+            }
+          ]);
+
+          if (
+            isGuestUser(user) ||
+            isGuestChatId(chatId)
+          ) {
+            await persistChatMessage(
+              chatId,
+              "ai",
+              result.markdown,
+              result.planner_json
+            );
+
+            await updateChatSessionTrip(
+              chatId,
+              plannedTrip
+            );
+          }
         }
       } catch (err) {
         console.error(
@@ -11642,33 +11728,80 @@ const handleSend = async () => {
     ...prev,
     {
       role: "ai",
-      text: "กำลังคิด...",
+      text:
+        comparisonMode
+          ? "กำลังส่งให้ AI ทั้ง 3 ตัว..."
+          : "กำลังคิด...",
       loading: true
     }
   ]);
 
   try {
-    const aiText = await generalChatWithAI(
-      text,
-      previousMessages,
-      selectedModel
-    );
+    if (comparisonMode) {
+      const variants =
+        await runThreeAIChat(
+          text,
+          previousMessages
+        );
 
-    console.log("🤖 GENERAL AI RESPONSE:", aiText);
+      const activeModel =
+        variants[
+          selectedModel
+        ]?.text
+          ? selectedModel
+          : (
+              ["gemini", "gpt", "claude"] as ComparisonModel[]
+            ).find(
+              model =>
+                variants[model]
+                  ?.text
+            ) ??
+            "gemini";
 
-    setMessages(prev => [
-      ...prev.slice(0, -1),
-      {
-        role: "ai",
-        text: aiText
-      }
-    ]);
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        {
+          role: "ai",
+          text:
+            variants[
+              activeModel
+            ]?.text ??
+            "",
+          comparison:
+            variants,
+          activeModel,
+        }
+      ]);
 
-    await persistChatMessage(
-      chatId,
-      "ai",
-      aiText
-    );
+      await persistChatMessage(
+        chatId,
+        "ai",
+        encodeComparisonMessage(
+          variants
+        )
+      );
+    } else {
+      const aiText =
+        await generalChatWithAI(
+          text,
+          previousMessages,
+          selectedModel
+        );
+
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        {
+          role: "ai",
+          text: aiText
+        }
+      ]);
+
+      await persistChatMessage(
+        chatId,
+        "ai",
+        aiText
+      );
+    }
   } catch (error) {
     console.error(
       "❌ GENERAL CHAT AI ERROR:",
