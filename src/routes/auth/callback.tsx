@@ -330,16 +330,7 @@ function TravelWishLogo() {
           max-w-[320px]
           items-center
           justify-center
-          rounded-[26px]
-          border
-          border-white/95
-          bg-white/90
-          px-4
-          py-3
-          shadow-[0_14px_36px_rgba(91,72,117,0.13)]
-          ring-1
-          ring-[#eadfeb]/70
-          backdrop-blur-xl
+          
         "
       >
         <img
