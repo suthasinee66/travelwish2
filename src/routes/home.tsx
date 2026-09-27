@@ -10340,12 +10340,41 @@ const updateChatSessionTrip = async (
   sessionId: string,
   trip: TripInput
 ) => {
-  if (isGuestUser(user)) {
-    return;
-  }
-
   const title =
     buildChatTitle(trip);
+
+  if (
+    isGuestUser(user) ||
+    isGuestChatId(sessionId)
+  ) {
+    const updated =
+      updateGuestChatSession(
+        sessionId,
+        {
+          title,
+          trip_preferences:
+            trip,
+          ai_model:
+            selectedModel,
+        }
+      );
+
+    if (updated) {
+      setChatSessions(prev =>
+        prev.map(chat =>
+          String(chat.id) ===
+          String(sessionId)
+            ? {
+                ...chat,
+                ...updated,
+              }
+            : chat
+        )
+      );
+    }
+
+    return;
+  }
 
   const { data, error } =
     await supabase
@@ -10393,14 +10422,34 @@ const ensureChatSession = async (
   }
 
   if (isGuestUser(user)) {
-    const guestChatId =
-      `guest-${crypto.randomUUID()}`;
+    const tripToSave =
+      tripOverride ??
+      tripInput;
+
+    const guestSession =
+      createGuestChatSession({
+        userId:
+          user.id,
+        title:
+          buildChatTitle(
+            tripToSave
+          ),
+        tripPreferences:
+          tripToSave,
+        aiModel:
+          selectedModel,
+      });
 
     setCurrentChatId(
-      guestChatId
+      guestSession.id
     );
 
-    return guestChatId;
+    setChatSessions(prev => [
+      guestSession,
+      ...prev,
+    ]);
+
+    return guestSession.id;
   }
 
   const tripToSave =
@@ -11357,6 +11406,27 @@ const handleSend = async () => {
 
       if (!user) return;
 
+      if (
+        isGuestUser(user)
+      ) {
+        const guestSessions =
+          listGuestChatSessions();
+
+        setChatSessions(
+          guestSessions
+        );
+
+        if (
+          guestSessions.length > 0 &&
+          !currentChatId
+        ) {
+          void loadChatMessages(
+            guestSessions[0].id
+          );
+        }
+
+        return;
+      }
 
       const { data, error } = await supabase
         .from("chat_sessions")
