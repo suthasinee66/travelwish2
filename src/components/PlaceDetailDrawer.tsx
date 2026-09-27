@@ -29,6 +29,7 @@ import { useImageSwipe } from "@/hooks/useImageSwipe";
 import {
   getAttractionSavedState,
   loadPlaceDetailRelatedData,
+  loadPlaceDetailWeather,
   toggleAttractionSaved,
   type PlaceDetailRelatedData,
 } from "@/lib/travel/loadPlaceDetailData";
@@ -1405,7 +1406,6 @@ export default function PlaceDetailDrawer({
 
     if (
       !open ||
-      type !== "attraction" ||
       !Number.isFinite(latitude) ||
       !Number.isFinite(longitude)
     ) {
@@ -1421,7 +1421,23 @@ export default function PlaceDetailDrawer({
 
     setRelatedLoading(true);
 
-    loadPlaceDetailRelatedData(data)
+    const request =
+      type === "attraction"
+        ? loadPlaceDetailRelatedData(
+            data
+          )
+        : loadPlaceDetailWeather(
+            data
+          ).then(
+            weather => ({
+              weather,
+              similarPlaces: [],
+              nearbyRestaurants: [],
+              nearbyPlaces: [],
+            })
+          );
+
+    request
       .then((result) => {
         if (active) {
           setRelatedData(result);
@@ -1446,7 +1462,10 @@ export default function PlaceDetailDrawer({
     open,
     type,
     data?.att_id,
+    data?.place_id,
+    data?.acc_id,
     data?.province,
+    data?.province_name_th,
     latitude,
     longitude,
   ]);
@@ -2867,7 +2886,9 @@ export default function PlaceDetailDrawer({
             </div>
           )}
 
-          {type === "attraction" && (
+          {(type === "attraction" ||
+            type === "restaurant" ||
+            type === "accommodation") && (
             <section className="mt-4">
               {relatedData.weather ? (
                 <div className="rounded-[20px] bg-gradient-to-r from-[#f2ecff] via-[#f8f1fb] to-[#fff1f3] px-4 py-4 shadow-[0_8px_24px_rgba(91,58,97,0.07)] sm:px-5">
