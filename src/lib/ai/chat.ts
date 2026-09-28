@@ -891,9 +891,13 @@ ${history || "ยังไม่มีประวัติการสนทน
 ตอบผู้ใช้:
 `;
 
-  return await generateAIText(
+  return await generateWithSelectedModel(
     selectedModel,
-    prompt
+    prompt,
+    {
+      responseMode:
+        "markdown",
+    }
   );
 }
 
