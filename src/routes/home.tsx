@@ -93,6 +93,7 @@ import { useTravelStore } from "@/store/travelStore";
 import { loadTravelData } from "@/lib/travel/loadTravelData";
 import { getUserLocation } from "@/lib/location/getUserLocation";
 import { createPlanner } from "@/lib/ai/planner";
+import { normalizeMarkdownResponse } from "@/lib/ai/ai";
 import { loadAllPlaces } from "@/lib/travel/loadAllPlaces";
 import {
   chatWithAI,
@@ -246,37 +247,23 @@ function comparisonTextForModel(
 function normalizeChatMarkdownForRender(
   value: unknown
 ) {
-  let text =
+  const text =
     typeof value === "string"
       ? value
       : (
           value as any
         )?.markdown ??
+        (
+          value as any
+        )?.message ??
         "";
 
-  text =
-    String(text ?? "")
-      .trim();
-
-  // รองรับทั้งข้อความใหม่และข้อความเก่าที่บันทึกไว้:
-  // เก็บข้อความเกริ่นนอก fence และแกะเฉพาะ markdown fence
-  text = text.replace(
-    /```(?:markdown|md)\s*\n?([\s\S]*?)```/gi,
-    (
-      _match,
-      markdownBody
-    ) =>
-      `\n\n${String(
-        markdownBody ?? ""
-      ).trim()}\n\n`
+  return normalizeMarkdownResponse(
+    String(
+      text ??
+      ""
+    )
   );
-
-  text = text.replace(
-    /```(?:markdown|md)\s*\n?/gi,
-    ""
-  );
-
-  return text.trim();
 }
 
 function renderMarkdownBreaks(
