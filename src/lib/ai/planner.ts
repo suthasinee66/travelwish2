@@ -1384,15 +1384,31 @@ if (!tripData.accommodation) {
                 )
             );
 
-        const looseNightlyBudget =
+        const tripNights =
+            Math.max(
+                1,
+                tripDays - 1
+            );
+
+        const hasNumericTripBudget =
             Number.isFinite(
                 tripBudget
             ) &&
-            tripBudget > 0
-                ? (
-                    tripBudget /
-                    tripDays
-                ) * 0.45
+            tripBudget > 0;
+
+        // ใช้กรอบเดิมของ TravelWish:
+        // กันงบทริปประมาณ 45% สำหรับที่พัก
+        // แต่เปลี่ยนจาก "แค่หักคะแนน" เป็น hard budget guard
+        // เพื่อไม่ให้ AI เลือกโรงแรมที่ราคาเกินงบเมื่อผู้ใช้กำหนดงบไว้
+        const accommodationBudgetTotal =
+            hasNumericTripBudget
+                ? tripBudget * 0.45
+                : null;
+
+        const maxNightlyAccommodationBudget =
+            accommodationBudgetTotal != null
+                ? accommodationBudgetTotal /
+                    tripNights
                 : null;
 
         plannerAccommodationCandidates.push(
@@ -1426,41 +1442,54 @@ if (!tripData.accommodation) {
                                 0
                             );
 
+                        // ใช้ "ราคาต่ำสุดที่มีจริง" เป็นตัวเช็ก affordability
+                        // เพราะช่วงราคา high_rate อาจเป็นห้องประเภทแพงกว่าที่ผู้ใช้ไม่จำเป็นต้องเลือก
                         const nightlyRate =
                             Number.isFinite(
                                 lowRate
                             ) &&
-                            lowRate > 0 &&
-                            Number.isFinite(
-                                highRate
-                            ) &&
-                            highRate > 0
-                                ? (
-                                    lowRate +
-                                    highRate
-                                ) / 2
+                            lowRate > 0
+                                ? lowRate
                                 : (
                                     Number.isFinite(
-                                        lowRate
+                                        highRate
                                     ) &&
-                                    lowRate > 0
-                                        ? lowRate
+                                    highRate > 0
+                                        ? highRate
                                         : null
                                 );
 
-                        const budgetPenalty =
+                        const estimatedStayCost =
+                            nightlyRate != null
+                                ? nightlyRate *
+                                    tripNights
+                                : null;
+
+                        const withinBudget =
+                            !hasNumericTripBudget
+                                ? true
+                                : (
+                                    estimatedStayCost != null &&
+                                    accommodationBudgetTotal != null &&
+                                    estimatedStayCost <=
+                                        accommodationBudgetTotal
+                                );
+
+                        const affordabilityScore =
                             nightlyRate != null &&
-                            looseNightlyBudget != null &&
-                            nightlyRate >
-                                looseNightlyBudget
+                            maxNightlyAccommodationBudget != null &&
+                            nightlyRate <=
+                                maxNightlyAccommodationBudget
                                 ? (
-                                    nightlyRate -
-                                    looseNightlyBudget
-                                ) /
-                                Math.max(
-                                    1,
-                                    looseNightlyBudget
-                                )
+                                    1 -
+                                    (
+                                        nightlyRate /
+                                        Math.max(
+                                            1,
+                                            maxNightlyAccommodationBudget
+                                        )
+                                    )
+                                ) * 2
                                 : 0;
 
                         const qualityScore =
@@ -1480,8 +1509,8 @@ if (!tripData.accommodation) {
                                         )
                                     )
                                     : 0
-                            ) -
-                            budgetPenalty * 3;
+                            ) +
+                            affordabilityScore;
 
                         return {
                             id:
@@ -1542,6 +1571,24 @@ if (!tripData.accommodation) {
                                     ? reviews
                                     : null,
 
+                            nightly_rate_for_budget:
+                                nightlyRate,
+
+                            estimated_stay_cost:
+                                estimatedStayCost,
+
+                            trip_nights:
+                                tripNights,
+
+                            accommodation_budget_total:
+                                accommodationBudgetTotal,
+
+                            max_nightly_budget:
+                                maxNightlyAccommodationBudget,
+
+                            within_budget:
+                                withinBudget,
+
                             has_images:
                                 Array.isArray(
                                     hotel.images
@@ -1567,6 +1614,11 @@ if (!tripData.accommodation) {
                         ) &&
                         Number.isFinite(
                             hotel.longitude
+                        ) &&
+                        (
+                            !hasNumericTripBudget ||
+                            hotel.within_budget ===
+                                true
                         )
                 )
                 .sort(
@@ -1587,7 +1639,19 @@ if (!tripData.accommodation) {
 
         console.log(
             "🏨 HOTEL CANDIDATES INCLUDED IN AI ROUND 1:",
-            plannerAccommodationCandidates.length
+            {
+                count:
+                    plannerAccommodationCandidates.length,
+                tripBudget:
+                    hasNumericTripBudget
+                        ? tripBudget
+                        : null,
+                accommodationBudgetTotal,
+                tripNights,
+                maxNightlyAccommodationBudget,
+                budgetFiltered:
+                    hasNumericTripBudget
+            }
         );
     } catch (error) {
         console.warn(
@@ -1827,6 +1891,11 @@ ${JSON.stringify(
 - ถ้าผู้ใช้ยังไม่มีที่พัก:
   - เลือก Top 3 จาก ACCOMMODATION CANDIDATES เท่านั้น
   - accommodation_id ต้องตรงกับ id ของ candidate ห้ามสร้าง id เอง
+  - ถ้า CURRENT TRIP มี budget เป็นตัวเลข ระบบได้กรอง candidate ให้ผ่านงบที่พักแล้ว
+  - ห้ามเลือกหรือเสนอที่พักนอก ACCOMMODATION CANDIDATES เพื่อเลี่ยงข้อจำกัดงบ
+  - ใช้ nightly_rate_for_budget, estimated_stay_cost, accommodation_budget_total,
+    max_nightly_budget และ within_budget ประกอบการตัดสินใจ
+  - เมื่อมีงบตัวเลข within_budget ต้องเป็น true เท่านั้น
   - rank 1 คือที่พักหลัก
   - เลือกโดยพิจารณาร่วมกับ selectedPlaces ที่คุณกำลังสร้างใน JSON เดียวกัน
   - พิจารณาทำเล พิกัด/ย่าน งบ จำนวนวัน companion, personality_tags,
