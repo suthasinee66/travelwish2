@@ -15,6 +15,7 @@ import {
 
 import { signInWithGoogle } from "@/services/auth";
 import { supabase } from "@/lib/supabase";
+import { useTravelStore } from "@/store/travelStore";
 import travelWishLogo from "@/assets/ai/logo.png";
 
 export const Route = createFileRoute("/login")({
@@ -149,7 +150,43 @@ function LoginPage() {
       }
 
       if (data.user) {
-        await redirectAfterLogin(data.user.id);
+        // Account switch safety:
+        // Zustand อยู่ข้าม route ดังนั้นถ้าเพิ่งออกจาก test1 แล้วเข้า test3
+        // ต้องล้างข้อมูลที่ผูกกับ account เก่าก่อนเข้า Home
+        const travelStore =
+          useTravelStore.getState();
+
+        travelStore.setUser(
+          data.user
+        );
+        travelStore.setPreferences(
+          null
+        );
+        travelStore.setRecommend(
+          []
+        );
+        travelStore.setExplorePlaces(
+          []
+        );
+        travelStore.setAllRecommend(
+          []
+        );
+        travelStore.setAllPlaces(
+          []
+        );
+        travelStore.setNearbyPlaces(
+          []
+        );
+        travelStore.setSavedItems(
+          []
+        );
+        travelStore.setSavedIds(
+          []
+        );
+
+        await redirectAfterLogin(
+          data.user.id
+        );
       }
     } catch (error) {
       console.error("Login error:", error);
