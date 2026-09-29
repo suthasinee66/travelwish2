@@ -11675,12 +11675,54 @@ const ensureChatSession = async (
     return currentChatId;
   }
 
-  if (!user?.id) {
-    console.error("❌ ไม่มี user.id");
+  // อ่าน auth user สดจาก Supabase ก่อนตัดสิน Guest/Account
+  // เพื่อไม่ให้ Zustand ที่เคยเป็น anonymous ค้างแล้วสร้าง guest chat ผิดประเภท
+  const {
+    data:
+      latestAuth,
+  } =
+    await supabase.auth
+      .getUser();
+
+  const storageUser =
+    latestAuth.user ??
+    user;
+
+  if (!storageUser?.id) {
+    console.error(
+      "❌ ไม่มี authenticated storageUser.id"
+    );
     return null;
   }
 
-  if (isGuestUser(user)) {
+  if (
+    String(
+      user?.id ??
+      ""
+    ) !==
+    String(
+      storageUser.id
+    ) ||
+    isGuestUser(user) !==
+      isGuestUser(
+        storageUser
+      )
+  ) {
+    setUser(
+      storageUser
+    );
+    setIsGuestMode(
+      isGuestUser(
+        storageUser
+      )
+    );
+  }
+
+  if (
+    isGuestUser(
+      storageUser
+    )
+  ) {
     const tripToSave =
       tripOverride ??
       tripInput;
@@ -11688,7 +11730,7 @@ const ensureChatSession = async (
     const guestSession =
       createGuestChatSession({
         userId:
-          user.id,
+          storageUser.id,
         title:
           buildChatTitle(
             tripToSave
@@ -11724,7 +11766,7 @@ const ensureChatSession = async (
 
   console.log("🔥 CREATE CHAT SESSION");
   console.log({
-    user_id: user.id,
+    user_id: storageUser.id,
     title,
     trip_preferences:
       tripToSave,
@@ -11734,7 +11776,7 @@ const ensureChatSession = async (
   const { data, error } = await supabase
     .from("chat_sessions")
     .insert({
-      user_id: user.id,
+      user_id: storageUser.id,
       title,
       trip_preferences:
         tripToSave,
@@ -11765,15 +11807,33 @@ const persistChatMessage = async (
   content: string,
   plannerJson?: any[] | null
 ) => {
+  const {
+    data:
+      latestAuth,
+  } =
+    await supabase.auth
+      .getUser();
+
+  const storageUser =
+    latestAuth.user ??
+    user;
+
+  const shouldUseGuestStorage =
+    isGuestChatId(
+      sessionId
+    ) ||
+    isGuestUser(
+      storageUser
+    );
+
   if (
-    isGuestUser(user) ||
-    isGuestChatId(sessionId)
+    shouldUseGuestStorage
   ) {
     appendGuestChatMessage(
       sessionId,
       {
         userId:
-          user?.id ??
+          storageUser?.id ??
           null,
         role,
         content,
@@ -11797,7 +11857,7 @@ const persistChatMessage = async (
         session_id:
           sessionId,
         user_id:
-          user?.id ??
+          storageUser?.id ??
           null,
         role,
         content,
