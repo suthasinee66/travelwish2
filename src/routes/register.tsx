@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/lib/supabase";
+import { isGuestUser } from "@/lib/guest/guestPreferences";
+import { useTravelStore } from "@/store/travelStore";
 import { signInWithGoogle } from "@/services/auth";
 import travelWishLogo from "@/assets/ai/logo.png";
 
@@ -72,28 +74,173 @@ function RegisterPage() {
       setLoading(true);
 
       // ------------------------------------------
-      // 1. สมัครสมาชิกด้วย Supabase Auth
+      // 1. ตรวจ session ปัจจุบันก่อน
+      //
+      // ถ้าเข้ามาจาก Guest จะมี Anonymous Supabase user ค้างอยู่
+      // ห้าม signUp สร้าง user ใหม่ทับ เพราะหน้า Home อาจยังมอง
+      // session เดิมเป็น Guest และเก็บ chat ลง localStorage
+      //
+      // ให้ "upgrade" anonymous user เดิมเป็น Email account แทน
       // ------------------------------------------
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-      });
+      const {
+        data: currentAuth,
+      } =
+        await supabase.auth
+          .getUser();
 
-      if (error) {
-        console.error("Register error:", error);
-        alert("สมัครสมาชิกไม่สำเร็จ: " + error.message);
+      const currentUser =
+        currentAuth.user;
+
+      let registeredUser:
+        any = null;
+
+      let hasSession =
+        false;
+
+      if (
+        currentUser &&
+        isGuestUser(
+          currentUser
+        )
+      ) {
+        console.log(
+          "🔐 UPGRADE GUEST → EMAIL ACCOUNT"
+        );
+
+        const {
+          data:
+            upgraded,
+          error:
+            upgradeError,
+        } =
+          await supabase.auth
+            .updateUser({
+              email:
+                email.trim(),
+              password,
+              data: {
+                full_name:
+                  name.trim(),
+                name:
+                  name.trim(),
+              },
+            });
+
+        if (
+          upgradeError
+        ) {
+          console.error(
+            "Guest upgrade error:",
+            upgradeError
+          );
+
+          alert(
+            "สมัครสมาชิกไม่สำเร็จ: " +
+              upgradeError.message
+          );
+
+          return;
+        }
+
+        const {
+          data:
+            refreshedAuth,
+        } =
+          await supabase.auth
+            .getUser();
+
+        registeredUser =
+          refreshedAuth.user ??
+          upgraded.user;
+
+        const {
+          data:
+            sessionData,
+        } =
+          await supabase.auth
+            .getSession();
+
+        hasSession =
+          Boolean(
+            sessionData.session
+          );
+      } else {
+        // ไม่มี anonymous session → สมัครแบบ Email ปกติ
+        const {
+          data,
+          error,
+        } =
+          await supabase.auth
+            .signUp({
+              email:
+                email.trim(),
+              password,
+              options: {
+                data: {
+                  full_name:
+                    name.trim(),
+                  name:
+                    name.trim(),
+                },
+              },
+            });
+
+        if (error) {
+          console.error(
+            "Register error:",
+            error
+          );
+
+          alert(
+            "สมัครสมาชิกไม่สำเร็จ: " +
+              error.message
+          );
+
+          return;
+        }
+
+        registeredUser =
+          data.user;
+
+        hasSession =
+          Boolean(
+            data.session
+          );
+      }
+
+      if (
+        !registeredUser
+      ) {
+        alert(
+          "ไม่สามารถสร้างบัญชีได้"
+        );
+
         return;
       }
 
-      if (!data.user) {
-        alert("ไม่สามารถสร้างบัญชีได้");
+      // Email + Password account ต้องไม่ถูกมองเป็น Guest หลังสมัคร
+      // ถ้ายัง anonymous อยู่ แปลว่า Supabase ยังไม่ได้ upgrade สำเร็จ
+      if (
+        isGuestUser(
+          registeredUser
+        )
+      ) {
+        console.error(
+          "❌ REGISTERED USER IS STILL ANONYMOUS:",
+          registeredUser
+        );
+
+        alert(
+          "บัญชียังอยู่ในโหมด Guest กรุณาตรวจสอบว่า Supabase ปิด Confirm email แล้วลองสมัครอีกครั้ง"
+        );
+
         return;
       }
 
       // ------------------------------------------
-      // 2. ถ้าเปิด Email Confirmation
+      // 2. ถ้ายังเปิด Email Confirmation อยู่
       // ------------------------------------------
-      if (!data.session) {
+      if (!hasSession) {
         alert(
           "สมัครสมาชิกสำเร็จ กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี แล้วเข้าสู่ระบบ"
         );
@@ -105,6 +252,13 @@ function RegisterPage() {
         return;
       }
 
+      // อัปเดต Zustand ทันที ไม่ปล่อย user anonymous เก่าค้างใน Home
+      useTravelStore
+        .getState()
+        .setUser(
+          registeredUser
+        );
+
       // ------------------------------------------
       // 3. มี Session แล้ว
       //    บันทึกชื่อไว้ใน Profile
@@ -113,11 +267,14 @@ function RegisterPage() {
         .from("profile")
         .upsert(
           {
-            profile_id: data.user.id,
-            name: name.trim(),
+            profile_id:
+              registeredUser.id,
+            name:
+              name.trim(),
           },
           {
-            onConflict: "profile_id",
+            onConflict:
+              "profile_id",
           }
         );
 
