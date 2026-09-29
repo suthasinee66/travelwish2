@@ -46,6 +46,13 @@ export async function getPreferenceHash(
             ?.travel_companion ??
           preferences?.companion
         ),
+      preferred_region:
+        sortedArray(
+          preferences
+            ?.preferred_region
+        ),
+      recommendation_algorithm:
+        "region-filter-v1",
       learned_version:
         Number(
           preferences
