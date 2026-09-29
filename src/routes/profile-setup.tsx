@@ -98,7 +98,7 @@ function ProfileSetup() {
             <img
               src={travelWishLogo}
               alt="TravelWish"
-              className="h-auto max-h-[68px] w-[215px] rounded-[18px] border border-white/90 bg-white/92 px-3 py-2 object-contain object-left ring-1 ring-[#eadfeb]/60 shadow-[0_8px_24px_rgba(91,72,117,0.10)]"
+              className="h-auto max-h-[68px] w-[full px] "
             />
           </div>
 

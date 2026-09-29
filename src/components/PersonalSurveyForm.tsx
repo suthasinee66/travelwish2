@@ -22,6 +22,7 @@ import {
   saveGuestPreferences,
   type GuestPreferences,
 } from "@/lib/guest/guestPreferences";
+import travelWishLogo from "@/assets/ai/logo.png";
 
 type DeepSurveyOption = {
   label: string;
@@ -1185,19 +1186,16 @@ export default function PersonalSurveyForm({
 
           <div className="flex items-center gap-3">
 
-            <div className="survey-logo">
-              <Compass className="h-5 w-5" />
-            </div>
+            
+          {/* Logo */}
+          <div className="flex items-center">
+            <img
+              src={travelWishLogo}
+              alt="TravelWish"
+              className="h-auto max-h-[68px] w-[full px] "
+            />
+          </div>
 
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">
-                TravelWise
-              </h1>
-
-              <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#8b7894]">
-                Your journey
-              </p>
-            </div>
 
           </div>
 
