@@ -16,6 +16,7 @@ import ai1Icon from "@/assets/ai/ai1.svg";
 import ai2Icon from "@/assets/ai/ai2.svg";
 import ai3Icon from "@/assets/ai/ai3.svg";
 import travelWishLogo from "@/assets/ai/logo.png";
+import { supabase } from "@/lib/supabase";
 
 function getModelIcon(model: string | null) {
     if (!model) return null;
@@ -160,6 +161,7 @@ export default function Sidebar({
 
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [profileName, setProfileName] = useState<string | null>(null);
 
     useEffect(() => {
         const media = window.matchMedia("(max-width: 767px)");
@@ -171,6 +173,76 @@ export default function Sidebar({
         media.addEventListener("change", update);
         return () => media.removeEventListener("change", update);
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadProfileName = async () => {
+            const userId =
+                user?.id
+                    ? String(user.id)
+                    : "";
+
+            if (!userId) {
+                setProfileName(null);
+                return;
+            }
+
+            try {
+                const {
+                    data,
+                    error,
+                } =
+                    await supabase
+                        .from("profile")
+                        .select("name")
+                        .eq(
+                            "profile_id",
+                            userId
+                        )
+                        .maybeSingle();
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (error) {
+                    console.warn(
+                        "LOAD SIDEBAR PROFILE NAME ERROR:",
+                        error
+                    );
+                    setProfileName(null);
+                    return;
+                }
+
+                const name =
+                    String(
+                        data?.name ?? ""
+                    ).trim();
+
+                setProfileName(
+                    name || null
+                );
+            } catch (error) {
+                console.warn(
+                    "LOAD SIDEBAR PROFILE NAME FAILED:",
+                    error
+                );
+
+                if (!cancelled) {
+                    setProfileName(null);
+                }
+            }
+        };
+
+        void loadProfileName();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        user?.id,
+    ]);
 
     const sidebarContent = <>
     {/* ================= HEADER ================= */}
@@ -377,7 +449,8 @@ export default function Sidebar({
         <div className="flex-1 min-w-0">
 
             <div className="text-sm font-medium truncate">
-                {user?.user_metadata?.full_name ||
+                {profileName ||
+                    user?.user_metadata?.full_name ||
                     user?.email ||
                     "Guest"}
             </div>
