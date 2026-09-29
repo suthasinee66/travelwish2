@@ -6,6 +6,9 @@ import {
   normalizeTopicVector,
   type LearnedPreferenceProfile,
 } from "./adaptivePreference";
+import {
+  normalizeThaiRegion,
+} from "@/lib/travel/thaiRegions";
 
 export const getRecommendations = async (
   pref: any,
@@ -114,11 +117,71 @@ export const getRecommendations = async (
 
 
   // ============================================================
+  // Preferred Region
+  //
+  // preferred_region คือ explicit preference จากแบบสอบถาม
+  // ถ้ามีค่า ให้จำกัด candidate อยู่ในภูมิภาคที่ผู้ใช้เลือกก่อน
+  // ไม่ปล่อยให้คะแนน topic_vector ดันจังหวัดจากภาคอื่นขึ้นมา
+  // ============================================================
+
+  const preferredRegions =
+    (
+      Array.isArray(
+        pref.preferred_region
+      )
+        ? pref.preferred_region
+        : pref.preferred_region
+          ? [
+              pref.preferred_region
+            ]
+          : []
+    )
+      .map(
+        normalizeThaiRegion
+      )
+      .filter(Boolean);
+
+  const preferredRegionSet =
+    new Set(
+      preferredRegions
+    );
+
+  const recommendationPool =
+    preferredRegionSet.size > 0
+      ? allData.filter(
+          (place: any) => {
+            const placeRegion =
+              normalizeThaiRegion(
+                place?.region
+              );
+
+            return (
+              placeRegion &&
+              preferredRegionSet.has(
+                placeRegion
+              )
+            );
+          }
+        )
+      : allData;
+
+  console.log(
+    "🗺️ RECOMMEND REGION FILTER:",
+    {
+      preferredRegions,
+      before:
+        allData.length,
+      after:
+        recommendationPool.length,
+    }
+  );
+
+  // ============================================================
   // คำนวณ Recommendation Score
   // ============================================================
 
   const recommendations =
-    allData.map(
+    recommendationPool.map(
       (place: any) => {
 
         let score = 0;
