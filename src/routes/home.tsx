@@ -13322,12 +13322,91 @@ const handleSend = async () => {
           currentUser
         );
 
+      const previousUserId =
+        user?.id
+          ? String(
+              user.id
+            )
+          : null;
+
+      const currentUserId =
+        currentUser?.id
+          ? String(
+              currentUser.id
+            )
+          : null;
+
+      const accountChanged =
+        Boolean(
+          previousUserId &&
+          currentUserId &&
+          previousUserId !==
+            currentUserId
+        );
+
+      // IMPORTANT:
+      // ต้อง set auth user ปัจจุบันทันที ก่อน branch ที่ใช้ cache
+      // ไม่งั้น Zustand อาจยังถือ test1 อยู่ตอนล็อกอิน test3
+      if (currentUser) {
+        setUser(
+          currentUser
+        );
+      }
+
+      if (accountChanged) {
+        console.log(
+          "🔄 ACCOUNT CHANGED — CLEAR ACCOUNT SCOPED HOME CACHE:",
+          {
+            from:
+              previousUserId,
+            to:
+              currentUserId,
+          }
+        );
+
+        setPreferences(
+          null
+        );
+        setRecommend(
+          []
+        );
+        setExplorePlaces(
+          []
+        );
+        setAllRecommend(
+          []
+        );
+        setSavedItems(
+          []
+        );
+        setSavedIds(
+          []
+        );
+        setCurrentChatId(
+          null
+        );
+        setChatSessions(
+          []
+        );
+        setMessages(
+          []
+        );
+        setPlannerJson(
+          null
+        );
+        setPlan(
+          ""
+        );
+        setShowTripPlan(
+          false
+        );
+      }
+
       if (
         currentUser &&
         currentGuestMode
       ) {
         setIsGuestMode(true);
-        setUser(currentUser);
 
         const guestPreferences =
           getGuestPreferences();
@@ -13349,12 +13428,14 @@ const handleSend = async () => {
 
       // =====================================================
       // 1. ถ้ามี Recommend ใน Zustand แล้ว
-      //    ใช้ cache ใน store เฉพาะบัญชีจริง
-      //    Guest ต้องคำนวณจาก Guest Preferences ของตัวเอง
+      //    ใช้ได้เฉพาะเมื่อ cache เป็นของ user คนเดียวกับ auth ปัจจุบัน
       // =====================================================
 
       if (
         !currentGuestMode &&
+        !accountChanged &&
+        previousUserId ===
+          currentUserId &&
         recommend.length > 0 &&
         explorePlaces.length > 0
       ) {
