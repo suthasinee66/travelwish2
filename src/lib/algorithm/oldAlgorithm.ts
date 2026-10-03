@@ -3,9 +3,9 @@ import type {
 } from "./types";
 
 /* ==================================================
-   OLD ALGORITHM
+   WEIGHTED PROFILE-MATCHING BASELINE
 
-   Maximum Score
+   Content-based weighted profile matching:
 
    travel_type       6 × 3 = 18
    activities        5 × 2 = 10
@@ -137,10 +137,10 @@ function scoreAttraction(
 }
 
 /* ==================================================
-   RUN OLD ALGORITHM
+   RUN WEIGHTED PROFILE-MATCHING BASELINE
 ================================================== */
 
-export function runOldAlgorithm(
+export function runWeightedProfileMatchingBaseline(
     attractions: any[],
     trip: TripPlanInput,
     k: number
@@ -198,3 +198,10 @@ export function runOldAlgorithm(
             k
         );
 }
+
+/**
+ * Backward-compatible alias for older experiment scripts.
+ * New code should use runWeightedProfileMatchingBaseline().
+ */
+export const runOldAlgorithm =
+    runWeightedProfileMatchingBaseline;
