@@ -24,6 +24,9 @@ FINAL_GAMMA = 0.5
 BASELINE_LABEL = "Weighted Profile-Matching Baseline"
 TDMC_LABEL = "TDMC-APD"
 
+BASELINE_COLOR = "#8C8C8C"
+TDMC_COLOR = "#1F77B4"
+
 K_VALUES_EXPECTED = [5, 10, 15, 20, 25, 30]
 
 # ============================================================
@@ -86,10 +89,8 @@ def dynamic_ylim(values, metric):
     if max_value <= 0:
         return 0.0, 1.0
 
-    # Leave enough headroom so K=15..30 points are never clipped.
     upper = max_value * 1.15
 
-    # Use readable minimum scales for smaller values.
     if metric == "recall":
         upper = max(upper, 0.25)
     elif metric == "f1":
@@ -223,6 +224,9 @@ for ax, metric in zip(axes, metrics):
         baseline_values,
         marker="o",
         linewidth=2.2,
+        color=BASELINE_COLOR,
+        markerfacecolor=BASELINE_COLOR,
+        markeredgecolor=BASELINE_COLOR,
         label=BASELINE_LABEL,
     )
     ax.plot(
@@ -230,6 +234,9 @@ for ax, metric in zip(axes, metrics):
         tdmc_values,
         marker="o",
         linewidth=2.2,
+        color=TDMC_COLOR,
+        markerfacecolor=TDMC_COLOR,
+        markeredgecolor=TDMC_COLOR,
         label=TDMC_LABEL,
     )
 
@@ -247,7 +254,6 @@ for ax, metric in zip(axes, metrics):
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-# Put title and legend on separate lines so they never overlap.
 fig.suptitle(
     "Weighted Profile-Matching Baseline vs TDMC-APD\n"
     "Performance Across Recommendation List Sizes (K = 5–30)",
