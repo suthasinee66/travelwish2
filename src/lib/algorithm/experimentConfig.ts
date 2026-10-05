@@ -7,11 +7,17 @@ export const EXPERIMENT_CONFIG = {
 
     /* ==========================================
        K
+       Evaluate Top-K ranking at intervals up to
+       the production candidate pool size (Top 30).
     ========================================== */
 
     K_VALUES: [
-        1,2,3,4,5,6,7,8,9,10,
-        
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
     ],
 
 
