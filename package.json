@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "groundtruth:generate": "tsx src/lib/algorithm/generateGroundTruthPool.ts",
+    "eval:tdmc": "tsx src/lib/algorithm/compareAlgorithms.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
