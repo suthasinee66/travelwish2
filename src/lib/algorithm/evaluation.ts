@@ -1,11 +1,3 @@
-import type {
-    TDMCPlace,
-} from "./tdmcAlgorithm";
-
-import {
-    EXPERIMENT_CONFIG,
-} from "./experimentConfig";
-
 /* =========================================================
    EVALUATION METRICS
    ========================================================= */
@@ -175,10 +167,6 @@ function cosineSimilarity(
     );
 }
 
-/* =========================================================
-   RELEVANCE
-========================================================= */
-
 function getRating(
     place: any
 ): number {
@@ -190,9 +178,7 @@ function getRating(
         place.rating,
     ];
 
-    for (
-        const value of values
-    ) {
+    for (const value of values) {
         const rating =
             safeNumber(value);
 
@@ -210,13 +196,36 @@ function getRating(
     return 0;
 }
 
-function isRelevant(
+/* =========================================================
+   PERSONALIZED RELEVANCE
+   Ground Truth is provided externally as att_id values
+   judged relevant for the current test profile.
+========================================================= */
+
+function getPlaceId(
     place: any
+): string {
+    return String(
+        place?.att_id ??
+        place?.id ??
+        ""
+    );
+}
+
+function isRelevant(
+    place: any,
+    relevantIds: ReadonlySet<string>
 ): boolean {
+    const id =
+        getPlaceId(
+            place
+        );
+
     return (
-        getRating(place) >=
-        EXPERIMENT_CONFIG
-            .RELEVANT_RATING_THRESHOLD
+        id.length > 0 &&
+        relevantIds.has(
+            id
+        )
     );
 }
 
@@ -446,26 +455,14 @@ function calculateAverageRating(
 
 function calculateNDCG(
     selected: any[],
-    dataset: any[]
+    relevantIds: ReadonlySet<string>
 ): number {
     if (
-        selected.length === 0
+        selected.length === 0 ||
+        relevantIds.size === 0
     ) {
         return 0;
     }
-
-    /*
-     * Relevance grade:
-     *
-     * rating 0 - 5
-     *
-     * We use rating as the external
-     * evaluation signal.
-     */
-
-    const relevance =
-        (place: any) =>
-            getRating(place);
 
     const dcg =
         selected.reduce(
@@ -475,17 +472,16 @@ function calculateNDCG(
                 index
             ) => {
                 const rel =
-                    relevance(place);
+                    isRelevant(
+                        place,
+                        relevantIds
+                    )
+                        ? 1
+                        : 0;
 
                 return (
                     sum +
-                    (
-                        Math.pow(
-                            2,
-                            rel
-                        ) -
-                        1
-                    ) /
+                    rel /
                     Math.log2(
                         index + 2
                     )
@@ -494,61 +490,35 @@ function calculateNDCG(
             0
         );
 
-    const ideal =
-        [...dataset]
-            .sort(
-                (
-                    a,
-                    b
-                ) =>
-                    relevance(b) -
-                    relevance(a)
-            )
-            .slice(
-                0,
-                selected.length
-            );
-
-    const idcg =
-        ideal.reduce(
-            (
-                sum,
-                place,
-                index
-            ) => {
-                const rel =
-                    relevance(place);
-
-                return (
-                    sum +
-                    (
-                        Math.pow(
-                            2,
-                            rel
-                        ) -
-                        1
-                    ) /
-                    Math.log2(
-                        index + 2
-                    )
-                );
-            },
-            0
+    const idealRelevantCount =
+        Math.min(
+            selected.length,
+            relevantIds.size
         );
 
-    if (
-        idcg === 0
+    let idcg = 0;
+
+    for (
+        let index = 0;
+        index < idealRelevantCount;
+        index++
     ) {
-        return 0;
+        idcg +=
+            1 /
+            Math.log2(
+                index + 2
+            );
     }
 
-    return Math.max(
-        0,
-        Math.min(
-            1,
-            dcg / idcg
+    return idcg > 0
+        ? Math.max(
+            0,
+            Math.min(
+                1,
+                dcg / idcg
+            )
         )
-    );
+        : 0;
 }
 
 /* =========================================================
@@ -619,7 +589,8 @@ export function calculatePopularityDistribution(
 
 export function evaluateRecommendations(
     results: any[],
-    dataset: any[]
+    dataset: any[],
+    relevantIds: ReadonlySet<string>
 ): EvaluationMetrics & {
     summary: {
         averageRating: number;
@@ -643,9 +614,26 @@ export function evaluateRecommendations(
        Relevant items in dataset
        ----------------------------------------------------- */
 
+    const datasetIds =
+        new Set(
+            dataset
+                .map(
+                    place =>
+                        getPlaceId(
+                            place
+                        )
+                )
+                .filter(Boolean)
+        );
+
     const relevantCount =
-        dataset.filter(
-            isRelevant
+        Array.from(
+            relevantIds
+        ).filter(
+            id =>
+                datasetIds.has(
+                    id
+                )
         ).length;
 
     /* -----------------------------------------------------
@@ -654,7 +642,11 @@ export function evaluateRecommendations(
 
     const truePositive =
         selected.filter(
-            isRelevant
+            place =>
+                isRelevant(
+                    place,
+                    relevantIds
+                )
         ).length;
 
     /* -----------------------------------------------------
@@ -729,7 +721,7 @@ export function evaluateRecommendations(
     const ndcg =
         calculateNDCG(
             selected,
-            dataset
+            relevantIds
         );
 
     const popularityDistribution =
