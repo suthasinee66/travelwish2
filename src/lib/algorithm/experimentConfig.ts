@@ -22,17 +22,6 @@ export const EXPERIMENT_CONFIG = {
 
 
     /* ==========================================
-       Province
-    ========================================== */
-
-    TEST_PROVINCES: [
-        "เชียงใหม่",
-        "นครสวรรค์",
-        "กำแพงเพชร",
-    ],
-
-
-    /* ==========================================
        Topic Vector
     ========================================== */
 
@@ -60,6 +49,7 @@ export interface TestProfile {
     preferredRegion: string[];
     travelGoal: string;
     travelTime: string;
+    testProvinces: string[];
     trip: TripPlanInput;
 }
 
@@ -74,6 +64,11 @@ export const TEST_PROFILES: TestProfile[] = [
         ],
         travelGoal: "ความบันเทิง",
         travelTime: "ฤดูหนาว",
+        testProvinces: [
+            "กรุงเทพมหานคร",
+            "พระนครศรีอยุธยา",
+            "กาญจนบุรี",
+        ],
         trip: {
             province: "",
             travelType: [
@@ -132,6 +127,11 @@ export const TEST_PROFILES: TestProfile[] = [
         ],
         travelGoal: "พักผ่อน",
         travelTime: "ฤดูหนาว",
+        testProvinces: [
+            "เชียงใหม่",
+            "เชียงราย",
+            "แม่ฮ่องสอน",
+        ],
         trip: {
             province: "",
             travelType: [
@@ -155,6 +155,19 @@ export const TEST_PROFILES: TestProfile[] = [
 /**
  * Backward-compatible alias for older scripts.
  * New evaluation code should iterate TEST_PROFILES.
+ */
+export const TEST_PROVINCES =
+    Array.from(
+        new Set(
+            TEST_PROFILES.flatMap(
+                profile =>
+                    profile.testProvinces
+            )
+        )
+    );
+
+/**
+ * Backward-compatible alias for older scripts.
  */
 export const TEST_TRIP: TripPlanInput =
     TEST_PROFILES[0].trip;
