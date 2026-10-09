@@ -99,6 +99,11 @@ export const TEST_PROFILES: TestProfile[] = [
         ],
         travelGoal: "ผจญภัย",
         travelTime: "ฤดูหนาว",
+        testProvinces: [
+            "เชียงใหม่",
+            "เชียงราย",
+            "แม่ฮ่องสอน",
+        ],
         trip: {
             province: "",
             travelType: [
@@ -128,9 +133,9 @@ export const TEST_PROFILES: TestProfile[] = [
         travelGoal: "พักผ่อน",
         travelTime: "ฤดูหนาว",
         testProvinces: [
-            "เชียงใหม่",
-            "เชียงราย",
-            "แม่ฮ่องสอน",
+            "ชลบุรี",
+            "ระยอง",
+            "ภูเก็ต",
         ],
         trip: {
             province: "",
