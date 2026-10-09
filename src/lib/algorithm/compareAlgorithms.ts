@@ -33,6 +33,10 @@ import {
     TEST_TRIP,
 } from "./experimentConfig";
 
+import {
+    loadGroundTruthByProvince,
+} from "./groundTruth";
+
 
 /* =========================================================
    SUPABASE
@@ -433,27 +437,6 @@ function validateDataset(
 
 
 /* =========================================================
-   RELEVANT COUNT
-   ========================================================= */
-
-function calculateRelevantCount(
-    attractions: any[]
-): number {
-
-    const threshold =
-        EXPERIMENT_CONFIG
-            .RELEVANT_RATING_THRESHOLD;
-
-    return attractions.filter(
-        place =>
-            Number(
-                place.avg_rating
-            ) >= threshold
-    ).length;
-}
-
-
-/* =========================================================
    PRINT TRIP
    ========================================================= */
 
@@ -836,6 +819,13 @@ async function main() {
 
     validateExperimentConfig();
 
+    const groundTruthByProvince =
+        await loadGroundTruthByProvince();
+
+    console.log(
+        "\n✅ Personalized Ground Truth loaded"
+    );
+
 
 
     console.log(
@@ -952,16 +942,25 @@ async function main() {
 
 
         /* -------------------------------------------------
-           Relevant count
+           Personalized Ground Truth
            ------------------------------------------------- */
 
-        const relevantCount =
-            calculateRelevantCount(
-                attractions
+        const relevantIds =
+            groundTruthByProvince.get(
+                province
             );
 
+        if (!relevantIds) {
+            throw new Error(
+                `No Ground Truth labels found for province: ${province}`
+            );
+        }
+
+        const relevantCount =
+            relevantIds.size;
+
         console.log(
-            `🎯 Relevant attractions: ${relevantCount}`
+            `🎯 Personalized relevant attractions: ${relevantCount}`
         );
 
 
@@ -1015,7 +1014,8 @@ async function main() {
             const oldMetrics =
                 evaluateRecommendations(
                     oldResults,
-                    attractions
+                    attractions,
+                    relevantIds
                 );
 
 
@@ -1103,7 +1103,8 @@ async function main() {
                 const tdmcMetrics =
                     evaluateRecommendations(
                         tdmcResults,
-                        attractions
+                        attractions,
+                        relevantIds
                     );
 
 
@@ -1132,9 +1133,11 @@ async function main() {
                     datasetSize:
                         attractions.length,
 
-                    threshold:
-                        EXPERIMENT_CONFIG
-                            .RELEVANT_RATING_THRESHOLD,
+                    groundTruth:
+                        "human_profile_judgement",
+
+                    relevantScore:
+                        2,
 
                     relevantCount,
 
