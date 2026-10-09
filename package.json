@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "groundtruth:generate": "tsx src/lib/algorithm/generateGroundTruthPool.ts",
-    "eval:tdmc": "tsx src/lib/algorithm/compareAlgorithms.ts"
+    "groundtruth:generate": "npx tsx src/lib/algorithm/generateGroundTruthPool.ts",
+    "eval:tdmc": "npx tsx src/lib/algorithm/compareAlgorithms.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
