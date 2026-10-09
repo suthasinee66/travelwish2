@@ -266,7 +266,7 @@ async function main() {
             `\n👤 Building Ground Truth for ${profile.name}`
         );
 
-        for (const province of EXPERIMENT_CONFIG.TEST_PROVINCES) {
+        for (const province of profile.testProvinces) {
             console.log(
                 `📍 Province: ${province}`
             );
