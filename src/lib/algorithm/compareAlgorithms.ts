@@ -30,11 +30,12 @@ import {
 
 import {
     EXPERIMENT_CONFIG,
-    TEST_TRIP,
+    TEST_PROFILES,
 } from "./experimentConfig";
 
 import {
-    loadGroundTruthByProvince,
+    groundTruthKey,
+    loadGroundTruthByProfileProvince,
 } from "./groundTruth";
 
 
@@ -259,41 +260,44 @@ if (
    ========================================================= */
 
 function normalizeTrip(
+    profile: (typeof TEST_PROFILES)[number],
     province: string
 ) {
+    const base =
+        profile.trip;
 
     return {
-        ...TEST_TRIP,
+        ...base,
 
         province,
 
         travelType:
             Array.isArray(
-                TEST_TRIP.travelType
+                base.travelType
             )
-                ? TEST_TRIP.travelType
+                ? base.travelType
                 : [],
 
         activities:
             Array.isArray(
-                TEST_TRIP.activities
+                base.activities
             )
-                ? TEST_TRIP.activities
+                ? base.activities
                 : [],
 
         atmosphere:
             Array.isArray(
-                TEST_TRIP.atmosphere
+                base.atmosphere
             )
-                ? TEST_TRIP.atmosphere
+                ? base.atmosphere
                 : [],
 
         companion:
-            TEST_TRIP.companion ??
+            base.companion ??
             null,
 
         budget:
-            TEST_TRIP.budget ??
+            base.budget ??
             null,
     };
 }
@@ -819,8 +823,8 @@ async function main() {
 
     validateExperimentConfig();
 
-    const groundTruthByProvince =
-        await loadGroundTruthByProvince();
+    const groundTruthByProfileProvince =
+        await loadGroundTruthByProfileProvince();
 
     console.log(
         "\n✅ Personalized Ground Truth loaded"
@@ -838,6 +842,10 @@ async function main() {
 
     console.log(
         "=================================================="
+    );
+
+    console.log(
+        `👤 Profiles: ${TEST_PROFILES.length}`
     );
 
     console.log(
@@ -876,8 +884,24 @@ async function main() {
        ===================================================== */
 
     for (
-        const province of PROVINCES
+        const profile of TEST_PROFILES
     ) {
+
+        console.log(
+            `\n\n##################################################`
+        );
+
+        console.log(
+            `👤 PROFILE: ${profile.name} (${profile.id})`
+        );
+
+        console.log(
+            `##################################################`
+        );
+
+        for (
+            const province of PROVINCES
+        ) {
 
         console.log(
             `\n\n==================================================`
@@ -898,6 +922,7 @@ async function main() {
 
         const trip =
             normalizeTrip(
+                profile,
                 province
             );
 
@@ -946,13 +971,16 @@ async function main() {
            ------------------------------------------------- */
 
         const relevantIds =
-            groundTruthByProvince.get(
-                province
+            groundTruthByProfileProvince.get(
+                groundTruthKey(
+                    profile.id,
+                    province
+                )
             );
 
         if (!relevantIds) {
             throw new Error(
-                `No Ground Truth labels found for province: ${province}`
+                `No Ground Truth labels found for profile=${profile.id}, province=${province}`
             );
         }
 
@@ -1126,6 +1154,25 @@ async function main() {
 
                 comparisonResults.push({
 
+                    profileId:
+                        profile.id,
+
+                    profileName:
+                        profile.name,
+
+                    profile: {
+                        gender:
+                            profile.gender,
+                        age:
+                            profile.age,
+                        preferredRegion:
+                            profile.preferredRegion,
+                        travelGoal:
+                            profile.travelGoal,
+                        travelTime:
+                            profile.travelTime,
+                    },
+
                     province,
 
                     k,
@@ -1260,6 +1307,8 @@ async function main() {
         }
     }
 
+    }
+
 
     /* =====================================================
        SAVE JSON
@@ -1320,6 +1369,10 @@ async function main() {
 
     console.log(
         `⚖️ Weight configurations: ${TDMC_EXPERIMENT_CONFIGS.length}`
+    );
+
+    console.log(
+        `👤 Profiles tested: ${TEST_PROFILES.length}`
     );
 
     console.log(
