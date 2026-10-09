@@ -4,9 +4,17 @@ import path from "path";
 export const GROUND_TRUTH_SCORE_RELEVANT = 2;
 
 export interface GroundTruthRow {
+    profile_id: string;
     province: string;
     att_id: string;
     relevant_score: number | null;
+}
+
+export function groundTruthKey(
+    profileId: string,
+    province: string
+): string {
+    return `${profileId}::${province}`;
 }
 
 function parseCsvLine(line: string): string[] {
@@ -47,13 +55,19 @@ export function parseGroundTruthCsv(content: string): GroundTruthRow[] {
     }
 
     const header = parseCsvLine(lines[0]).map(value => value.trim());
+    const profileIndex = header.indexOf("profile_id");
     const provinceIndex = header.indexOf("province");
     const attIdIndex = header.indexOf("att_id");
     const scoreIndex = header.indexOf("relevant_score");
 
-    if (provinceIndex < 0 || attIdIndex < 0 || scoreIndex < 0) {
+    if (
+        profileIndex < 0 ||
+        provinceIndex < 0 ||
+        attIdIndex < 0 ||
+        scoreIndex < 0
+    ) {
         throw new Error(
-            "ground_truth_pool.csv must contain province, att_id and relevant_score columns."
+            "ground_truth_pool.csv must contain profile_id, province, att_id and relevant_score columns."
         );
     }
 
@@ -72,6 +86,7 @@ export function parseGroundTruthCsv(content: string): GroundTruthRow[] {
         }
 
         return {
+            profile_id: (cells[profileIndex] ?? "").trim(),
             province: (cells[provinceIndex] ?? "").trim(),
             att_id: (cells[attIdIndex] ?? "").trim(),
             relevant_score: score,
@@ -79,7 +94,7 @@ export function parseGroundTruthCsv(content: string): GroundTruthRow[] {
     });
 }
 
-export async function loadGroundTruthByProvince(
+export async function loadGroundTruthByProfileProvince(
     csvPath = path.join(process.cwd(), "comparison", "ground_truth_pool.csv")
 ): Promise<Map<string, Set<string>>> {
     let content: string;
@@ -110,21 +125,38 @@ export async function loadGroundTruthByProvince(
         );
     }
 
-    const byProvince = new Map<string, Set<string>>();
+    const byProfileProvince =
+        new Map<string, Set<string>>();
 
     for (const row of rows) {
         if (
             row.relevant_score !== GROUND_TRUTH_SCORE_RELEVANT ||
+            !row.profile_id ||
             !row.province ||
             !row.att_id
         ) {
             continue;
         }
 
-        const set = byProvince.get(row.province) ?? new Set<string>();
-        set.add(row.att_id);
-        byProvince.set(row.province, set);
+        const key =
+            groundTruthKey(
+                row.profile_id,
+                row.province
+            );
+
+        const set =
+            byProfileProvince.get(key) ??
+            new Set<string>();
+
+        set.add(
+            row.att_id
+        );
+
+        byProfileProvince.set(
+            key,
+            set
+        );
     }
 
-    return byProvince;
+    return byProfileProvince;
 }
