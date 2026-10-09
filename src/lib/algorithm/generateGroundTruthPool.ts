@@ -319,8 +319,6 @@ async function main() {
                 atmosphere: place.atmosphere ?? [],
                 budget: place.budget ?? [],
                 travel_companion: place.travel_companion ?? [],
-                avg_rating: place.avg_rating ?? "",
-                visitor_count: place.visitor_count ?? "",
                 relevant_score: previousScore,
                 evaluator_note: "",
             });
@@ -329,6 +327,8 @@ async function main() {
                 province,
                 att_id: attId,
                 name_th: place.name_th ?? "",
+                avg_rating: place.avg_rating ?? null,
+                visitor_count: place.visitor_count ?? null,
                 sources: Array.from(sources.get(attId) ?? []).sort(),
             });
         }
@@ -348,8 +348,6 @@ async function main() {
         "atmosphere",
         "budget",
         "travel_companion",
-        "avg_rating",
-        "visitor_count",
         "relevant_score",
         "evaluator_note",
     ];
