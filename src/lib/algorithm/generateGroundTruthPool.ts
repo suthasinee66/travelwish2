@@ -11,7 +11,7 @@ import {
 } from "./tdmcAlgorithm";
 import {
     EXPERIMENT_CONFIG,
-    TEST_TRIP,
+    TEST_PROFILES,
 } from "./experimentConfig";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -37,21 +37,34 @@ const TOP_K = Math.max(
 
 const RANDOM_PER_PROVINCE = 30;
 
-function normalizeTrip(province: string) {
+function normalizeTrip(
+    profile: (typeof TEST_PROFILES)[number],
+    province: string
+) {
+    const base =
+        profile.trip;
+
     return {
-        ...TEST_TRIP,
+        ...base,
         province,
-        travelType: Array.isArray(TEST_TRIP.travelType)
-            ? TEST_TRIP.travelType
-            : [],
-        activities: Array.isArray(TEST_TRIP.activities)
-            ? TEST_TRIP.activities
-            : [],
-        atmosphere: Array.isArray(TEST_TRIP.atmosphere)
-            ? TEST_TRIP.atmosphere
-            : [],
-        companion: TEST_TRIP.companion ?? null,
-        budget: TEST_TRIP.budget ?? null,
+        travelType:
+            Array.isArray(base.travelType)
+                ? base.travelType
+                : [],
+        activities:
+            Array.isArray(base.activities)
+                ? base.activities
+                : [],
+        atmosphere:
+            Array.isArray(base.atmosphere)
+                ? base.atmosphere
+                : [],
+        companion:
+            base.companion ??
+            null,
+        budget:
+            base.budget ??
+            null,
     };
 }
 
@@ -187,11 +200,17 @@ function parseExistingLabels(content: string): Map<string, string> {
     }
 
     const header = parseLine(lines[0]);
+    const profileIndex = header.indexOf("profile_id");
     const provinceIndex = header.indexOf("province");
     const attIdIndex = header.indexOf("att_id");
     const scoreIndex = header.indexOf("relevant_score");
 
-    if (provinceIndex < 0 || attIdIndex < 0 || scoreIndex < 0) {
+    if (
+        profileIndex < 0 ||
+        provinceIndex < 0 ||
+        attIdIndex < 0 ||
+        scoreIndex < 0
+    ) {
         return labels;
     }
 
@@ -201,12 +220,21 @@ function parseExistingLabels(content: string): Map<string, string> {
         }
 
         const cells = parseLine(line);
+        const profileId = (cells[profileIndex] ?? "").trim();
         const province = (cells[provinceIndex] ?? "").trim();
         const attId = (cells[attIdIndex] ?? "").trim();
         const score = (cells[scoreIndex] ?? "").trim();
 
-        if (province && attId && ["0", "1", "2"].includes(score)) {
-            labels.set(`${province}::${attId}`, score);
+        if (
+            profileId &&
+            province &&
+            attId &&
+            ["0", "1", "2"].includes(score)
+        ) {
+            labels.set(
+                `${profileId}::${province}::${attId}`,
+                score
+            );
         }
     }
 
@@ -233,112 +261,247 @@ async function main() {
     const outputRows: any[] = [];
     const auditRows: any[] = [];
 
-    for (const province of EXPERIMENT_CONFIG.TEST_PROVINCES) {
-        console.log(`\n📍 Building Ground Truth pool: ${province}`);
-
-        const attractions = await fetchAttractions(province);
-        const trip = normalizeTrip(province);
-
-        if (attractions.length === 0) {
-            console.log("   ⚠️ No attractions found. Skip.");
-            continue;
-        }
-
-        const selected = new Map<string, any>();
-        const sources = new Map<string, Set<string>>();
-
-        const add = (place: any, source: string) => {
-            const attId = String(place.att_id ?? "");
-
-            if (!attId) {
-                return;
-            }
-
-            if (!selected.has(attId)) {
-                selected.set(attId, place);
-            }
-
-            const set = sources.get(attId) ?? new Set<string>();
-            set.add(source);
-            sources.set(attId, set);
-        };
-
-        const baseline = runOldAlgorithm(
-            attractions,
-            trip,
-            TOP_K
-        );
-
-        baseline.forEach(place => add(place, "baseline_top30"));
-
-        for (const experiment of TDMC_EXPERIMENT_CONFIGS) {
-            const results = runTDMCAlgorithm(
-                attractions,
-                trip,
-                TOP_K,
-                {
-                    alpha: experiment.alpha,
-                    beta: experiment.beta,
-                    gamma: experiment.gamma,
-                }
-            );
-
-            results.forEach(place =>
-                add(place, `tdmc_${experiment.id}_top30`)
-            );
-        }
-
-        const remaining = attractions.filter(
-            place => !selected.has(String(place.att_id ?? ""))
-        );
-
-        const randomPlaces = deterministicShuffle(
-            remaining,
-            `ground-truth-random::${province}`
-        ).slice(0, RANDOM_PER_PROVINCE);
-
-        randomPlaces.forEach(place => add(place, "random"));
-
-        const randomizedPool = deterministicShuffle(
-            Array.from(selected.values()),
-            `ground-truth-display::${province}`
-        );
-
-        for (const place of randomizedPool) {
-            const attId = String(place.att_id ?? "");
-            const previousScore =
-                existingLabels.get(`${province}::${attId}`) ?? "";
-
-            outputRows.push({
-                province,
-                att_id: attId,
-                name_th: place.name_th ?? "",
-                name_en: place.name_en ?? "",
-                travel_type: place.travel_type ?? [],
-                activities: place.activities ?? [],
-                atmosphere: place.atmosphere ?? [],
-                budget: place.budget ?? [],
-                travel_companion: place.travel_companion ?? [],
-                relevant_score: previousScore,
-                evaluator_note: "",
-            });
-
-            auditRows.push({
-                province,
-                att_id: attId,
-                name_th: place.name_th ?? "",
-                avg_rating: place.avg_rating ?? null,
-                visitor_count: place.visitor_count ?? null,
-                sources: Array.from(sources.get(attId) ?? []).sort(),
-            });
-        }
-
+    for (const profile of TEST_PROFILES) {
         console.log(
-            `   ✅ Pool size: ${randomizedPool.length} (algorithm union + ${randomPlaces.length} deterministic random)`
+            `\n👤 Building Ground Truth for ${profile.name}`
         );
+
+        for (const province of EXPERIMENT_CONFIG.TEST_PROVINCES) {
+            console.log(
+                `📍 Province: ${province}`
+            );
+
+            const attractions =
+                await fetchAttractions(
+                    province
+                );
+
+            const trip =
+                normalizeTrip(
+                    profile,
+                    province
+                );
+
+            if (attractions.length === 0) {
+                console.log(
+                    "   ⚠️ No attractions found. Skip."
+                );
+                continue;
+            }
+
+            const selected =
+                new Map<string, any>();
+
+            const sources =
+                new Map<string, Set<string>>();
+
+            const add = (
+                place: any,
+                source: string
+            ) => {
+                const attId =
+                    String(
+                        place.att_id ??
+                        ""
+                    );
+
+                if (!attId) {
+                    return;
+                }
+
+                if (!selected.has(attId)) {
+                    selected.set(
+                        attId,
+                        place
+                    );
+                }
+
+                const set =
+                    sources.get(attId) ??
+                    new Set<string>();
+
+                set.add(source);
+                sources.set(
+                    attId,
+                    set
+                );
+            };
+
+            const baseline =
+                runOldAlgorithm(
+                    attractions,
+                    trip,
+                    TOP_K
+                );
+
+            baseline.forEach(
+                place =>
+                    add(
+                        place,
+                        "baseline_top30"
+                    )
+            );
+
+            for (
+                const experiment
+                of TDMC_EXPERIMENT_CONFIGS
+            ) {
+                const results =
+                    runTDMCAlgorithm(
+                        attractions,
+                        trip,
+                        TOP_K,
+                        {
+                            alpha: experiment.alpha,
+                            beta: experiment.beta,
+                            gamma: experiment.gamma,
+                        }
+                    );
+
+                results.forEach(
+                    place =>
+                        add(
+                            place,
+                            `tdmc_${experiment.id}_top30`
+                        )
+                );
+            }
+
+            const remaining =
+                attractions.filter(
+                    place =>
+                        !selected.has(
+                            String(
+                                place.att_id ??
+                                ""
+                            )
+                        )
+                );
+
+            const randomPlaces =
+                deterministicShuffle(
+                    remaining,
+                    `ground-truth-random::${profile.id}::${province}`
+                ).slice(
+                    0,
+                    RANDOM_PER_PROVINCE
+                );
+
+            randomPlaces.forEach(
+                place =>
+                    add(
+                        place,
+                        "random"
+                    )
+            );
+
+            const randomizedPool =
+                deterministicShuffle(
+                    Array.from(
+                        selected.values()
+                    ),
+                    `ground-truth-display::${profile.id}::${province}`
+                );
+
+            for (
+                const place
+                of randomizedPool
+            ) {
+                const attId =
+                    String(
+                        place.att_id ??
+                        ""
+                    );
+
+                const previousScore =
+                    existingLabels.get(
+                        `${profile.id}::${province}::${attId}`
+                    ) ?? "";
+
+                outputRows.push({
+                    profile_id:
+                        profile.id,
+                    profile_name:
+                        profile.name,
+                    gender:
+                        profile.gender,
+                    age:
+                        profile.age,
+                    preferred_region:
+                        profile.preferredRegion,
+                    travel_goal:
+                        profile.travelGoal,
+                    travel_time:
+                        profile.travelTime,
+                    province,
+                    att_id:
+                        attId,
+                    name_th:
+                        place.name_th ??
+                        "",
+                    name_en:
+                        place.name_en ??
+                        "",
+                    travel_type:
+                        place.travel_type ??
+                        [],
+                    activities:
+                        place.activities ??
+                        [],
+                    atmosphere:
+                        place.atmosphere ??
+                        [],
+                    budget:
+                        place.budget ??
+                        [],
+                    travel_companion:
+                        place.travel_companion ??
+                        [],
+                    relevant_score:
+                        previousScore,
+                    evaluator_note:
+                        "",
+                });
+
+                auditRows.push({
+                    profile_id:
+                        profile.id,
+                    profile_name:
+                        profile.name,
+                    province,
+                    att_id:
+                        attId,
+                    name_th:
+                        place.name_th ??
+                        "",
+                    avg_rating:
+                        place.avg_rating ??
+                        null,
+                    visitor_count:
+                        place.visitor_count ??
+                        null,
+                    sources:
+                        Array.from(
+                            sources.get(attId) ??
+                            []
+                        ).sort(),
+                });
+            }
+
+            console.log(
+                `   ✅ Pool size: ${randomizedPool.length}`
+            );
+        }
     }
 
     const header = [
+        "profile_id",
+        "profile_name",
+        "gender",
+        "age",
+        "preferred_region",
+        "travel_goal",
+        "travel_time",
         "province",
         "att_id",
         "name_th",
@@ -368,7 +531,7 @@ async function main() {
                 topK: TOP_K,
                 randomPerProvince: RANDOM_PER_PROVINCE,
                 relevantScoreRule: "2 = relevant, 0/1 = non-relevant",
-                testTrip: TEST_TRIP,
+                testProfiles: TEST_PROFILES,
                 rows: auditRows,
             },
             null,
