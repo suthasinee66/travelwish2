@@ -174,11 +174,6 @@ async function setupTextLogger() {
 /* =========================================================
    SETTINGS
    ========================================================= */
-const PROVINCES =
-    Array.isArray(EXPERIMENT_CONFIG.TEST_PROVINCES)
-        ? EXPERIMENT_CONFIG.TEST_PROVINCES
-        : [];
-
 const K_VALUES =
     Array.isArray(EXPERIMENT_CONFIG.K_VALUES)
         ? EXPERIMENT_CONFIG.K_VALUES
@@ -211,10 +206,18 @@ if (
     }
 
     if (
-        PROVINCES.length === 0
+        !Array.isArray(TEST_PROFILES) ||
+        TEST_PROFILES.length === 0 ||
+        TEST_PROFILES.some(
+            profile =>
+                !Array.isArray(
+                    profile.testProvinces
+                ) ||
+                profile.testProvinces.length === 0
+        )
     ) {
         throw new Error(
-            "EXPERIMENT_CONFIG.PROVINCES is empty."
+            "Every test profile must define at least one test province."
         );
     }
 
@@ -242,7 +245,14 @@ if (
     );
 
     console.log(
-        `   Provinces: ${PROVINCES.length}`
+        `   Profile-province pairs: ${
+            TEST_PROFILES.reduce(
+                (sum, profile) =>
+                    sum +
+                    profile.testProvinces.length,
+                0
+            )
+        }`
     );
 
     console.log(
@@ -848,8 +858,12 @@ async function main() {
         `👤 Profiles: ${TEST_PROFILES.length}`
     );
 
-    console.log(
-        `📍 Provinces: ${PROVINCES.join(", ")}`
+    TEST_PROFILES.forEach(
+        profile => {
+            console.log(
+                `📍 ${profile.name}: ${profile.testProvinces.join(", ")}`
+            );
+        }
     );
 
     console.log(
@@ -900,7 +914,7 @@ async function main() {
         );
 
         for (
-            const province of PROVINCES
+            const province of profile.testProvinces
         ) {
 
         console.log(
@@ -1376,7 +1390,14 @@ async function main() {
     );
 
     console.log(
-        `📍 Provinces tested: ${PROVINCES.length}`
+        `📍 Profile-province pairs tested: ${
+            TEST_PROFILES.reduce(
+                (sum, profile) =>
+                    sum +
+                    profile.testProvinces.length,
+                0
+            )
+        }`
     );
 
     console.log(
