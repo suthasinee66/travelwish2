@@ -33,13 +33,6 @@ export const EXPERIMENT_CONFIG = {
 
 
     /* ==========================================
-       Ground Truth
-    ========================================== */
-
-    RELEVANT_RATING_THRESHOLD: 4,
-
-
-    /* ==========================================
        Topic Vector
     ========================================== */
 
@@ -59,24 +52,109 @@ export const EXPERIMENT_CONFIG = {
 };
 
 
-export const TEST_TRIP: TripPlanInput = {
+export interface TestProfile {
+    id: string;
+    name: string;
+    gender: string;
+    age: number;
+    preferredRegion: string[];
+    travelGoal: string;
+    travelTime: string;
+    trip: TripPlanInput;
+}
 
-    province: "",
+export const TEST_PROFILES: TestProfile[] = [
+    {
+        id: "case1",
+        name: "Case 1",
+        gender: "หญิง",
+        age: 21,
+        preferredRegion: [
+            "ภาคกลาง",
+        ],
+        travelGoal: "ความบันเทิง",
+        travelTime: "ฤดูหนาว",
+        trip: {
+            province: "",
+            travelType: [
+                "วัฒนธรรม",
+                "คาเฟ่",
+                "เมือง",
+            ],
+            activities: [
+                "ถ่ายรูป",
+                "อาหาร",
+                "ช้อปปิ้ง",
+            ],
+            atmosphere: [
+                "คึกคัก",
+            ],
+            budget: 3000,
+            companion: "เพื่อน",
+        },
+    },
+    {
+        id: "case2",
+        name: "Case 2",
+        gender: "ชาย",
+        age: 32,
+        preferredRegion: [
+            "ภาคเหนือ",
+            "ภาคตะวันออกเฉียงเหนือ",
+        ],
+        travelGoal: "ผจญภัย",
+        travelTime: "ฤดูหนาว",
+        trip: {
+            province: "",
+            travelType: [
+                "ภูเขา",
+                "ธรรมชาติ",
+            ],
+            activities: [
+                "เดินป่า",
+                "พักผ่อน",
+            ],
+            atmosphere: [
+                "เงียบสงบ",
+            ],
+            budget: 3000,
+            companion: "คนเดียว",
+        },
+    },
+    {
+        id: "case3",
+        name: "Case 3",
+        gender: "หญิง",
+        age: 42,
+        preferredRegion: [
+            "ภาคตะวันออก",
+            "ภาคใต้",
+        ],
+        travelGoal: "พักผ่อน",
+        travelTime: "ฤดูหนาว",
+        trip: {
+            province: "",
+            travelType: [
+                "ทะเล",
+                "เมือง",
+            ],
+            activities: [
+                "ถ่ายรูป",
+                "ช้อปปิ้ง",
+                "พักผ่อน",
+            ],
+            atmosphere: [
+                "เงียบสงบ",
+            ],
+            budget: 15000,
+            companion: "ครอบครัว",
+        },
+    },
+];
 
-    travelType: [
-        "ภูเขา",
-        "ธรรมชาติ",
-    ],
-
-    activities: [
-        "เดินป่า",
-    ],
-
-    atmosphere: [
-        "ผจญภัย",
-    ],
-
-    budget: 3000,
-
-    companion: "เพื่อน",
-};
+/**
+ * Backward-compatible alias for older scripts.
+ * New evaluation code should iterate TEST_PROFILES.
+ */
+export const TEST_TRIP: TripPlanInput =
+    TEST_PROFILES[0].trip;
