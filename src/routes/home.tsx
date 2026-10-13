@@ -11970,7 +11970,8 @@ const runThreeAIChat = async (
 
 const runThreeAIPlanner = async (
   tripForPlanner: TripInput,
-  chatId: string
+  chatId: string,
+  userMessages: string[] = []
 ) => {
   const models:
     ComparisonModel[] = [
@@ -12019,6 +12020,10 @@ const runThreeAIPlanner = async (
       recorded_at: new Date().toISOString(),
       elapsed_ms: Date.now() - researchStarted,
       trip_input: tripForPlanner,
+      user_messages: userMessages,
+      user_prompt: userMessages.find((message) =>
+        /(?:จัด|วาง|ทริป|เที่ยว|เดินทาง|แพลน)/i.test(message)
+      ) ?? userMessages[0] ?? null,
       models: Object.fromEntries(
         models.map((model, index) => {
           const result = settled[index];
@@ -12440,7 +12445,12 @@ const handleSend = async () => {
           } =
             await runThreeAIPlanner(
               tripForPlanner,
-              chatId
+              chatId,
+              [
+                ...messages.filter((message) => message.role === "user" && typeof message.text === "string")
+                  .map((message) => message.text),
+                text
+              ]
             );
 
           const activeModel =
