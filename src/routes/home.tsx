@@ -11980,11 +11980,9 @@ const runThreeAIPlanner = async (
       "claude",
     ];
 
-  // Research capture reuses exactly the same production createPlanner calls.
-  // Opt-in only: navigate to /home?research=1&case=case1&run=1
-  const researchMode =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("research") === "1";
+  // Comparison output can be downloaded from the normal authenticated Home page.
+  // No special research URL is required.
+  const researchMode = typeof window !== "undefined";
   const researchQuery = researchMode
     ? new URLSearchParams(window.location.search)
     : null;
