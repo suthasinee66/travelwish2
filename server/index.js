@@ -20,6 +20,7 @@ import enrichPlaceDetailRouter
   from "./api/enrichPlaceDetail.js";
 import routeTravelTimesRouter
   from "./api/routeTravelTimes.js";
+import accommodationGoogleRatingsRouter from "./api/accommodationGoogleRatings.js";
 
 
 const app = express();
@@ -67,6 +68,7 @@ app.use(
   "/api",
   routeTravelTimesRouter
 );
+app.use("/api", accommodationGoogleRatingsRouter);
 
 // ============================================
 // OPENROUTER
