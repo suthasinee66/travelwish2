@@ -44,9 +44,16 @@ router.post("/accommodation-google-ratings", async (req, res) => {
       });
       if (resp.ok) {
         const data = await resp.json();
-        const place = (data.places ?? []).find(p => p.location &&
-          km(lat, lon, p.location.latitude, p.location.longitude) <= 2 &&
-          String(p.displayName?.text ?? "").trim().length > 0);
+        const normalize = v => String(v ?? "").toLocaleLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim();
+        const searchName = normalize(name);
+        const place = (data.places ?? []).find(p => {
+          if (!p.location) return false;
+          const foundName = normalize(p.displayName?.text);
+          const nameMatches = foundName === searchName ||
+            (searchName.length >= 8 && foundName.includes(searchName)) ||
+            (foundName.length >= 8 && searchName.includes(foundName));
+          return nameMatches && km(lat, lon, p.location.latitude, p.location.longitude) <= 0.8;
+        });
         if (place) value = {
           id, verified: true,
           rating: typeof place.rating === "number" ? place.rating : null,
