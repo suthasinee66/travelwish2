@@ -11979,24 +11979,74 @@ const runThreeAIPlanner = async (
       "claude",
     ];
 
+  // Research capture reuses exactly the same production createPlanner calls.
+  // Opt-in only: navigate to /home?research=1&case=case1&run=1
+  const researchMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("research") === "1";
+  const researchQuery = researchMode
+    ? new URLSearchParams(window.location.search)
+    : null;
+  const researchRounds: Record<string, any[]> = {};
+  const researchStarted = Date.now();
   const settled =
     await Promise.allSettled(
       models.map(
-        model =>
-          createPlanner(
+        model => {
+          researchRounds[model] = [];
+          return createPlanner(
             tripForPlanner,
             chatId,
             user.id,
             model,
             {
-              persistResult:
-                false,
-              persistSession:
-                false,
+              persistResult: false,
+              persistSession: false,
+              onResearchRound: researchMode
+                ? (record) => { researchRounds[model].push(record); }
+                : undefined,
             }
-          )
+          );
+        }
       )
     );
+  if (researchMode && typeof window !== "undefined") {
+    const record = {
+      schema_version: 1,
+      source: "production_createPlanner",
+      case_id: researchQuery?.get("case") ?? null,
+      run_number: researchQuery?.get("run") ?? null,
+      recorded_at: new Date().toISOString(),
+      elapsed_ms: Date.now() - researchStarted,
+      trip_input: tripForPlanner,
+      models: Object.fromEntries(
+        models.map((model, index) => {
+          const result = settled[index];
+          return [model, {
+            rounds: researchRounds[model],
+            success: result.status === "fulfilled",
+            error: result.status === "rejected" ? String(result.reason) : null,
+            output: result.status === "fulfilled" ? {
+              markdown: result.value.markdown,
+              planner_json: result.value.planner_json,
+              accommodation: result.value.accommodation,
+              accommodation_recommendations: result.value.accommodation_recommendations
+            } : null
+          }];
+        })
+      )
+    };
+    try {
+      const storeKey = "travelwish_research_production_runs_v1";
+      const prior = JSON.parse(localStorage.getItem(storeKey) || "[]");
+      const records = Array.isArray(prior) ? prior : [];
+      records.push(record);
+      localStorage.setItem(storeKey, JSON.stringify(records));
+      console.info("RESEARCH: production plan captured", records.length, record);
+    } catch (error) {
+      console.warn("RESEARCH: local storage capture failed (quota/privacy)", error);
+    }
+  }
 
   const variants:
     ComparisonVariants = {};
