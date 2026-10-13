@@ -11989,12 +11989,14 @@ const runThreeAIPlanner = async (
     ? new URLSearchParams(window.location.search)
     : null;
   const researchRounds: Record<string, any[]> = {};
+  const researchSnapshots: Record<string, any[]> = {};
   const researchStarted = Date.now();
   const settled =
     await Promise.allSettled(
       models.map(
         model => {
           researchRounds[model] = [];
+          researchSnapshots[model] = [];
           return createPlanner(
             tripForPlanner,
             chatId,
@@ -12003,6 +12005,7 @@ const runThreeAIPlanner = async (
             {
               persistResult: false,
               persistSession: false,
+              onResearchSnapshot: researchMode ? (stage, data) => { researchSnapshots[model].push({ stage, data }); } : undefined,
               onResearchRound: researchMode
                 ? (record) => { researchRounds[model].push(record); }
                 : undefined,
@@ -12029,6 +12032,7 @@ const runThreeAIPlanner = async (
           const result = settled[index];
           return [model, {
             rounds: researchRounds[model],
+            snapshots: researchSnapshots[model],
             success: result.status === "fulfilled",
             error: result.status === "rejected" ? String(result.reason) : null,
             output: result.status === "fulfilled" ? {
