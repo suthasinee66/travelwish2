@@ -907,9 +907,22 @@ export async function loadAllRestaurants(province: string) {
  Main Planner
 */
 
+export type ResearchRoundRecord = {
+    round: 1 | 2;
+    model: string;
+    responseMode: "planner_json" | "markdown";
+    durationMs: number;
+    promptLength: number;
+    outputLength: number;
+    status: "success" | "error";
+    error?: string;
+};
+
 export type CreatePlannerOptions = {
     persistResult?: boolean;
     persistSession?: boolean;
+    /** Optional experiment instrumentation; never changes the production prompt or calls. */
+    onResearchRound?: (record: ResearchRoundRecord) => void;
 };
 
 export async function createPlanner(
@@ -2123,13 +2136,26 @@ console.log(
     `🧠 AI ROUND 1/2 [${selectedModel.toUpperCase()}]: discovery + planner + accommodation`
 );
 
-const raw = await generateWithSelectedModel(
-    selectedModel,
-    prompt,
-    {
-        responseMode: "planner_json"
-    }
-);
+let raw: string;
+try {
+    raw = await generateWithSelectedModel(
+        selectedModel, prompt, { responseMode: "planner_json" }
+    );
+    options.onResearchRound?.({
+        round: 1, model: selectedModel, responseMode: "planner_json",
+        durationMs: performance.now() - start,
+        promptLength: prompt.length, outputLength: raw.length,
+        status: "success"
+    });
+} catch (roundError) {
+    options.onResearchRound?.({
+        round: 1, model: selectedModel, responseMode: "planner_json",
+        durationMs: performance.now() - start,
+        promptLength: prompt.length, outputLength: 0,
+        status: "error", error: String(roundError)
+    });
+    throw roundError;
+}
 
     const end = performance.now();
 
@@ -3568,14 +3594,27 @@ console.log(
     `🧠 AI ROUND 2/2 [${selectedModel.toUpperCase()}]: final markdown`
 );
 
-const aiMessage =
-    await generateWithSelectedModel(
-        selectedModel,
-        markdownPrompt,
-        {
-            responseMode: "markdown"
-        }
+const markdownStart = performance.now();
+let aiMessage: string;
+try {
+    aiMessage = await generateWithSelectedModel(
+        selectedModel, markdownPrompt, { responseMode: "markdown" }
     );
+    options.onResearchRound?.({
+        round: 2, model: selectedModel, responseMode: "markdown",
+        durationMs: performance.now() - markdownStart,
+        promptLength: markdownPrompt.length, outputLength: aiMessage.length,
+        status: "success"
+    });
+} catch (roundError) {
+    options.onResearchRound?.({
+        round: 2, model: selectedModel, responseMode: "markdown",
+        durationMs: performance.now() - markdownStart,
+        promptLength: markdownPrompt.length, outputLength: 0,
+        status: "error", error: String(roundError)
+    });
+    throw roundError;
+}
 
 console.log(
     "✅ MARKDOWN READY:",
