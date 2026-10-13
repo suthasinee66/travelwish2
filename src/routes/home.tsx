@@ -12046,6 +12046,24 @@ const runThreeAIPlanner = async (
     } catch (error) {
       console.warn("RESEARCH: local storage capture failed (quota/privacy)", error);
     }
+    // Download full production run even when localStorage is unavailable.
+    // A browser may ask the user to allow downloads.
+    const blob = new Blob([JSON.stringify(record, null, 2)], {
+      type: "application/json;charset=utf-8"
+    });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = [
+      "travelwish",
+      researchQuery?.get("case") || "case",
+      researchQuery?.get("run") || "run",
+      Date.now()
+    ].join("_") + ".json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
   }
 
   const variants:
