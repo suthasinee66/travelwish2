@@ -907,6 +907,14 @@ export async function loadAllRestaurants(province: string) {
  Main Planner
 */
 
+/** Keep image assets out of model prompts; retain them in UI/database objects. */
+const aiPromptJsonReplacer = (key: string, value: unknown): unknown => {
+    if (["images", "image", "photos", "photo", "image_url", "photo_url", "photo_reference"].includes(key.toLowerCase())) {
+        return undefined;
+    }
+    return value;
+};
+
 export type ResearchRoundRecord = {
     round: 1 | 2;
     model: string;
@@ -1732,7 +1740,7 @@ fallback_place_id จาก TDMC เสมอ เผื่อสถานที�
 1. USER PROFILE + PERSONALIZATION CONTEXT
 ==================================================
 
-${JSON.stringify(userContext, null, 2)}
+${JSON.stringify(userContext, aiPromptJsonReplacer, 2)}
 
 หลักการใช้ข้อมูลผู้ใช้:
 - preference ที่ผู้ใช้เลือกเองมีน้ำหนักสูงสุด
@@ -1750,7 +1758,7 @@ ${JSON.stringify(userContext, null, 2)}
 2. CURRENT TRIP
 ==================================================
 
-${JSON.stringify(tripData, null, 2)}
+${JSON.stringify(tripData, aiPromptJsonReplacer, 2)}
 
 หาก CURRENT TRIP มี accommodation:
 - ถือที่พักเป็น route anchor ของทุกวัน
@@ -1771,7 +1779,7 @@ TDMC:
 - source = "tdmc"
 
 TDMC CANDIDATES:
-${JSON.stringify(combinedCandidatePool)}
+${JSON.stringify(combinedCandidatePool, aiPromptJsonReplacer)}
 
 AI DISCOVERY ในรอบเดียวกัน:
 - คุณสามารถเสนอ proposedNewPlaces ได้สูงสุด 15 แห่ง
@@ -1895,7 +1903,7 @@ AI DISCOVERY ในรอบเดียวกัน:
 ==================================================
 
 CURRENT ACCOMMODATION:
-${JSON.stringify(tripData.accommodation ?? null)}
+${JSON.stringify(tripData.accommodation ?? null, aiPromptJsonReplacer)}
 
 ACCOMMODATION CANDIDATES:
 ${JSON.stringify(
@@ -1906,7 +1914,7 @@ ${JSON.stringify(
             ...hotel
         }: any) =>
             hotel
-    )
+    ), aiPromptJsonReplacer
 )}
 
 กฎ:
@@ -3481,25 +3489,25 @@ const markdownPrompt = `
 จังหวัดของทริปคือ ${tripData.province}
 
 USER CONTEXT
-${JSON.stringify(userContext, null, 2)}
+${JSON.stringify(userContext, aiPromptJsonReplacer, 2)}
 
 CURRENT TRIP
-${JSON.stringify(finalTripData, null, 2)}
+${JSON.stringify(finalTripData, aiPromptJsonReplacer, 2)}
 
 AI ACCOMMODATION RECOMMENDATION REASON
 ${accommodationRecommendationReason ?? "ผู้ใช้เลือกที่พักเองหรือไม่มีคำแนะนำเพิ่มเติม"}
 
 ROUTE-OPTIMIZED ITINERARY ITEMS
-${JSON.stringify(routeOptimizedPlaces, null, 2)}
+${JSON.stringify(routeOptimizedPlaces, aiPromptJsonReplacer, 2)}
 
 ROUTE OPTIMIZATION SUMMARY
-${JSON.stringify(routeOptimization.summary, null, 2)}
+${JSON.stringify(routeOptimization.summary, aiPromptJsonReplacer, 2)}
 
 VERIFIED ATTRACTION DETAILS
-${JSON.stringify(selectedAttractionDetails, null, 2)}
+${JSON.stringify(selectedAttractionDetails, aiPromptJsonReplacer, 2)}
 
 VERIFIED RESTAURANT DETAILS
-${JSON.stringify(selectedRestaurantDetails, null, 2)}
+${JSON.stringify(selectedRestaurantDetails, aiPromptJsonReplacer, 2)}
 
 ====================
 ข้อกำหนด Markdown
