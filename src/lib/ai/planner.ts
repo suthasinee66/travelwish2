@@ -1670,6 +1670,63 @@ if (!tripData.accommodation) {
                 )
         );
 
+        // Refresh public Google Places rating evidence for the 15 shortlisted hotels.
+        // Never replace unknown Google values with stale database values as if verified.
+        if (API_URL && plannerAccommodationCandidates.length > 0) {
+            try {
+                const googleResponse = await fetch(
+                    `${API_URL}/api/accommodation-google-ratings`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            province: tripData.province,
+                            candidates: plannerAccommodationCandidates.map((hotel) => ({
+                                id: hotel.id,
+                                name: hotel.name,
+                                latitude: hotel.latitude,
+                                longitude: hotel.longitude
+                            }))
+                        })
+                    }
+                );
+                if (googleResponse.ok) {
+                    const googleData = await googleResponse.json();
+                    const ratingsById = new Map(
+                        (googleData.results ?? []).map((item: any) => [String(item.id), item])
+                    );
+                    for (const hotel of plannerAccommodationCandidates) {
+                        const verified: any = ratingsById.get(String(hotel.id));
+                        hotel.rating_source = verified?.verified ? "google_places_live" : "unverified";
+                        hotel.google_place_id = verified?.google_place_id ?? null;
+                        hotel.rating = verified?.verified ? verified.rating : null;
+                        hotel.user_ratings_total = verified?.verified ? verified.user_ratings_total : null;
+                    }
+                } else {
+                    for (const hotel of plannerAccommodationCandidates) {
+                        hotel.rating_source = "unverified";
+                        hotel.rating = null;
+                        hotel.user_ratings_total = null;
+                    }
+                }
+            } catch (error) {
+                console.warn("Google accommodation rating verification unavailable:", error);
+                for (const hotel of plannerAccommodationCandidates) {
+                    hotel.rating_source = "unverified";
+                    hotel.rating = null;
+                    hotel.user_ratings_total = null;
+                }
+            }
+        }
+        options.onResearchSnapshot?.("accommodation_google_rating_check", {
+            candidates: plannerAccommodationCandidates.map((hotel) => ({
+                id: hotel.id, name: hotel.name, rating: hotel.rating,
+                user_ratings_total: hotel.user_ratings_total,
+                rating_source: hotel.rating_source ?? "database_unverified",
+                google_place_id: hotel.google_place_id ?? null
+            }))
+        });
+
         console.log(
             "🏨 HOTEL CANDIDATES INCLUDED IN AI ROUND 1:",
             {
