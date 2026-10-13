@@ -1,0 +1,70 @@
+{
+  "note": "Illustrative schema only; replace every value with real experiment results. Do not cite as research findings.",
+  "runs": [
+    {
+      "case_id": "case1",
+      "province": "กรุงเทพมหานคร",
+      "model": "gemini-3.7-flash",
+      "run_id": "case1-bkk-gemini-01",
+      "expected_days": 1,
+      "budget_thb": 3000,
+      "profile": {
+        "travel_type": [
+          "วัฒนธรรม",
+          "คาเฟ่",
+          "เมือง"
+        ],
+        "activities": [
+          "ถ่ายรูป",
+          "อาหาร",
+          "ช้อปปิ้ง"
+        ],
+        "atmosphere": [
+          "คึกคัก"
+        ],
+        "budget_tags": [
+          "ประหยัด"
+        ],
+        "companion_tags": [
+          "เพื่อน"
+        ]
+      },
+      "places": [
+        {
+          "kind": "attraction",
+          "id": "REPLACE_WITH_REAL_PLACE_ID",
+          "name": "REPLACE_WITH_REAL_PLACE",
+          "province": "กรุงเทพมหานคร",
+          "verified": null,
+          "travel_type": [
+            "วัฒนธรรม"
+          ],
+          "activities": [
+            "ถ่ายรูป"
+          ],
+          "day": 1,
+          "start": "09:00",
+          "end": "10:30",
+          "open": "08:00",
+          "close": "17:00",
+          "duration_minutes": 90,
+          "cost_thb": 0
+        }
+      ],
+      "constraints": [
+        {
+          "name": "dietary_allergy",
+          "status": "unknown",
+          "evidence": "No menu or ingredient verification supplied"
+        }
+      ],
+      "api": {
+        "request_success": true,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0,
+        "latency_ms": 0
+      }
+    }
+  ]
+}
