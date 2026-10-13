@@ -914,6 +914,8 @@ export type ResearchRoundRecord = {
     durationMs: number;
     promptLength: number;
     outputLength: number;
+    prompt: string;
+    response: string | null;
     status: "success" | "error";
     error?: string;
 };
@@ -923,6 +925,7 @@ export type CreatePlannerOptions = {
     persistSession?: boolean;
     /** Optional experiment instrumentation; never changes the production prompt or calls. */
     onResearchRound?: (record: ResearchRoundRecord) => void;
+    onResearchSnapshot?: (stage: string, data: unknown) => void;
 };
 
 export async function createPlanner(
@@ -1209,6 +1212,12 @@ console.log(
     "🧠 AI MAIN CALLS PER MODEL = 2 (planner_json + markdown)"
 );
 
+options.onResearchSnapshot?.("ranking_input", {
+    province: normalizedProvince, tripData, attractionCount: attractions.length,
+    restaurantCount: restaurants.length,
+    preferences, profile
+});
+
 const ranked =
     await rankPlacesWithNearbyRestaurants(
         attractions,
@@ -1222,6 +1231,9 @@ const ranked =
 console.log(
     `🏆 Algorithm เลือกสถานที่ ${ranked.length} แห่ง`
 );
+options.onResearchSnapshot?.("tdmc_ranking_output", {
+    ranked, count: ranked.length, rankingMethod: "rankPlacesWithNearbyRestaurants"
+});
 
 
 /* =========================================================
@@ -2145,6 +2157,7 @@ try {
         round: 1, model: selectedModel, responseMode: "planner_json",
         durationMs: performance.now() - start,
         promptLength: prompt.length, outputLength: raw.length,
+        prompt, response: raw,
         status: "success"
     });
 } catch (roundError) {
@@ -2152,6 +2165,7 @@ try {
         round: 1, model: selectedModel, responseMode: "planner_json",
         durationMs: performance.now() - start,
         promptLength: prompt.length, outputLength: 0,
+        prompt, response: null,
         status: "error", error: String(roundError)
     });
     throw roundError;
@@ -3448,6 +3462,10 @@ const routeOptimization =
 
 const routeOptimizedPlaces =
     routeOptimization.items;
+options.onResearchSnapshot?.("route_optimization", {
+    summary: routeOptimization.summary,
+    items: routeOptimizedPlaces
+});
 
 console.log(
     "🧭 ROUTE OPTIMIZATION SUMMARY:",
@@ -3604,6 +3622,7 @@ try {
         round: 2, model: selectedModel, responseMode: "markdown",
         durationMs: performance.now() - markdownStart,
         promptLength: markdownPrompt.length, outputLength: aiMessage.length,
+        prompt: markdownPrompt, response: aiMessage,
         status: "success"
     });
 } catch (roundError) {
@@ -3611,6 +3630,7 @@ try {
         round: 2, model: selectedModel, responseMode: "markdown",
         durationMs: performance.now() - markdownStart,
         promptLength: markdownPrompt.length, outputLength: 0,
+        prompt: markdownPrompt, response: null,
         status: "error", error: String(roundError)
     });
     throw roundError;
@@ -3627,6 +3647,12 @@ const plannerWithDayStartTimes =
         aiMessage,
         routeOptimizedPlaces
     );
+options.onResearchSnapshot?.("final_plan", {
+    planner_json: plannerWithDayStartTimes,
+    accommodation: plannerAccommodation,
+    accommodation_recommendations: accommodationRecommendations,
+    accommodation_reason: accommodationRecommendationReason
+});
 
 
 if (
