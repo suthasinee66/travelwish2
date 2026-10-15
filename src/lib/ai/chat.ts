@@ -1,4 +1,5 @@
 import { createPlanner } from "./planner";
+import { detectRegionInText, isValidProvince } from "@/lib/travel/regionProvinces";
 import {
   detectProvinceInText,
   normalizeProvinceInput,
@@ -19,6 +20,7 @@ import {
 export interface TripInfo {
 
   province:string | null;
+  region?: string | null;
 
   days:number | null;
 
@@ -488,6 +490,7 @@ activities ตัวอย่าง:
   "wantsTrip": false,
   "tripInfo": {
     "province": null,
+    "region": null,
     "days": null,
     "budget": null,
     "companion": null,
@@ -517,8 +520,12 @@ activities ตัวอย่าง:
       wantsTrip: result.wantsTrip === true,
 
       tripInfo: {
-        province:
-          result.tripInfo?.province ?? null,
+        province: (() => {
+          const candidate = normalizeProvinceInput(result.tripInfo?.province) ?? result.tripInfo?.province;
+          return typeof candidate === "string" && isValidProvince(candidate) ? candidate : null;
+        })(),
+        region: detectRegionInText(message) ??
+          detectRegionInText(String(result.tripInfo?.region ?? result.tripInfo?.province ?? "")),
 
         days:
           result.tripInfo?.days ?? null,
