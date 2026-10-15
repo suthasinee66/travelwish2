@@ -6565,18 +6565,10 @@ useEffect(() => {
     initialByDay
   );
 
-  if (
-    initialByDay[
-      selectedDay
-    ]
-  ) {
-    setRoutePlaces(
-      [
-        ...initialByDay[
-          selectedDay
-        ],
-      ]
-    );
+  if (initialByDay[selectedDay]) {
+    // Seed the currently visible day with the same fully-resolved stop
+    // list as All Days. This includes separate restaurant cards.
+    setRoutePlaces([...initialByDay[selectedDay]]);
   }
 
   onRouteChange?.(
@@ -7858,8 +7850,10 @@ useEffect(() => {
 
 }, [
   selectedDay,
-  mapPlaces,
-  routePlacesByDay
+  mapPlaces
+  // Do not depend on routePlacesByDay: async hydration and scheduling update
+  // this cache and used to re-run this effect, overwriting fully hydrated
+  // restaurant stops with an older partial day snapshot.
 ]);
 
 console.log(
