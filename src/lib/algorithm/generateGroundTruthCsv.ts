@@ -15,8 +15,8 @@ import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 type Row = Record<string, unknown>;
-const inputDir = process.argv[2] ?? process.cwd();
-const outputDir = process.argv[3] ?? inputDir;
+const inputDir = process.argv[2] ?? join(process.cwd(), 'research-data');
+const outputDir = process.argv[3] ?? join(process.cwd(), 'research-output');
 const provinces = [
   ['bangkok', 'กรุงเทพมหานคร'],
   ['chiangmai', 'เชียงใหม่'],
@@ -104,7 +104,17 @@ interface Candidate {
 
 function main() {
   mkdirSync(outputDir, { recursive: true });
-  const files = new Set(readdirSync(inputDir));
+  let available: string[];
+  try {
+    available = readdirSync(inputDir);
+  } catch {
+    throw new Error(
+      'Input folder not found: ' + inputDir +
+      '\nDownload and extract TravelWish_groundtruth_input_21cases.zip into the project root.' +
+      '\nExpected folder: research-data (contains attraction_rows.csv and 21 JSON files).'
+    );
+  }
+  const files = new Set(available);
   const attractionCsv = join(inputDir, 'attraction_rows.csv');
   const attractions = parseCsv(readFileSync(attractionCsv, 'utf8'));
   const byProvince = new Map(provinces.map(([, name]) => [
@@ -121,7 +131,13 @@ function main() {
       const stem = `travelwish_case${n}_${slug}`;
       const file = n <= 3 && files.has(stem + '(1).json')
         ? stem + '(1).json' : stem + '.json';
-      if (!files.has(file)) throw new Error('Required JSON file missing: ' + file);
+      if (!files.has(file)) {
+        throw new Error(
+          'Required JSON file missing: ' + file +
+          '\nInput folder: ' + inputDir +
+          '\nExtract TravelWish_groundtruth_input_21cases.zip into your project root, then run npm run groundtruth:csv.'
+        );
+      }
 
       const log = JSON.parse(readFileSync(join(inputDir, file), 'utf8'));
       const prompt: unknown = log.models?.gemini?.rounds?.[0]?.prompt;
