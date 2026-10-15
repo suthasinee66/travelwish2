@@ -88,6 +88,7 @@ import {
   updateLatestGuestPlannerMessage,
 } from "@/lib/guest/guestChatStorage";
 import { THAI_REGIONS, normalizeThaiRegion } from "@/lib/travel/thaiRegions";
+import { detectRegionInText, REGION_PROVINCES, isValidProvince } from "@/lib/travel/regionProvinces";
 import { useImageSwipe } from "@/hooks/useImageSwipe";
 import { useTravelStore } from "@/store/travelStore";
 import { loadTravelData } from "@/lib/travel/loadTravelData";
@@ -12872,13 +12873,40 @@ const handleSend = async () => {
         : [detected.atmosphere]
       : [];
 
+    const requestedRegion = detectRegionInText(text) ?? detected.region ?? null;
+    const explicitProvince = typeof detected.province === "string" && isValidProvince(detected.province)
+      ? detected.province : null;
+    let resolvedProvince = explicitProvince;
+    if (!resolvedProvince && requestedRegion && REGION_PROVINCES[requestedRegion]) {
+      const allowed = REGION_PROVINCES[requestedRegion];
+      const { data: candidatePlaces, error: candidateError } = await supabase
+        .from("attraction")
+        .select("province, travel_type, activities")
+        .eq("region", requestedRegion)
+        .in("province", allowed)
+        .limit(3000);
+      if (candidateError) console.error("REGION DESTINATION LOOKUP:", candidateError);
+      const scores = new Map<string, number>();
+      for (const place of candidatePlaces ?? []) {
+        if (!place.province || !allowed.includes(place.province)) continue;
+        const types = Array.isArray(place.travel_type) ? place.travel_type : [];
+        const activities = Array.isArray(place.activities) ? place.activities : [];
+        const preferredTypes = detected.travelType?.length ? detected.travelType : tripInput.travelType;
+        const preferredActivities = detected.activities?.length ? detected.activities : tripInput.activities;
+        const matchingTypes = (preferredTypes ?? []).filter((v: string) => types.includes(v)).length;
+        const matchingActivities = (preferredActivities ?? []).filter((v: string) => activities.includes(v)).length;
+        scores.set(place.province, (scores.get(place.province) ?? 0) + 1 + matchingTypes * 3 + matchingActivities * 2);
+      }
+      resolvedProvince = [...scores.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+    }
+    const finalProvince = resolvedProvince ??
+      (!requestedRegion && isValidProvince(tripInput.province) ? tripInput.province : "");
+    console.log("📍 REGION RESOLUTION:", { requestedRegion, selectedProvince: finalProvince });
+
     let updatedTrip: TripInput = {
       ...tripInput,
 
-      province:
-        detected.province ??
-        tripInput.province ??
-        "",
+      province: finalProvince,
 
       days:
         detected.days ??
