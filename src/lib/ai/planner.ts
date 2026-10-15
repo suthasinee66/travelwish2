@@ -1349,6 +1349,33 @@ console.log(
     plannerRanked
 );
 
+const hotelDistanceKm = (a: any, b: any): number => {
+    const lat1 = Number(a?.latitude), lon1 = Number(a?.longitude);
+    const lat2 = Number(b?.latitude), lon2 = Number(b?.longitude);
+    if (![lat1, lon1, lat2, lon2].every(Number.isFinite)) return Infinity;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const h = Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0, 1 - h)));
+};
+
+// Use the geographic centre of high-ranked recommended places, not the province centre.
+// The final selected attractions are checked again after AI selection.
+const hotelSearchAttractions = plannerRanked
+    .slice(0, 15)
+    .map((entry: any) => entry.attraction)
+    .filter((place: any) =>
+        Number.isFinite(Number(place?.latitude)) &&
+        Number.isFinite(Number(place?.longitude))
+    );
+const hotelSearchCentre = hotelSearchAttractions.length
+    ? {
+        latitude: hotelSearchAttractions.reduce((sum: number, p: any) => sum + Number(p.latitude), 0) / hotelSearchAttractions.length,
+        longitude: hotelSearchAttractions.reduce((sum: number, p: any) => sum + Number(p.longitude), 0) / hotelSearchAttractions.length
+    }
+    : null;
+
 const plannerAccommodationCandidates:
     any[] = [];
 
@@ -1634,8 +1661,10 @@ if (!tripData.accommodation) {
                                 hotel.images.length >
                                 0,
 
-                            prefilter_score:
-                                qualityScore,
+                            distance_to_recommendation_km: hotelSearchCentre
+                                ? hotelDistanceKm(hotel, hotelSearchCentre)
+                                : null,
+                            prefilter_score: qualityScore,
 
                             raw:
                                 hotel
@@ -1666,8 +1695,13 @@ if (!tripData.accommodation) {
                         right:
                             any
                     ) =>
-                        right.prefilter_score -
-                        left.prefilter_score
+                        // Distance is more important than a small review/price advantage.
+                        // Before selection, require hotels near the recommended attraction cluster.
+                        ((left.distance_to_recommendation_km ?? Infinity) <= 25 ? 0 : 1000) -
+                        ((right.distance_to_recommendation_km ?? Infinity) <= 25 ? 0 : 1000) ||
+                        (left.distance_to_recommendation_km ?? Infinity) -
+                        (right.distance_to_recommendation_km ?? Infinity) ||
+                        right.prefilter_score - left.prefilter_score
                 )
                 .slice(
                     0,
@@ -3059,6 +3093,19 @@ let accommodationRecommendationReason:
 let accommodationRecommendations:
     any[] = [];
 
+// Validate hotel against places actually selected by AI rather than relying
+// only on the TDMC candidate cluster used for the initial shortlist.
+const chosenAttractionPoints = selectedAttractionDetails.filter((p: any) =>
+    selectedPlaces.some((item: any) => String(item?.place_id) === String(p.att_id)) &&
+    Number.isFinite(Number(p.latitude)) && Number.isFinite(Number(p.longitude))
+);
+const selectedTripCentre = chosenAttractionPoints.length
+    ? {
+        latitude: chosenAttractionPoints.reduce((sum: number, p: any) => sum + Number(p.latitude), 0) / chosenAttractionPoints.length,
+        longitude: chosenAttractionPoints.reduce((sum: number, p: any) => sum + Number(p.longitude), 0) / chosenAttractionPoints.length
+    }
+    : hotelSearchCentre;
+
 const accommodationCandidateById =
     new Map(
         plannerAccommodationCandidates.map(
@@ -3172,22 +3219,43 @@ if (
 
     // หากโมเดลคืน id ไม่ถูกต้องทั้งหมด ใช้ candidate แรกเป็น safety fallback
     // แต่ไม่มี AI call เพิ่ม
-    const finalRecommendations =
-        validRecommendations.length >
-        0
-            ? validRecommendations
-            : [
-                {
-                    rank:
-                        1,
-                    candidate:
-                        plannerAccommodationCandidates[
-                            0
-                        ],
-                    reason:
-                        "ใช้ตัวเลือกสำรองจาก candidate ที่ระบบเตรียมไว้ เนื่องจาก AI ไม่ได้คืน accommodation_id ที่ตรวจสอบได้"
-                }
-            ];
+    const finalRecommendations = validRecommendations.length > 0
+        ? [...validRecommendations]
+        : [{
+            rank: 1,
+            candidate: plannerAccommodationCandidates[0],
+            reason: "เลือกโรงแรมสำรองจากฐานข้อมูลที่ผ่านเงื่อนไขงบประมาณ"
+        }];
+
+    if (selectedTripCentre) {
+        const distance = (hotel: any) => hotelDistanceKm(hotel, selectedTripCentre);
+        const bestNearby = [...plannerAccommodationCandidates]
+            .sort((a: any, b: any) => distance(a) - distance(b))[0];
+        const currentDistance = distance(finalRecommendations[0].candidate);
+        // Prevent distant hotels even when an AI ranked them highly.
+        // If no hotel within 25 km is available in the shortlisted candidates,
+        // use the nearest candidate and log the limitation rather than silently
+        // accepting a 150+ km detour.
+        if (bestNearby && currentDistance > 25 && distance(bestNearby) < currentDistance) {
+            console.warn("🏨 REPLACE REMOTE HOTEL:", {
+                original: finalRecommendations[0].candidate.name,
+                original_distance_km: currentDistance,
+                replacement: bestNearby.name,
+                replacement_distance_km: distance(bestNearby)
+            });
+            finalRecommendations.splice(0, finalRecommendations.length, {
+                rank: 1,
+                candidate: bestNearby,
+                reason: "เลือกโรงแรมที่อยู่ใกล้กลุ่มสถานที่ท่องเที่ยวจริง เพื่อลดระยะทางเดินทาง โดยยังผ่านเงื่อนไขงบประมาณ"
+            });
+        }
+        options.onResearchSnapshot?.("accommodation_distance_validation", {
+            selected_centre: selectedTripCentre,
+            selected_hotel: finalRecommendations[0].candidate.name,
+            distance_km: distance(finalRecommendations[0].candidate),
+            nearby_limit_km: 25
+        });
+    }
 
     accommodationRecommendations =
         finalRecommendations.map(
