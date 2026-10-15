@@ -12876,7 +12876,9 @@ const handleSend = async () => {
     const requestedRegion = detectRegionInText(text) ?? detected.region ?? null;
     const explicitProvince = typeof detected.province === "string" && isValidProvince(detected.province)
       ? detected.province : null;
-    let resolvedProvince = explicitProvince;
+    let resolvedProvince = explicitProvince &&
+      (!requestedRegion || REGION_PROVINCES[requestedRegion]?.includes(explicitProvince))
+      ? explicitProvince : null;
     if (!resolvedProvince && requestedRegion && REGION_PROVINCES[requestedRegion]) {
       const allowed = REGION_PROVINCES[requestedRegion];
       const { data: candidatePlaces, error: candidateError } = await supabase
