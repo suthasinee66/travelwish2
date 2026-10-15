@@ -7114,61 +7114,9 @@ const routeScheduleSignature =
     ]
   );
 
-useEffect(() => {
-  if (
-    routePlaces.length === 0
-  ) {
-    return;
-  }
-
-  let active =
-    true;
-
-  const run =
-    async () => {
-      const scheduled =
-        await scheduleRouteItemsWithTravelTime(
-          routePlaces,
-          selectedHotel,
-          days[
-            selectedDay
-          ]?.items?.[0]
-            ?.day_start_time ??
-            null
-        );
-
-      if (!active) {
-        return;
-      }
-
-      setRoutePlaces(
-        scheduled
-      );
-
-      setRoutePlacesByDay(
-        (previous: any) => ({
-          ...previous,
-          [selectedDay]:
-            scheduled,
-        })
-      );
-
-      onRouteChange?.({
-        ...routePlacesByDay,
-        [selectedDay]:
-          scheduled,
-      });
-    };
-
-  void run();
-
-  return () => {
-    active =
-      false;
-  };
-}, [
-  routeScheduleSignature,
-]);
+// Only the all-days scheduler below computes and writes travel times.
+// A second selected-day scheduler used to race against it and overwrite
+// the selected day's cards with older snapshots when switching tabs.
 
 const allDaysScheduleSignature =
   useMemo(
@@ -7309,41 +7257,29 @@ useEffect(() => {
         return;
       }
 
-      const nextByDay = {
-        ...routePlacesByDay,
-      };
-
-      scheduledEntries.forEach(
-        ([
-          dayIndex,
-          items,
-        ]) => {
-          nextByDay[
-            dayIndex
-          ] =
-            items;
-        }
-      );
-
-      setRoutePlacesByDay(
-        nextByDay
-      );
-
-      if (
-        nextByDay[
-          selectedDay
-        ]
-      ) {
-        setRoutePlaces(
-          nextByDay[
-            selectedDay
-          ]
-        );
-      }
-
-      onRouteChange?.(
-        nextByDay
-      );
+      // Merge into the latest cache, not the snapshot captured when
+      // the async request began. A quick day switch must not restore old items.
+      setRoutePlacesByDay((previous: Record<number, any[]>) => {
+        const nextByDay = { ...previous };
+        scheduledEntries.forEach(([dayIndex, items]) => {
+          const original = entries.find(([key]) => Number(key) === dayIndex)?.[1] as any[] | undefined;
+          const current = previous[dayIndex];
+          const stopIdentity = (list: any[] | undefined) =>
+            JSON.stringify((list ?? []).map((stop: any) => [
+              stop.type,
+              stop.place_id ?? stop.restaurant_id,
+              stop.manual_start_time,
+              stop.manual_end_time,
+            ]));
+          // Ignore obsolete async results after a drag, day edit or replan.
+          if (stopIdentity(current) === stopIdentity(original)) {
+            nextByDay[dayIndex] = items;
+          }
+        });
+        return nextByDay;
+      });
+      // The selected-day effect below is the only writer of visible day cards.
+      // Never write routePlaces from asynchronous all-days calculations.
     };
 
   void run();
@@ -7850,10 +7786,8 @@ useEffect(() => {
 
 }, [
   selectedDay,
-  mapPlaces
-  // Do not depend on routePlacesByDay: async hydration and scheduling update
-  // this cache and used to re-run this effect, overwriting fully hydrated
-  // restaurant stops with an older partial day snapshot.
+  mapPlaces,
+  routePlacesByDay,
 ]);
 
 console.log(
