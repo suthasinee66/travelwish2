@@ -931,6 +931,8 @@ export type ResearchRoundRecord = {
 export type CreatePlannerOptions = {
     persistResult?: boolean;
     persistSession?: boolean;
+    /** Emits actual milestones; never exposes private model reasoning. */
+    onProgress?: (stage: string, message: string) => void;
     /** Optional experiment instrumentation; never changes the production prompt or calls. */
     onResearchRound?: (record: ResearchRoundRecord) => void;
     onResearchSnapshot?: (stage: string, data: unknown) => void;
@@ -1033,16 +1035,19 @@ console.log(
 );
 
     // 1. โหลดสถานที่
+    options.onProgress?.("attractions", "กำลังค้นหาสถานที่ท่องเที่ยวจากฐานข้อมูล");
     console.log("📍 กำลังโหลดสถานที่...");
     const attractions = await loadAllAttractions(normalizedProvince);
     console.log(`✅ โหลดสถานที่สำเร็จ ${attractions.length} แห่ง`);
 
     // 2. โหลดร้านอาหาร
+    options.onProgress?.("restaurants", "กำลังค้นหาร้านอาหารในพื้นที่");
     console.log("🍜 กำลังโหลดร้านอาหาร...");
     const restaurants = await loadAllRestaurants(normalizedProvince);
     console.log(`✅ โหลดร้านอาหารสำเร็จ ${restaurants.length} ร้าน`);
 
     // 3. Algorithm
+    options.onProgress?.("ranking", "กำลังจับคู่สถานที่กับความชอบของคุณ");
     console.log("🧮 กำลังจัดอันดับสถานที่...");
     const tripData = {
 
@@ -2207,6 +2212,7 @@ console.log("🔢 Estimated Input Tokens =", estimatedPromptTokens);
     `⏳ ${selectedModel.toUpperCase()} กำลังประมวลผล...`
 );
 
+options.onProgress?.("generating", "AI กำลังเลือกสถานที่และที่พักเพื่อวางแผน");
 const start = performance.now();
 
 console.log(
@@ -3669,6 +3675,7 @@ VERIFIED ITINERARY ITEMS ว่าในช่วงนี้มีอะไร�
 ห้ามมีข้อความใด ๆ นอก Markdown
 `
 
+options.onProgress?.("writing", "กำลังเรียบเรียงแผนการเดินทางรายวัน");
 console.log(
     `📝 ${selectedModel.toUpperCase()} กำลังสร้าง Markdown...`
 );
