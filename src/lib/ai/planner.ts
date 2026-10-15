@@ -2736,6 +2736,46 @@ const selectedPlaces =
         }
     );
 
+// Prefer a real, named restaurant from the current province if the AI's
+// restaurant could not be verified (or it omitted a meal recommendation).
+// We never present an unverified AI name as a confirmed stop.
+const restaurantById = new Map(
+    restaurants
+        .filter((r: any) => r?.place_id && (r?.place_name_th || r?.place_name_en))
+        .map((r: any) => [String(r.place_id), r])
+);
+const usedFallbackRestaurantIds = new Set(
+    selectedPlaces.map((item: any) => String(item?.restaurant_id ?? "")).filter(Boolean)
+);
+for (const item of selectedPlaces) {
+    if (item?.restaurant_id) continue;
+    const meal = String(item?.restaurant_period ?? item?.period ?? "").toLowerCase();
+    const hasMeal = /lunch|dinner|breakfast|อาหาร|มื้อ/.test(meal) ||
+        Boolean(item?.proposed_restaurant_key);
+    if (!hasMeal) continue;
+
+    const attraction = combinedCandidatePool.find(
+        (candidate: any) => String(candidate?.attraction?.id ?? "") === String(item?.place_id ?? "")
+    );
+    const nearby = Array.isArray(attraction?.nearbyRestaurants)
+        ? attraction.nearbyRestaurants
+        : [];
+    const nearestVerified = nearby
+        .map((r: any) => restaurantById.get(String(r?.id ?? "")))
+        .find((r: any) => r && !usedFallbackRestaurantIds.has(String(r.place_id)));
+    if (!nearestVerified) continue;
+
+    item.restaurant_source = "database";
+    item.restaurant_id = String(nearestVerified.place_id);
+    item.restaurant_name = String(nearestVerified.place_name_th ?? nearestVerified.place_name_en);
+    item.proposed_restaurant_key = null;
+    item.restaurant_period = item.restaurant_period ??
+        (/dinner/.test(meal) ? "Dinner" : "Lunch");
+    item.restaurant_duration_minutes = item.restaurant_duration_minutes ?? 75;
+    usedFallbackRestaurantIds.add(String(nearestVerified.place_id));
+    console.log("🍽️ RESTAURANT FALLBACK FROM DATABASE:", item.restaurant_name);
+}
+
 console.log(
     "✅ FINAL SELECTED PLACES:",
     selectedPlaces
@@ -3664,6 +3704,10 @@ VERIFIED ITINERARY ITEMS ว่าในช่วงนี้มีอะไร�
 - ถ้าหาหลักฐานปัจจุบันไม่ได้ อย่าอ้างว่าสิ่งนั้น "กำลังฮิต"
 - แยกให้ชัดระหว่างข้อมูลจากฐานข้อมูลกับคำแนะนำกิจกรรมเชิงสร้างสรรค์
 - ไม่จำเป็นต้องยัดเทรนด์ทุกจุด ให้ใช้เฉพาะจุดที่ช่วยให้ทริปน่าสนใจขึ้นจริง
+
+ห้ามเขียนข้อความแบบ "ร้านซีฟู้ดท้องถิ่น", "ร้านอาหารใกล้เคียง", "รอยืนยันชื่อร้านหน้างาน", "เลือกร้านตามสะดวก" หรือชื่อร้านที่ไม่ระบุชัดเจน
+สำหรับทุกรายการที่มี restaurant_id และ restaurant_name ให้แสดงชื่อร้านอาหารจริงจาก restaurant_name อย่างชัดเจนในตารางและรายละเอียดรายวัน
+ถ้ารายการใดไม่มี restaurant_id ห้ามแต่งชื่อร้านหรือกล่าวว่าร้านได้รับการยืนยันแล้ว และอย่าสร้างมื้ออาหารที่ไม่มีในรายการข้อมูล
 
 ห้ามสร้างข้อมูลสถานที่หรือร้านอาหารที่ไม่มีอยู่ใน VERIFIED ITINERARY ITEMS
 
