@@ -11969,6 +11969,17 @@ const runThreeAIChat = async (
   return variants;
 };
 
+const updatePlannerProgress = (stage: string, message: string, model?: string) => {
+  setMessages(prev => {
+    const last = prev[prev.length - 1];
+    if (!last?.loading) return prev;
+    return [
+      ...prev.slice(0, -1),
+      { ...last, text: message, progressStage: stage, progressModel: model ?? null }
+    ];
+  });
+};
+
 const runThreeAIPlanner = async (
   tripForPlanner: TripInput,
   chatId: string,
@@ -12004,6 +12015,7 @@ const runThreeAIPlanner = async (
             {
               persistResult: false,
               persistSession: false,
+              onProgress: (stage, message) => updatePlannerProgress(stage, message, model.toUpperCase()),
               onResearchSnapshot: researchMode ? (stage, data) => { researchSnapshots[model].push({ stage, data }); } : undefined,
               onResearchRound: researchMode
                 ? (record) => { researchRounds[model].push(record); }
@@ -12535,7 +12547,8 @@ const handleSend = async () => {
             tripForPlanner,
             chatId,
             user.id,
-            selectedModel
+            selectedModel,
+            { onProgress: (stage, message) => updatePlannerProgress(stage, message) }
           );
 
           const plannedTrip = {
@@ -14669,7 +14682,7 @@ ${m.role === "user"
         )}
 
         <span className="ml-1 text-[11px] text-[#9a8da0]">
-          AI กำลังจัดข้อมูลให้คุณ
+          {m.progressModel ? `${m.progressModel} · ` : ""}{m.progressStage === "writing" ? "กำลังสรุปแผน" : "กำลังประมวลผลข้อมูลทริป"}
         </span>
       </div>
     </div>
