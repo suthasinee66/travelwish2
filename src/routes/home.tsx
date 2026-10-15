@@ -7262,7 +7262,19 @@ useEffect(() => {
       setRoutePlacesByDay((previous: Record<number, any[]>) => {
         const nextByDay = { ...previous };
         scheduledEntries.forEach(([dayIndex, items]) => {
-          nextByDay[dayIndex] = items;
+          const original = entries.find(([key]) => Number(key) === dayIndex)?.[1] as any[] | undefined;
+          const current = previous[dayIndex];
+          const stopIdentity = (list: any[] | undefined) =>
+            JSON.stringify((list ?? []).map((stop: any) => [
+              stop.type,
+              stop.place_id ?? stop.restaurant_id,
+              stop.manual_start_time,
+              stop.manual_end_time,
+            ]));
+          // Ignore obsolete async results after a drag, day edit or replan.
+          if (stopIdentity(current) === stopIdentity(original)) {
+            nextByDay[dayIndex] = items;
+          }
         });
         return nextByDay;
       });
