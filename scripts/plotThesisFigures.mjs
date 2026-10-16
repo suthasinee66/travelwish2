@@ -38,7 +38,7 @@ function lineChart(filename,title,sub,series,{yMax=null,yMin=0,yLabel="Score",pr
  const n=valid[0].values.length;
  if(n<2||valid.some(s=>s.values.length!==n||s.labels.length!==n)){missing(filename,"Misaligned X values");return;}
  const values=valid.flatMap(s=>s.values);
- const hi=yMax??Math.max(...values,0)*1.1||1;
+ const hi=yMax ?? (Math.max(...values,0)*1.1 || 1);
  const lo=yMin;
  const max=hi<=lo?lo+1:hi;
  const Y=v=>T+pH-(v-lo)/(max-lo)*pH, X=i=>L+pW*i/(n-1);
@@ -57,7 +57,7 @@ function lineChart(filename,title,sub,series,{yMax=null,yMin=0,yLabel="Score",pr
 }
 function barChart(filename,title,sub,labels,values,barColors,{max=null,yLabel="",fmt=(x)=>x.toFixed(2)}={}) {
  if(!values.length||values.some(v=>!Number.isFinite(v))){missing(filename,"Incomplete numeric rows");return;}
- const W=1180,H=660,L=120,R=65,T=135,B=115,pW=W-L-R,pH=H-T-B,hi=max??Math.max(...values)*1.2||1;
+ const W=1180,H=660,L=120,R=65,T=135,B=115,pW=W-L-R,pH=H-T-B,hi=max ?? (Math.max(...values)*1.2 || 1);
  const Y=v=>T+pH-v/hi*pH;
  const el=border(W,H,title,sub),step=pW/values.length,bW=Math.min(step*0.56,135);
  for(let j=0;j<=5;j++){const v=hi*j/5,y=Y(v);el.push('<line x1="'+L+'" y1="'+y+'" x2="'+(L+pW)+'" y2="'+y+'" stroke="#E6E3EC" stroke-dasharray="4 5"/>',text(L-13,y+4,Number(v.toFixed(2)).toString(),12,"end"));}
