@@ -270,7 +270,7 @@ if(runs?.length){
  const caseRelevance=cases.map(c=>reliable("plan_precision_judged",runs.filter(r=>Number(r.case_id)===c)));
  lollipop("figure_4_9_plan_relevance_case.svg","Final Plan Relevance by Test Case",
   "Mean across model plans for each case",cases.map(c=>"Case "+c),
-  caseRelevance,cases.map(()=>colors.gemini),{unit:""});
+  caseRelevance.map(v=>v*100),cases.map(()=>colors.gemini),{unit:"%"});
 }else missing("Figures 4.5–4.9","Missing "+plansPath+"; run npm run eval:groundtruth");
 
 // Optional independently validated files: CSV columns model, average_cost_usd, avg_input_tokens, avg_output_tokens, avg_seconds.
