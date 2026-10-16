@@ -78,11 +78,9 @@ function ratingDistanceSixPanels(filename, rows) {
    methods.some(m=>m.name===r.algorithm) &&
    Number.isFinite(num(r.avg_rating)) && Number.isFinite(num(r.avg_distance_km))));
  if(!panels.some(p=>p.length)){missing(filename,"No valid case-level rating/distance rows");return;}
- const el=border(W,H,"Average Rating vs Average Distance",
-  "Six panels by K; each point represents a profile and province");
- // Larger title and subtitle for print legibility.
- el.push(text(W/2,61,"Average Rating vs Average Distance",31,"middle",700),
-  text(W/2,92,"Six panels by K; each point represents a profile and province",18,"middle",400,"#667085"));
+ const el=border(W,H,"",""); // Draw titles only once at the desired print size.
+ el.push(text(W/2,64,"Average Rating vs Average Distance",31,"middle",700),
+  text(W/2,96,"Six panels by K; each point represents a profile and province",18,"middle",400,"#667085"));
  el.push('<circle cx="530" cy="114" r="8" fill="#9A9A9A"/>',
   text(550,119,methods[0].name,23,"start"),
   '<polygon points="1030,105 1022,120 1038,120" fill="#388BCA"/>',
