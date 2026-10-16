@@ -309,6 +309,137 @@ function makeHtml(charts) {
   fs.writeFileSync(path.join(outputDir, 'index.html'), html, 'utf8');
 }
 
+
+// -----------------------------------------------------------
+// Three additional SVG presentations with ALL THREE metrics.
+// Every variant uses the same absolute 0–1 metric values;
+// the heatmap uses an explicit shared 0–1 color scale.
+// -----------------------------------------------------------
+const combinedSeries = [
+  { key: 'precision', label: 'Precision@K', color: '#7450A4' },
+  { key: 'recall', label: 'Recall@K', color: '#3478B9' },
+  { key: 'f1', label: 'F1-score@K', color: '#53A38E' },
+];
+const svgText = (x, y, value, options = {}) =>
+  '<text x="' + x + '" y="' + y + '" text-anchor="' + (options.anchor || 'middle') +
+  '" font-family="Arial, sans-serif" font-size="' + (options.size || 16) +
+  '" font-weight="' + (options.weight || 400) + '" fill="' + (options.color || '#344054') +
+  '">' + xmlEscape(value) + '</text>';
+function combinedFrame(title, subtitle, width = 1200, height = 720) {
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height +
+      '" viewBox="0 0 ' + width + ' ' + height + '">',
+    '<rect width="' + width + '" height="' + height + '" fill="#FFFFFF"/>',
+    '<rect x="16" y="16" width="' + (width - 32) + '" height="' + (height - 32) +
+      '" rx="18" fill="#FCFBFF" stroke="#E8E4EF"/>',
+    svgText(width / 2, 60, title, { size: 27, weight: 700, color: '#283448' }),
+    svgText(width / 2, 89, subtitle, { size: 15, color: '#667085' }),
+  ];
+}
+function combinedLegend(svg, y = 130) {
+  for (let i = 0; i < combinedSeries.length; i++) {
+    const item = combinedSeries[i], x = 292 + i * 242;
+    svg.push('<circle cx="' + x + '" cy="' + (y - 5) + '" r="7" fill="' + item.color + '"/>');
+    svg.push(svgText(x + 17, y, item.label, { anchor: 'start', size: 16, weight: 600 }));
+  }
+}
+function saveCombinedSvg(filename, title, parts) {
+  parts.push('</svg>');
+  const svg = parts.join('\n');
+  fs.writeFileSync(path.join(outputDir, filename), svg, 'utf8');
+  return {
+    filename,
+    title,
+    src: 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64'),
+  };
+}
+function combinedGrid(svg, left, right, top, bottom, yMax = 1) {
+  for (let i = 0; i <= 5; i++) {
+    const value = i * yMax / 5, y = bottom - (bottom - top) * i / 5;
+    svg.push('<line x1="' + left + '" x2="' + right + '" y1="' + y + '" y2="' + y +
+      '" stroke="#E4E7EC" stroke-dasharray="5 6"/>');
+    svg.push(svgText(left - 17, y + 6, value.toFixed(1), { anchor: 'end', size: 15, color: '#667085' }));
+  }
+}
+function makeCombinedLine(summary) {
+  const svg = combinedFrame('TDMC-APD: Precision, Recall & F1-score', 'Design A — Combined line chart · 21 recorded production runs');
+  combinedLegend(svg);
+  const left = 145, right = 1110, top = 185, bottom = 595;
+  const xp = i => left + (right - left) * i / (summary.length - 1);
+  const yp = value => bottom - value * (bottom - top);
+  combinedGrid(svg, left, right, top, bottom);
+  summary.forEach((row, i) => svg.push(svgText(xp(i), bottom + 36, row.k, { size: 18 })));
+  for (const series of combinedSeries) {
+    const points = summary.map((row, i) => xp(i) + ',' + yp(row[series.key])).join(' ');
+    svg.push('<polyline points="' + points + '" fill="none" stroke="' + series.color +
+      '" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>');
+    summary.forEach((row, i) => {
+      const x = xp(i), y = yp(row[series.key]);
+      svg.push('<circle cx="' + x + '" cy="' + y + '" r="7.5" fill="' + series.color +
+        '" stroke="#FFFFFF" stroke-width="2"/>');
+      // Offset labels to avoid overlap between closely-spaced Recall and F1.
+      const labelOffset = series.key === 'recall' ? 21 : -17;
+      svg.push(svgText(x, y + labelOffset, row[series.key].toFixed(3), {
+        size: 15, weight: 700, color: series.color,
+      }));
+    });
+  }
+  svg.push(svgText(628, 675, 'Number of recommended attractions (K)', { size: 20 }));
+  return saveCombinedSvg('combined_line.svg', 'Combined line chart', svg);
+}
+function makeCombinedBars(summary) {
+  const svg = combinedFrame('TDMC-APD: Precision, Recall & F1-score', 'Design B — Grouped columns · common 0–1 value axis');
+  combinedLegend(svg);
+  const left = 145, right = 1110, top = 185, bottom = 595;
+  combinedGrid(svg, left, right, top, bottom);
+  const stride = (right - left) / summary.length;
+  const barWidth = 28, gap = 6;
+  summary.forEach((row, i) => {
+    const center = left + stride * (i + 0.5);
+    svg.push(svgText(center, bottom + 36, row.k, { size: 18 }));
+    combinedSeries.forEach((series, j) => {
+      const value = row[series.key], height = value * (bottom - top);
+      const x = center + (j - 1) * (barWidth + gap) - barWidth / 2;
+      const y = bottom - height;
+      svg.push('<rect x="' + x + '" y="' + y + '" width="' + barWidth + '" height="' +
+        height + '" rx="5" fill="' + series.color + '"/>');
+      svg.push(svgText(x + barWidth / 2, y - 11, value.toFixed(3), {
+        size: 12, weight: 700, color: series.color,
+      }));
+    });
+  });
+  svg.push(svgText(628, 675, 'Number of recommended attractions (K)', { size: 20 }));
+  return saveCombinedSvg('combined_grouped_bars.svg', 'Grouped bar chart', svg);
+}
+function makeCombinedHeatmap(summary) {
+  const svg = combinedFrame('TDMC-APD: Precision, Recall & F1-score', 'Design C — Value heatmap · shared 0–1 color scale');
+  const left = 210, top = 215, cellWidth = 145, cellHeight = 100, gap = 10;
+  for (let i = 0; i < summary.length; i++) {
+    const x = left + i * (cellWidth + gap);
+    svg.push(svgText(x + cellWidth / 2, top - 24, 'K = ' + summary[i].k, { size: 18, weight: 700 }));
+  }
+  // The background color intensity uses the *same fixed* 0–1 scale
+  // for every cell; hue distinguishes each of the three metrics.
+  for (let j = 0; j < combinedSeries.length; j++) {
+    const series = combinedSeries[j], y = top + j * (cellHeight + gap);
+    svg.push('<rect x="42" y="' + (y + 33) + '" width="12" height="20" rx="4" fill="' + series.color + '"/>');
+    svg.push(svgText(63, y + 49, series.label, { anchor: 'start', size: 17, weight: 600 }));
+    for (let i = 0; i < summary.length; i++) {
+      const value = summary[i][series.key], x = left + i * (cellWidth + gap);
+      const opacity = (0.10 + 0.85 * value).toFixed(3);
+      svg.push('<rect x="' + x + '" y="' + y + '" width="' + cellWidth +
+        '" height="' + cellHeight + '" rx="12" fill="' + series.color + '" fill-opacity="' + opacity + '"/>');
+      svg.push(svgText(x + cellWidth / 2, y + 58, value.toFixed(4), {
+        size: 22, weight: 700, color: '#253348',
+      }));
+    }
+  }
+  svg.push(svgText(628, 630, 'Darker cell = higher metric value (same 0–1 scale for all metrics)', {
+    size: 17, color: '#667085',
+  }));
+  return saveCombinedSvg('combined_heatmap.svg', 'Heatmap comparison', svg);
+}
+
 function main() {
   const result = evaluate();
   fs.mkdirSync(outputDir, { recursive: true });
@@ -327,6 +458,9 @@ function main() {
     makeChart(result.summary, 'recall', 'Recall@K', 'recall_at_k.svg'),
     makeChart(result.summary, 'f1', 'F1-score@K', 'f1_at_k.svg'),
   ];
+  charts.push(makeCombinedLine(result.summary));
+  charts.push(makeCombinedBars(result.summary));
+  charts.push(makeCombinedHeatmap(result.summary));
   makeHtml(charts);
 
   console.log('\nTravelWish production TDMC evaluation (mean of ' + result.runs + ' runs)');
@@ -335,7 +469,7 @@ function main() {
     Recall: row.recall.toFixed(4), 'F1-score': row.f1.toFixed(4),
   })));
   console.log('\nOpen the charts: ' + path.join(outputDir, 'index.html'));
-  console.log('Also generated 3 SVG figures, two CSV files, and summary.json.');
+  console.log('Also generated 6 SVG figures (3 individual + 3 combined), two CSV files, and summary.json.');
 }
 
 try { main(); } catch (error) { console.error('\nERROR:', error.message); process.exitCode = 1; }
