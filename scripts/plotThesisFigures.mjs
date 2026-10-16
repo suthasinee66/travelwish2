@@ -204,6 +204,40 @@ function ratingDistanceSixPanels(filename, rows) {
 }
 
 
+/** One standalone SVG per TDMC metric with independent Y scale and labeled data points. */
+function tdmcSeparateMetricFigures(series,kValues){
+ const configurations=[
+  {name:"Precision@K",file:"figure_4_4a_tdmc_precision.svg",title:"TDMC-APD: Precision@K",color:"#7450A4",minTop:0.5},
+  {name:"Recall@K",file:"figure_4_4b_tdmc_recall.svg",title:"TDMC-APD: Recall@K",color:"#3478B9",minTop:0.08},
+  {name:"F1@K",file:"figure_4_4c_tdmc_f1.svg",title:"TDMC-APD: F1-score@K",color:"#53A38E",minTop:0.12}
+ ];
+ for(const cfg of configurations){
+  const s=series.find(item=>item.name===cfg.name);
+  if(!s||s.values.length!==kValues.length||s.values.some(v=>!Number.isFinite(v))){
+   missing(cfg.file,"Missing or invalid metric values");continue;
+  }
+  const W=1220,H=700,L=148,R=91,T=147,B=118,w=W-L-R,h=H-T-B;
+  const top=Math.max(cfg.minTop,Math.ceil(Math.max(...s.values)*1.12*1000)/1000);
+  const X=i=>L+w*i/(kValues.length-1),Y=v=>T+h-v/top*h;
+  const el=border(W,H,cfg.title,"TDMC-APD relevance evaluation across recommendation sizes");
+  for(let i=0;i<=5;i++){
+   const v=top*i/5,y=Y(v);
+   el.push('<line x1="'+L+'" y1="'+y+'" x2="'+(L+w)+'" y2="'+y+'" stroke="#E4E6EF" stroke-dasharray="5 6"/>',
+    text(L-17,y+6,v.toFixed(3),17,"end"));
+  }
+  const pts=s.values.map((v,i)=>[X(i),Y(v)]);
+  el.push('<polyline points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+cfg.color+'" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>');
+  pts.forEach(([x,y],i)=>{
+   el.push('<circle cx="'+x+'" cy="'+y+'" r="9" fill="'+cfg.color+'" stroke="white" stroke-width="2"><title>K='+kValues[i]+': '+s.values[i].toFixed(5)+'</title></circle>',
+    text(x,Math.max(T+20,y-20),s.values[i].toFixed(3),20,"middle",700,cfg.color),
+    text(x,T+h+35,kValues[i],19));
+  });
+  el.push(text(W/2,H-40,"Recommendation size (K)",21),
+   text(48,T+h/2,cfg.name,21,"middle",600,"#263041",-90));
+  svgSave(cfg.file,el);
+ }
+}
+
 /** Four thesis-friendly visualizations for TDMC-APD Precision/Recall/F1 (real K-level values). */
 function tdmcFourFigures(series, kValues) {
  const metrics=series.map(s=>({...s,values:s.values.map(Number)}));
@@ -351,6 +385,7 @@ if(algorithm) {
   {name:"Recall@K",labels,values:values(tdmc,"recall"),color:"#3478B9"},
   {name:"F1@K",labels,values:values(tdmc,"f1"),color:"#53A38E"}];
  tdmcFourFigures(tdmcMetrics,ks);
+ tdmcSeparateMetricFigures(tdmcMetrics,ks);
 }else missing("Figures 4.1–4.4","Missing "+algorithmPath+"; run npm run eval:algorithms");
 
 if(runs?.length){
