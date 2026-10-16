@@ -18,7 +18,7 @@
     "eval:algorithms": "npx tsx src/lib/algorithm/evaluateAlgorithmComparison.ts",
     "eval:algorithms:graph": "node scripts/plotAlgorithmComparison.mjs",
     "eval:figures": "node scripts/plotThesisFigures.mjs",
-    "eval:personalization": "npx tsx src/lib/algorithm/evaluatePersonalization.ts"
+    "eval:personalization": "npx tsx src/lib/algorithm/evaluatePersonalization.ts && node scripts/plotPersonalization.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
