@@ -65,6 +65,63 @@ function barChart(filename,title,sub,labels,values,barColors,{max=null,yLabel=""
  el.push(text(34,T+pH/2,yLabel,14,"middle",500,"#667085",-90));
  svgSave(filename,el);
 }
+
+/** Six panels (K=5,10,15,20,25,30), each containing all profile/province rows. */
+function ratingDistanceSixPanels(filename, rows) {
+ const ks=[5,10,15,20,25,30], W=1530,H=1110;
+ const methods=[
+  {name:"Weighted Profile-Matching Baseline",color:"#9A9A9A",shape:"circle"},
+  {name:"TDMC-APD",color:"#388BCA",shape:"triangle"}
+ ];
+ const panels=ks.map(k=>rows.filter(r=>Number(r.k)===k &&
+  methods.some(m=>m.name===r.algorithm) &&
+  Number.isFinite(num(r.avg_rating)) && Number.isFinite(num(r.avg_distance_km))));
+ const all=panels.flat();
+ if(!all.length){missing(filename,"No valid case-level rating/distance rows");return;}
+ const xvals=all.map(r=>num(r.avg_distance_km)),yvals=all.map(r=>num(r.avg_rating));
+ const x0=Math.min(0,Math.min(...xvals)),xmax=Math.max(...xvals),x1=xmax>x0?xmax*1.08:x0+1;
+ const ymin=Math.min(...yvals),ymax=Math.max(...yvals);
+ const y0=Math.max(0,Math.floor((ymin-0.08)*10)/10);
+ const y1=Math.min(5,Math.ceil((ymax+0.08)*10)/10);
+ const YMAX=y1>y0?y1:y0+0.2;
+ const el=border(W,H,"Average Rating vs Average Distance",
+  "All profile–province experiments, separately plotted for each recommendation size K");
+ el.push('<circle cx="480" cy="115" r="7" fill="#9A9A9A"/>',text(496,120,methods[0].name,15,"start"),
+ '<polygon points="920,107 912,121 928,121" fill="#388BCA"/>',
+ text(940,120,methods[1].name,15,"start"));
+ const panelW=455,panelH=420,marginX=39,marginY=151,gapX=43,gapY=48;
+ for(let pi=0;pi<6;pi++){
+  const k=ks[pi],col=pi%3,row=Math.floor(pi/3);
+  const px=marginX+col*(panelW+gapX),py=marginY+row*(panelH+gapY);
+  const left=px+62,top=py+47,pW=panelW-81,pH=panelH-109;
+  const X=v=>left+(v-x0)/(x1-x0)*pW, Y=v=>top+pH-(v-y0)/(YMAX-y0)*pH;
+  const caseRows=panels[pi];
+  const counts=methods.map(m=>caseRows.filter(r=>r.algorithm===m.name).length);
+  el.push('<rect x="'+px+'" y="'+py+'" width="'+panelW+'" height="'+panelH+'" rx="10" fill="white" stroke="#DADCE5"/>',
+   text(px+panelW/2,py+26,"K = "+k+"   ("+counts[0]+" baseline / "+counts[1]+" TDMC)",16,"middle",700));
+  for(let t=0;t<=5;t++){
+   const xx=left+t*pW/5,xv=x0+t*(x1-x0)/5;
+   const yy=top+t*pH/5,yv=YMAX-t*(YMAX-y0)/5;
+   el.push('<line x1="'+xx+'" y1="'+top+'" x2="'+xx+'" y2="'+(top+pH)+'" stroke="#E5E7EC" stroke-dasharray="3 5"/>',
+    '<line x1="'+left+'" y1="'+yy+'" x2="'+(left+pW)+'" y2="'+yy+'" stroke="#E5E7EC" stroke-dasharray="3 5"/>',
+    text(xx,top+pH+19,xv.toFixed(0),11),
+    text(left-9,yy+4,yv.toFixed(1),11,"end"));
+  }
+  el.push(text(left+pW/2,py+panelH-17,"Average Distance (km)",12),
+   text(px+16,top+pH/2,"Average Rating",12,"middle",500,"#667085",-90));
+  for(const m of methods){
+   for(const r of caseRows.filter(r=>r.algorithm===m.name)){
+    const xx=X(num(r.avg_distance_km)),yy=Y(num(r.avg_rating));
+    if(m.shape==="triangle") el.push('<polygon points="'+xx+','+(yy-6)+' '+(xx-6)+','+(yy+5)+' '+(xx+6)+','+(yy+5)+'" fill="'+m.color+'" opacity=".85"><title>'+escape("Case "+r.case_id+" | "+r.province+" | K="+k)+'</title></polygon>');
+    else el.push('<circle cx="'+xx+'" cy="'+yy+'" r="5.3" fill="'+m.color+'" opacity=".76"><title>'+escape("Case "+r.case_id+" | "+r.province+" | K="+k)+'</title></circle>');
+   }
+  }
+  if(counts.some(n=>n!==21))console.warn("K="+k+": expected 21 rows per algorithm; found",counts.join(" / "));
+ }
+ el.push(text(W/2,H-24,"Each point represents one profile × province. All panels share the same axis scales.",13,"middle",400,"#667085"));
+ svgSave(filename,el);
+}
+
 function parseCsv(input){
  const records=[];let row=[],f="",q=false;
  input=input.replace(/^\uFEFF/,"");
@@ -88,8 +145,11 @@ if(algorithm) {
   {name:"TDMC-APD",labels,values:values(tdmc,field),color:colors.tdmc}
  ],{yLabel,yMax});
  compare("diversity","figure_4_1_topic_diversity.svg","Topic Diversity by Recommendation Size","Topic Diversity",1);
- compare("avg_rating","figure_4_2_average_rating.svg","Average Attraction Rating by K","Average rating (1–5)",5);
- compare("avg_distance_km","figure_4_3_average_distance.svg","Average Attraction Distance by K","Average distance (km)");
+ const detailPath=path.resolve(opts.algorithmRows||"comparison/algorithm_comparison/algorithm_results.csv");
+ if(fs.existsSync(detailPath)){
+  const detail=parseCsv(fs.readFileSync(detailPath,"utf8"));
+  ratingDistanceSixPanels("figure_4_2_rating_distance_6_panels.svg",detail);
+ }else missing("figure_4_2_rating_distance_6_panels.svg","Missing "+detailPath+"; run npm run eval:algorithms");
  // These are TDMC-only, NOT a comparison with Baseline.
  const tdmcMetrics=[
   {name:"Precision@K",labels,values:values(tdmc,"precision"),color:"#7450A4"},
