@@ -203,6 +203,120 @@ function ratingDistanceSixPanels(filename, rows) {
  svgSave(filename,el);
 }
 
+
+/** Four thesis-friendly visualizations for TDMC-APD Precision/Recall/F1 (real K-level values). */
+function tdmcFourFigures(series, kValues) {
+ const metrics=series.map(s=>({...s,values:s.values.map(Number)}));
+ if(metrics.length!==3||metrics.some(s=>s.values.length!==kValues.length||s.values.some(v=>!Number.isFinite(v)||v<0||v>1))){
+  missing("TDMC four chart variants","Incomplete or invalid Precision/Recall/F1 values");return;
+ }
+ const [precision,recall,f1]=metrics;
+ const presets=[.5,.08,.12];
+ const axes=metrics.map((s,i)=>Math.max(presets[i],Math.ceil(Math.max(...s.values)*1.12*100)/100));
+ const coords=(i,l,t,w)=>l+i*w/(kValues.length-1);
+ const grid=(e,l,t,w,h,max,n=4,fmt=v=>v.toFixed(2))=>{
+  for(let i=0;i<=n;i++){
+   const v=i*max/n,y=t+h-i*h/n;
+   e.push('<line x1="'+l+'" y1="'+y+'" x2="'+(l+w)+'" y2="'+y+'" stroke="#E0E3EA" stroke-dasharray="4 5"/>',
+    text(l-12,y+6,fmt(v),14,"end"));
+  }
+ };
+ // 1. Three independent vertical panels, one axis per metric.
+ {
+  const W=1830,H=710,e=border(W,H,"TDMC-APD: Precision, Recall and F1",
+   "Three separate scales | K = 5, 10, 15, 20, 25, 30 | data labels show exact values");
+  metrics.forEach((s,j)=>{
+   const px=35+j*605,py=135,pw=575,ph=485,l=px+87,t=py+65,w=pw-129,h=ph-149,hi=axes[j];
+   e.push('<rect x="'+px+'" y="'+py+'" width="'+pw+'" height="'+ph+'" rx="14" fill="white" stroke="#E6E0E9"/>',
+    text(px+pw/2,py+36,s.name,22,"middle",700,s.color));
+   grid(e,l,t,w,h,hi,4,v=>v.toFixed(3));
+   const points=s.values.map((v,i)=>[coords(i,l,t,w),t+h-v/hi*h]);
+   e.push('<polyline points="'+points.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+s.color+'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>');
+   points.forEach(([x,y],i)=>{
+    e.push('<circle cx="'+x+'" cy="'+y+'" r="7" fill="'+s.color+'" stroke="white" stroke-width="2"><title>K='+kValues[i]+': '+s.values[i].toFixed(4)+'</title></circle>',
+     text(x,Math.max(t+16,y-17),s.values[i].toFixed(3),15,"middle",600,s.color),
+     text(x,t+h+29,kValues[i],16));
+   });
+   e.push(text(l+w/2,py+ph-21,"Recommendation size (K)",16));
+  });
+  svgSave("figure_4_4_tdmc_small_multiples.svg",e);
+ }
+ // 2. Dual axis: left Precision / right Recall and F1. Explicitly label both axes.
+ {
+  const W=1300,H=720,L=146,R=166,T=172,B=122,w=W-L-R,h=H-T-B,maxLeft=axes[0],maxRight=Math.max(axes[1],axes[2]);
+  const e=border(W,H,"TDMC-APD: Dual-Axis Trends","Left axis: Precision | Right axis: Recall and F1 | different scales");
+  grid(e,L,T,w,h,maxLeft,5,v=>v.toFixed(2));
+  for(let i=0;i<=5;i++){
+   const v=i*maxRight/5,y=T+h-i*h/5;
+   e.push(text(L+w+15,y+5,v.toFixed(3),14,"start",400,"#3478B9"));
+  }
+  e.push(text(54,T+h/2,"Precision",19,"middle",700,precision.color,-90),
+   text(W-33,T+h/2,"Recall / F1",19,"middle",700,"#3478B9",90));
+  metrics.forEach((s,j)=>{
+   const hi=j===0?maxLeft:maxRight;
+   const pts=s.values.map((v,i)=>[coords(i,L,T,w),T+h-v/hi*h]);
+   e.push('<polyline points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+s.color+'" stroke-width="4"/>');
+   pts.forEach(([x,y],i)=>e.push('<circle cx="'+x+'" cy="'+y+'" r="6.5" fill="'+s.color+'"><title>'+s.name+' K='+kValues[i]+': '+s.values[i].toFixed(4)+'</title></circle>'));
+   const lx=245+j*315,ly=H-55;
+   e.push('<line x1="'+lx+'" y1="'+ly+'" x2="'+(lx+38)+'" y2="'+ly+'" stroke="'+s.color+'" stroke-width="4"/>',
+    text(lx+50,ly+5,s.name,17,"start"));
+  });
+  kValues.forEach((k,i)=>e.push(text(coords(i,L,T,w),T+h+31,k,16)));
+  e.push(text(L+w/2,T+h+70,"Recommendation size (K)",17));
+  svgSave("figure_4_4_tdmc_dual_axis.svg",e);
+ }
+ // 3. Empirical P-R points joined in K order; labels are K, not an interpolated retrieval curve.
+ {
+  const W=1280,H=790,L=166,R=90,T=148,B=135,w=W-L-R,h=H-T-B;
+  const xmax=Math.max(.08,Math.max(...recall.values)*1.17);
+  const ymax=Math.max(.5,Math.max(...precision.values)*1.17);
+  const X=v=>L+v/xmax*w,Y=v=>T+h-v/ymax*h;
+  const e=border(W,H,"TDMC-APD: Precision–Recall by K",
+   "Each marker is an observed Top-K evaluation; lines connect K in ascending order");
+  for(let i=0;i<=5;i++){
+   const rv=i*xmax/5,pv=i*ymax/5;
+   e.push('<line x1="'+X(rv)+'" y1="'+T+'" x2="'+X(rv)+'" y2="'+(T+h)+'" stroke="#E0E3EA" stroke-dasharray="4 5"/>',
+    '<line x1="'+L+'" y1="'+Y(pv)+'" x2="'+(L+w)+'" y2="'+Y(pv)+'" stroke="#E0E3EA" stroke-dasharray="4 5"/>',
+    text(X(rv),T+h+27,rv.toFixed(3),14),text(L-12,Y(pv)+6,pv.toFixed(2),14,"end"));
+  }
+  const points=kValues.map((k,i)=>[X(recall.values[i]),Y(precision.values[i])]);
+  e.push('<polyline points="'+points.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+precision.color+'" stroke-width="4"/>');
+  points.forEach(([x,y],i)=>{
+   e.push('<circle cx="'+x+'" cy="'+y+'" r="8" fill="'+precision.color+'" stroke="white" stroke-width="2"/>',
+    text(Math.min(W-80,x+28),Math.max(T+18,y-14),"K="+kValues[i],17,"middle",600,precision.color));
+  });
+  e.push(text(W/2,H-60,"Recall@K",20),text(44,T+h/2,"Precision@K",20,"middle",600,"#263041",-90));
+  svgSave("figure_4_4_tdmc_precision_recall_curve.svg",e);
+ }
+ // 4. Three series with a compact exact value table under the figure.
+ {
+  const W=1370,H=900,L=155,R=92,T=147,plotH=430,w=W-L-R,yMax=Math.max(.5,...metrics.flatMap(s=>s.values))*1.1;
+  const X=i=>coords(i,L,T,w),Y=v=>T+plotH-v/yMax*plotH;
+  const e=border(W,H,"TDMC-APD: Metric Trends with Data Table",
+   "Shared axis for comparison; the table preserves small Recall and F1 values");
+  grid(e,L,T,w,plotH,yMax,5);
+  metrics.forEach(s=>{
+   const pts=s.values.map((v,i)=>[X(i),Y(v)]);
+   e.push('<polyline points="'+pts.map(p=>p.join(",")).join(" ")+'" fill="none" stroke="'+s.color+'" stroke-width="3.4"/>');
+   pts.forEach(([x,y])=>e.push('<circle cx="'+x+'" cy="'+y+'" r="5.5" fill="'+s.color+'"/>'));
+  });
+  kValues.forEach((k,i)=>e.push(text(X(i),T+plotH+27,k,15)));
+  const y0=636,headerH=45,rowH=52,tabLeft=105,tabW=1160,firstCol=225,cw=(tabW-firstCol)/kValues.length;
+  e.push('<rect x="'+tabLeft+'" y="'+y0+'" width="'+tabW+'" height="'+(headerH+rowH*3)+'" rx="10" fill="white" stroke="#DADCE4"/>',
+   text(tabLeft+24,y0+29,"Metric / K",17,"start",700));
+  kValues.forEach((k,i)=>e.push(text(tabLeft+firstCol+(i+.5)*cw,y0+29,k,17,"middle",700)));
+  metrics.forEach((s,i)=>{
+   const yy=y0+headerH+i*rowH;
+   e.push('<line x1="'+tabLeft+'" y1="'+yy+'" x2="'+(tabLeft+tabW)+'" y2="'+yy+'" stroke="#E3E1E8"/>',
+    '<rect x="'+(tabLeft+16)+'" y="'+(yy+18)+'" width="14" height="14" rx="3" fill="'+s.color+'"/>',
+    text(tabLeft+41,yy+31,s.name,17,"start",600));
+   s.values.forEach((v,j)=>e.push(text(tabLeft+firstCol+(j+.5)*cw,yy+31,v.toFixed(4),17)));
+  });
+  e.push(text(W/2,H-24,"Exact numeric values are retained; no logarithmic transform is applied.",14,"middle",400,"#667085"));
+  svgSave("figure_4_4_tdmc_line_with_table.svg",e);
+ }
+}
+
 function parseCsv(input){
  const records=[];let row=[],f="",q=false;
  input=input.replace(/^\uFEFF/,"");
@@ -236,8 +350,7 @@ if(algorithm) {
   {name:"Precision@K",labels,values:values(tdmc,"precision"),color:"#7450A4"},
   {name:"Recall@K",labels,values:values(tdmc,"recall"),color:"#3478B9"},
   {name:"F1@K",labels,values:values(tdmc,"f1"),color:"#53A38E"}];
- lineChart("figure_4_4_tdmc_precision_recall_f1.svg","TDMC-APD Relevance Evaluation",
-  "Precision@K, Recall@K and F1@K  |  calculated for TDMC-APD only",tdmcMetrics,{yMax:1,yLabel:"Score (0–1)"});
+ tdmcFourFigures(tdmcMetrics,ks);
 }else missing("Figures 4.1–4.4","Missing "+algorithmPath+"; run npm run eval:algorithms");
 
 if(runs?.length){
