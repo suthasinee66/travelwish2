@@ -66,6 +66,63 @@ function barChart(filename,title,sub,labels,values,barColors,{max=null,yLabel=""
  svgSave(filename,el);
 }
 
+
+function horizontalBars(filename,title,sub,labels,values,palette,{unit="",percentage=false}={}){
+ if(values.length!==labels.length||values.some(v=>!Number.isFinite(v))){missing(filename,"Missing horizontal-bar values");return;}
+ const W=1190,H=630,L=255,R=120,T=150,B=90,pW=W-L-R;
+ const max=Math.max(...values)*1.13||1;
+ const el=border(W,H,title,sub);
+ values.forEach((v,i)=>{
+  const y=T+i*118,w=v/max*pW;
+  el.push(text(L-22,y+28,labels[i],20,"end",600),
+   '<rect x="'+L+'" y="'+(y-4)+'" width="'+pW+'" height="53" rx="14" fill="#EFEFF3"/>',
+   '<rect x="'+L+'" y="'+(y-4)+'" width="'+w+'" height="53" rx="14" fill="'+palette[i]+'"/>',
+   text(Math.min(L+w+20,W-85),y+29,(percentage?(v*100).toFixed(2):v.toFixed(2))+unit,19,"start",700));
+ });
+ svgSave(filename,el);
+}
+function lollipop(filename,title,sub,labels,values,palette,{unit=""}={}){
+ if(values.length!==labels.length||values.some(v=>!Number.isFinite(v))){missing(filename,"Missing lollipop values");return;}
+ const W=1190,H=650,L=165,R=100,T=144,B=124,pW=W-L-R,pH=H-T-B;
+ const max=Math.max(...values)*1.16||1, step=pW/values.length;
+ const el=border(W,H,title,sub);
+ for(let t=0;t<=4;t++){
+  const v=max*t/4,y=T+pH-v/max*pH;
+  el.push('<line x1="'+L+'" y1="'+y+'" x2="'+(L+pW)+'" y2="'+y+'" stroke="#E2E5EB" stroke-dasharray="4 6"/>',
+   text(L-16,y+6,v.toFixed(0),15,"end"));
+ }
+ values.forEach((v,i)=>{
+  const x=L+step*(i+.5),y=T+pH-v/max*pH;
+  el.push('<line x1="'+x+'" y1="'+(T+pH)+'" x2="'+x+'" y2="'+y+'" stroke="'+palette[i]+'" stroke-width="7" opacity=".55"/>',
+   '<circle cx="'+x+'" cy="'+y+'" r="15" fill="'+palette[i]+'" stroke="white" stroke-width="4"/>',
+   text(x,y-30,v.toFixed(2)+unit,19,"middle",700),
+   text(x,T+pH+39,labels[i],18,"middle",600));
+ });
+ svgSave(filename,el);
+}
+function profileHeatmap(filename,title,sub,rows){
+ const cases=[1,2,3,4,5,6,7],provinces=["กรุงเทพมหานคร","เชียงใหม่","ภูเก็ต"];
+ const labels=["Bangkok","Chiang Mai","Phuket"],W=1100,H=820,L=190,T=165,cw=255,ch=73;
+ const el=border(W,H,title,sub);
+ labels.forEach((name,j)=>el.push(text(L+j*cw+cw/2,T-30,name,19,"middle",700)));
+ cases.forEach((c,i)=>{
+  el.push(text(L-25,T+i*ch+ch/2+8,"Case "+c,18,"end",600));
+  provinces.forEach((p,j)=>{
+   const r=rows.find(x=>Number(x.case_id)===c&&x.province===p);
+   const v=r?num(r.tdmc_precision_at_k):NaN;
+   const x=L+j*cw,y=T+i*ch;
+   // Lighter = lower precision, darker = higher precision; missing values remain gray.
+   const opacity=Number.isFinite(v)?(0.12+0.78*Math.min(1,Math.max(0,v))):1;
+   const fill=Number.isFinite(v)?"#7450A4":"#DFE1E7";
+   el.push('<rect x="'+(x+4)+'" y="'+(y+4)+'" width="'+(cw-9)+'" height="'+(ch-9)+'" rx="9" fill="'+fill+'" fill-opacity="'+opacity+'" stroke="#FFFFFF" stroke-width="2"/>',
+    text(x+cw/2,y+ch/2+7,Number.isFinite(v)?(v*100).toFixed(0)+"%":"N/A",20,"middle",700,
+     Number.isFinite(v)&&v>=.6?"#FFFFFF":"#263041"));
+  });
+ });
+ el.push(text(W/2,H-65,"TDMC Top-K relevance; one shared ranking per case/province (not per AI model)",14,"middle",400,"#667085"));
+ svgSave(filename,el);
+}
+
 /** Six panels (K=5,10,15,20,25,30), each containing all profile/province rows. */
 function ratingDistanceSixPanels(filename, rows) {
  const ks=[5,10,15,20,25,30], W=2100,H=1440;
@@ -188,18 +245,18 @@ if(runs?.length){
  const byModel=models.map(m=>runs.filter(r=>r.model===m));
  const reliable=(field,collection)=>mean(collection.map(r=>num(r[field])));
  const rel=models.map((m,i)=>reliable("plan_precision_judged",byModel[i]));
- barChart("figure_4_5_ai_plan_relevance.svg","Final Itinerary Attraction Relevance",
-  "Mean of judged attraction proportions across plan runs",["Gemini","GPT","Claude"],rel,
-  models.map(m=>colors[m]),{max:1,yLabel:"Relevance (0–1)",fmt:v=>(v*100).toFixed(2)+"%"});
+ horizontalBars("figure_4_5_ai_plan_relevance.svg","Final Itinerary Attraction Relevance",
+  "Comparison of average judged relevance across 21 plans per model",["Gemini","GPT","Claude"],rel,
+  models.map(m=>colors[m]),{unit:"%",percentage:true});
  const dist=models.map((m,i)=>reliable("route_km",byModel[i]));
- barChart("figure_4_6_route_distance_models.svg","Mean Total Route Distance by AI Model",
-  "Total distance per itinerary; shorter does not alone imply a better itinerary",
-  ["Gemini","GPT","Claude"],dist,models.map(m=>colors[m]),{yLabel:"km / itinerary",fmt:v=>v.toFixed(2)+" km"});
+ lollipop("figure_4_6_route_distance_models.svg","Mean Total Route Distance by AI Model",
+  "Total km per itinerary; shorter alone does not imply a better itinerary",
+  ["Gemini","GPT","Claude"],dist,models.map(m=>colors[m]),{unit:" km"});
  const provinceNames=["กรุงเทพมหานคร","เชียงใหม่","ภูเก็ต"],provinceLabels=["Bangkok","Chiang Mai","Phuket"];
  const provinceDistances=provinceNames.map(p=>reliable("route_km",runs.filter(r=>r.province===p)));
- barChart("figure_4_7_route_distance_provinces.svg","Mean Total Route Distance by Province",
+ horizontalBars("figure_4_7_route_distance_provinces.svg","Mean Total Route Distance by Province",
   "Mean across available model plans",provinceLabels,provinceDistances,
-  [colors.gemini,colors.gpt,colors.claude],{yLabel:"km / itinerary",fmt:v=>v.toFixed(2)+" km"});
+  [colors.gemini,colors.gpt,colors.claude],{unit:" km"});
  // Avoid triple-counting shared TDMC ranking: each case/province should occur once.
  const cases=[1,2,3,4,5,6,7];const unique=new Map();
  for(const r of runs){
@@ -208,14 +265,12 @@ if(runs?.length){
  }
  const caseRows=[...unique.values()];
  const casePrecision=cases.map(c=>reliable("tdmc_precision_at_k",caseRows.filter(r=>Number(r.case_id)===c)));
- barChart("figure_4_8_tdmc_precision_case.svg","TDMC Precision@10 by Test Case",
-  "Each profile/province is counted once, not once per AI model",
-  cases.map(c=>"Case "+c),casePrecision,cases.map(()=>colors.tdmc),
-  {max:1,yLabel:"Precision@10",fmt:v=>(v*100).toFixed(2)+"%"});
+ profileHeatmap("figure_4_8_tdmc_precision_case.svg","TDMC Precision@10 by Profile and Province",
+  "Seven user profiles across three provinces",caseRows);
  const caseRelevance=cases.map(c=>reliable("plan_precision_judged",runs.filter(r=>Number(r.case_id)===c)));
- barChart("figure_4_9_plan_relevance_case.svg","Final Plan Relevance by Test Case",
+ lollipop("figure_4_9_plan_relevance_case.svg","Final Plan Relevance by Test Case",
   "Mean across model plans for each case",cases.map(c=>"Case "+c),
-  caseRelevance,cases.map(()=>colors.gemini),{max:1,yLabel:"Plan relevance",fmt:v=>(v*100).toFixed(2)+"%"});
+  caseRelevance,cases.map(()=>colors.gemini),{unit:""});
 }else missing("Figures 4.5–4.9","Missing "+plansPath+"; run npm run eval:groundtruth");
 
 // Optional independently validated files: CSV columns model, average_cost_usd, avg_input_tokens, avg_output_tokens, avg_seconds.
