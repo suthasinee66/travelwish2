@@ -78,14 +78,16 @@ function ratingDistanceSixPanels(filename, rows) {
    methods.some(m=>m.name===r.algorithm) &&
    Number.isFinite(num(r.avg_rating)) && Number.isFinite(num(r.avg_distance_km))));
  if(!panels.some(p=>p.length)){missing(filename,"No valid case-level rating/distance rows");return;}
- const el=border(W,H,"",""); // Draw titles only once at the desired print size.
- el.push(text(W/2,64,"Average Rating vs Average Distance",31,"middle",700),
-  text(W/2,96,"Six panels by K; each point represents a profile and province",18,"middle",400,"#667085"));
- el.push('<circle cx="530" cy="114" r="8" fill="#9A9A9A"/>',
-  text(550,119,methods[0].name,23,"start"),
-  '<polygon points="1030,105 1022,120 1038,120" fill="#388BCA"/>',
-  text(1052,119,methods[1].name,23,"start"));
- const panelW=630,panelH=540,leftMargin=52,topMargin=180,gapX=50,gapY=60;
+ const el=border(W,H,"",""); // Clean, single-instance chart heading.
+ // Title, supporting line and a dedicated legend row with generous separation.
+ el.push(text(W/2,62,"Average Rating vs Average Distance",34,"middle",700),
+  text(W/2,98,"Comparison across six recommendation sizes (K = 5, 10, 15, 20, 25, 30)",19,"middle",400,"#667085"),
+  '<rect x="445" y="118" width="1210" height="55" rx="17" fill="#FFFFFF" stroke="#E3DEEA"/>',
+  '<circle cx="510" cy="145" r="9" fill="#9A9A9A"/>',
+  text(536,152,methods[0].name,22,"start",500),
+  '<polygon points="1190,134 1179,154 1201,154" fill="#388BCA"/>',
+  text(1215,152,methods[1].name,22,"start",500));
+ const panelW=630,panelH=540,leftMargin=52,topMargin=198,gapX=50,gapY=45;
  for(let pi=0;pi<ks.length;pi++){
   const k=ks[pi],px=leftMargin+(pi%3)*(panelW+gapX),py=topMargin+Math.floor(pi/3)*(panelH+gapY);
   const left=px+90,top=py+87,pW=panelW-125,pH=panelH-180;
