@@ -14,7 +14,8 @@
     "eval:tdmc": "npx tsx src/lib/algorithm/compareAlgorithms.ts",
     "eval:plans": "npx tsx src/lib/algorithm/evaluateTravelWishPlans.ts",
     "groundtruth:csv": "npx tsx src/lib/algorithm/generateGroundTruthCsv.ts",
-    "eval:groundtruth": "node scripts/evaluateTravelWish.mjs"
+    "eval:groundtruth": "node scripts/evaluateTravelWish.mjs",
+    "eval:algorithms": "npx tsx src/lib/algorithm/evaluateAlgorithmComparison.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
