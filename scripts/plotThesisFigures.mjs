@@ -68,7 +68,7 @@ function barChart(filename,title,sub,labels,values,barColors,{max=null,yLabel=""
 
 /** Six panels (K=5,10,15,20,25,30), each containing all profile/province rows. */
 function ratingDistanceSixPanels(filename, rows) {
- const ks=[5,10,15,20,25,30], W=1800,H=1280;
+ const ks=[5,10,15,20,25,30], W=2100,H=1440;
  const X_MIN=0, X_MAX=80, Y_MIN=3, Y_MAX=5;
  const methods=[
   {name:"Weighted Profile-Matching Baseline",color:"#9A9A9A",shape:"circle"},
@@ -80,14 +80,17 @@ function ratingDistanceSixPanels(filename, rows) {
  if(!panels.some(p=>p.length)){missing(filename,"No valid case-level rating/distance rows");return;}
  const el=border(W,H,"Average Rating vs Average Distance",
   "Six panels by K; each point represents a profile and province");
+ // Larger title and subtitle for print legibility.
+ el.push(text(W/2,61,"Average Rating vs Average Distance",31,"middle",700),
+  text(W/2,92,"Six panels by K; each point represents a profile and province",18,"middle",400,"#667085"));
  el.push('<circle cx="530" cy="114" r="8" fill="#9A9A9A"/>',
-  text(550,119,methods[0].name,17,"start"),
+  text(550,119,methods[0].name,23,"start"),
   '<polygon points="1030,105 1022,120 1038,120" fill="#388BCA"/>',
-  text(1052,119,methods[1].name,17,"start"));
- const panelW=545,panelH=475,leftMargin=40,topMargin=160,gapX=42,gapY=50;
+  text(1052,119,methods[1].name,23,"start"));
+ const panelW=630,panelH=540,leftMargin=52,topMargin=180,gapX=50,gapY=60;
  for(let pi=0;pi<ks.length;pi++){
   const k=ks[pi],px=leftMargin+(pi%3)*(panelW+gapX),py=topMargin+Math.floor(pi/3)*(panelH+gapY);
-  const left=px+72,top=py+68,pW=panelW-105,pH=panelH-145;
+  const left=px+90,top=py+87,pW=panelW-125,pH=panelH-180;
   const X=v=>left+(v-X_MIN)/(X_MAX-X_MIN)*pW;
   const Y=v=>top+pH-(v-Y_MIN)/(Y_MAX-Y_MIN)*pH;
   const panel=panels[pi];
@@ -95,21 +98,21 @@ function ratingDistanceSixPanels(filename, rows) {
   const outX=panel.filter(r=>num(r.avg_distance_km)>X_MAX).length;
   const outY=panel.filter(r=>num(r.avg_rating)<Y_MIN || num(r.avg_rating)>Y_MAX).length;
   el.push('<rect x="'+px+'" y="'+py+'" width="'+panelW+'" height="'+panelH+'" rx="12" fill="white" stroke="#DADCE5"/>',
-   text(px+panelW/2,py+31,"K = "+k+"  ("+counts[0]+" baseline / "+counts[1]+" TDMC)",19,"middle",700));
-  if(outX||outY)el.push(text(px+panelW/2,py+52,
-   "Outside view: "+outX+" distance >80 km; "+outY+" rating outside 3–5",12,"middle",400,"#935353"));
+   text(px+panelW/2,py+37,"K = "+k+"  ("+counts[0]+" baseline / "+counts[1]+" TDMC)",25,"middle",700));
+  if(outX||outY)el.push(text(px+panelW/2,py+67,
+   "Outside view: "+outX+" distance >80 km; "+outY+" rating outside 3–5",16,"middle",400,"#935353"));
   for(const xv of [0,10,20,30,40,50,60,70,80]){
    const xx=X(xv);
    el.push('<line x1="'+xx+'" y1="'+top+'" x2="'+xx+'" y2="'+(top+pH)+'" stroke="#E5E7EC" stroke-dasharray="3 5"/>',
-    text(xx,top+pH+21,xv,12));
+    text(xx,top+pH+28,xv,18));
   }
   for(const yv of [3,3.5,4,4.5,5]){
    const yy=Y(yv);
    el.push('<line x1="'+left+'" y1="'+yy+'" x2="'+(left+pW)+'" y2="'+yy+'" stroke="#E5E7EC" stroke-dasharray="3 5"/>',
-    text(left-11,yy+4,yv.toFixed(1),12,"end"));
+    text(left-13,yy+6,yv.toFixed(1),18,"end"));
   }
-  el.push(text(left+pW/2,py+panelH-18,"Average Distance (km)",15),
-   text(px+21,top+pH/2,"Average Rating",14,"middle",500,"#667085",-90));
+  el.push(text(left+pW/2,py+panelH-25,"Average Distance (km)",21),
+   text(px+27,top+pH/2,"Average Rating",21,"middle",500,"#667085",-90));
   const occupancy=new Map();
   for(const method of methods){
    for(const r of panel.filter(x=>x.algorithm===method.name)){
@@ -139,7 +142,7 @@ function ratingDistanceSixPanels(filename, rows) {
  }
  el.push(text(W/2,H-25,
   "Zoomed view: X = 0–80 km, Y = 3–5. Dashed borders flag clipped data; tooltips retain exact values.",
-  14,"middle",400,"#667085"));
+  20,"middle",400,"#667085"));
  svgSave(filename,el);
 }
 
