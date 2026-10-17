@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1520" height="790" viewBox="0 0 1520 790" role="img" aria-label="Total Tokens by Test Case">
+<rect width="1520" height="790" fill="#ffffff"/>
+<rect x="18" y="18" width="1484" height="754" rx="22" fill="#FCFBFF" stroke="#E6E2ED"/>
+<text x="760" y="70" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="33" fill="#273248">Total Tokens by Test Case</text>
+<text x="760" y="102" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" fill="#667085">Three trips per case | Input + Output Tokens</text>
+<rect x="360" y="136" width="20" height="20" rx="6" fill="#7450A4"/>
+<text x="390" y="152" font-family="Arial,sans-serif" font-size="19" font-weight="600" fill="#354156">Gemini 3.7 Flash</text>
+<rect x="690" y="136" width="20" height="20" rx="6" fill="#3478B9"/>
+<text x="720" y="152" font-family="Arial,sans-serif" font-size="19" font-weight="600" fill="#354156">GPT-5.6 Sol</text>
+<rect x="1020" y="136" width="20" height="20" rx="6" fill="#53A38E"/>
+<text x="1050" y="152" font-family="Arial,sans-serif" font-size="19" font-weight="600" fill="#354156">Claude Sonnet 5</text>
+<line x1="118" y1="658" x2="1455" y2="658" stroke="#DBE1EA" stroke-width="1" stroke-dasharray="5 7"/>
+<text x="100" y="664" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#536178">0</text>
+<line x1="118" y1="543.5" x2="1455" y2="543.5" stroke="#DBE1EA" stroke-width="1" stroke-dasharray="5 7"/>
+<text x="100" y="549.5" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#536178">100,000</text>
+<line x1="118" y1="429" x2="1455" y2="429" stroke="#DBE1EA" stroke-width="1" stroke-dasharray="5 7"/>
+<text x="100" y="435" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#536178">200,000</text>
+<line x1="118" y1="314.5" x2="1455" y2="314.5" stroke="#DBE1EA" stroke-width="1" stroke-dasharray="5 7"/>
+<text x="100" y="320.5" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#536178">300,000</text>
+<line x1="118" y1="200" x2="1455" y2="200" stroke="#DBE1EA" stroke-width="1" stroke-dasharray="5 7"/>
+<text x="100" y="206" text-anchor="end" font-family="Arial,sans-serif" font-size="17" fill="#536178">400,000</text>
+<text x="213.5" y="695" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#354156">Case 1</text>
+<rect x="152.5" y="524.608645" width="36" height="133.391355" rx="5" fill="#7450A4"/>
+<text x="170.5" y="515.608645" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#7450A4">116.5k</text>
+<rect x="195.5" y="521.753015" width="36" height="136.246985" rx="5" fill="#3478B9"/>
+<text x="213.5" y="512.753015" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#3478B9">119.0k</text>
+<rect x="238.5" y="262.55593" width="36" height="395.44407" rx="5" fill="#53A38E"/>
+<text x="256.5" y="253.55593" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#53A38E">345.4k</text>
+<text x="404.5" y="695" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#354156">Case 2</text>
+<rect x="343.5" y="534.501445" width="36" height="123.498555" rx="5" fill="#7450A4"/>
+<text x="361.5" y="525.501445" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#7450A4">107.9k</text>
+<rect x="386.5" y="541.93822" width="36" height="116.06178000000001" rx="5" fill="#3478B9"/>
+<text x="404.5" y="532.93822" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#3478B9">101.4k</text>
+<rect x="429.5" y="287.092135" width="36" height="370.907865" rx="5" fill="#53A38E"/>
+<text x="447.5" y="278.092135" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#53A38E">323.9k</text>
+<text x="595.5" y="695" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#354156">Case 3</text>
+<rect x="534.5" y="532.0557249999999" width="36" height="125.944275" rx="5" fill="#7450A4"/>
+<text x="552.5" y="523.0557249999999" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#7450A4">110.0k</text>
+<rect x="577.5" y="498.85874" width="36" height="159.14126" rx="5" fill="#3478B9"/>
+<text x="595.5" y="489.85874" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#3478B9">139.0k</text>
+<rect x="620.5" y="297.087985" width="36" height="360.912015" rx="5" fill="#53A38E"/>
+<text x="638.5" y="288.087985" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#53A38E">315.2k</text>
+<text x="786.5" y="695" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#354156">Case 4</text>
+<rect x="725.5" y="534.409845" width="36" height="123.59015500000001" rx="5" fill="#7450A4"/>
+<text x="743.5" y="525.409845" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#7450A4">107.9k</text>
+<rect x="768.5" y="528.604695" width="36" height="129.395305" rx="5" fill="#3478B9"/>
+<text x="786.5" y="519.604695" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#3478B9">113.0k</text>
+<rect x="811.5" y="282.15375" width="36" height="375.84625" rx="5" fill="#53A38E"/>
+<text x="829.5" y="273.15375" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#53A38E">328.3k</text>
+<text x="977.5" y="695" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#354156">Case 5</text>
+<rect x="916.5" y="534.91937" width="36" height="123.08063" rx="5" fill="#7450A4"/>
+<text x="934.5" y="525.91937" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#7450A4">107.5k</text>
+<rect x="959.5" y="544.76408" width="36" height="113.23592" rx="5" fill="#3478B9"/>
+<text x="977.5" y="535.76408" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#3478B9">98.9k</text>
+<rect x="1002.5" y="311.304305" width="36" height="346.695695" rx="5" fill="#53A38E"/>
+<text x="1020.5" y="302.304305" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#53A38E">302.8k</text>
+<text x="1168.5" y="695" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#354156">Case 6</text>
+<rect x="1107.5" y="517.122635" width="36" height="140.877365" rx="5" fill="#7450A4"/>
+<text x="1125.5" y="508.12263499999995" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#7450A4">123.0k</text>
+<rect x="1150.5" y="468.14755" width="36" height="189.85244999999998" rx="5" fill="#3478B9"/>
+<text x="1168.5" y="459.14755" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#3478B9">165.8k</text>
+<rect x="1193.5" y="270.91328500000003" width="36" height="387.08671499999997" rx="5" fill="#53A38E"/>
+<text x="1211.5" y="261.91328500000003" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#53A38E">338.1k</text>
+<text x="1359.5" y="695" text-anchor="middle" font-family="Arial,sans-serif" font-size="18" font-weight="600" fill="#354156">Case 7</text>
+<rect x="1298.5" y="533.853375" width="36" height="124.14662499999999" rx="5" fill="#7450A4"/>
+<text x="1316.5" y="524.853375" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#7450A4">108.4k</text>
+<rect x="1341.5" y="522.96786" width="36" height="135.03214" rx="5" fill="#3478B9"/>
+<text x="1359.5" y="513.96786" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#3478B9">117.9k</text>
+<rect x="1384.5" y="286.416585" width="36" height="371.583415" rx="5" fill="#53A38E"/>
+<text x="1402.5" y="277.416585" text-anchor="middle" font-family="Arial,sans-serif" font-weight="600" font-size="13" fill="#53A38E">324.5k</text>
+<text x="760" y="740" text-anchor="middle" font-size="19" font-family="Arial,sans-serif" fill="#354156">Test Case (three trips per case)</text>
+<text x="41" y="430" text-anchor="middle" transform="rotate(-90 41 430)" font-size="20" font-family="Arial,sans-serif" font-weight="600" fill="#354156">Tokens</text>
+</svg>
