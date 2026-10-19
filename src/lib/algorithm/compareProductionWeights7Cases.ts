@@ -85,6 +85,25 @@ function readBinaryGroundTruth(content: string) {
   });
 }
 
+
+/** F1-only weight chart; values are averaged across seven cases at Top-30. */
+function f1OnlySvg(rows: Array<{name:string;f1:number|null}>) {
+  const W=1120,H=565,L=95,R=45,T=80,B=115;
+  const plotW=W-L-R,plotH=H-T-B;
+  const peak=Math.max(0.01,...rows.map(r=>r.f1??0));
+  const yMax=Math.min(1,Math.ceil(peak*1.15*20)/20);
+  const colors=["#7450A4","#9865B7","#3478B9","#53A38E","#E39D4C","#BD7C9C","#7A7C9E"];
+  const xStep=plotW/rows.length,barW=Math.min(75,xStep*.55);
+  const esc=(s:string)=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  let out='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'">';
+  out+='<rect width="100%" height="100%" fill="#fff"/><text x="'+W/2+'" y="36" text-anchor="middle" font-family="Arial" font-size="21" font-weight="bold">F1-score@30 by TDMC Weight Configuration</text>';
+  out+='<text x="'+W/2+'" y="59" text-anchor="middle" fill="#667085" font-family="Arial" font-size="12">Production rankPlacesTDMC · 7 cases · case-balanced mean</text>';
+  for(let i=0;i<=5;i++){const v=i*yMax/5;const y=T+plotH-v/yMax*plotH;out+='<line x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'" stroke="#E5E7EB"/><text x="'+(L-12)+'" y="'+(y+4)+'" text-anchor="end" font-family="Arial" font-size="12" fill="#667085">'+v.toFixed(3)+'</text>';}
+  rows.forEach((r,i)=>{const v=r.f1;const x=L+i*xStep+xStep/2;const h=v==null?0:Math.max(0,v)*plotH/yMax;out+='<rect x="'+(x-barW/2)+'" y="'+(T+plotH-h)+'" width="'+barW+'" height="'+h+'" rx="4" fill="'+colors[i%colors.length]+'"/>';out+='<text x="'+x+'" y="'+(T+plotH-h-9)+'" text-anchor="middle" font-size="12" font-family="Arial" fill="#334155">'+(v==null?"N/A":v.toFixed(3))+'</text>';out+='<text x="'+x+'" y="'+(T+plotH+21)+'" text-anchor="middle" font-size="11" font-family="Arial" fill="#475467">'+esc(r.name).replace(/ /g,"&#160;")+'</text>';});
+  out+='<text x="'+W/2+'" y="'+(H-22)+'" text-anchor="middle" font-size="14" font-family="Arial" fill="#334155">Weight configurations</text>';
+  return out+'</svg>';
+}
+
 async function loadAttractions(supabase: ReturnType<typeof createClient>, province: string):Promise<TDMCPlace[]> {
   const rows: TDMCPlace[] = [];
   const size=1000;
@@ -147,6 +166,7 @@ async function main(){
   await fs.writeFile(path.join(OUT,"summary.csv"),csv(summary));
   await fs.writeFile(path.join(OUT,"summary.json"),JSON.stringify({method:"rankPlacesTDMC (production)",K,groundTruthRelevantScore:RELEVANT_SCORE,profiles:profiles.map(p=>p.id),summary},null,2));
   await fs.writeFile(path.join(OUT,"weight_comparison.svg"),svgChart(summary));
+  await fs.writeFile(path.join(OUT,"f1_only_weight_comparison.svg"),f1OnlySvg(summary));
   console.table(summary.map(({name,precision,recall,f1,diversity,ground_truth_runs})=>({name,precision,recall,f1,diversity,ground_truth_runs})));
   console.log("Results:",OUT);
   if(summary.some(s=>s.ground_truth_runs!==s.profile_province_runs)) console.warn("WARNING: Incomplete Ground Truth; do not select weights from incomplete F1.");
