@@ -75,7 +75,7 @@ function readBinaryGroundTruth(content: string) {
     "Ground Truth CSV must have profile_id/case_id, province, att_id and relevant_0_or_1/relevant_score. Found: "+header.join(", ")
   );
   const normalizeCase=(x:string)=>{
-    const m=x.trim().match(/^case[ _-]*(\d+)$/i);
+    const m=x.trim().match(/^(?:case[ _-]*)?(\d+)$/i);
     return m ? "case"+Number(m[1]) : x.trim().toLowerCase();
   };
   return rows.map((cells,i)=>{
