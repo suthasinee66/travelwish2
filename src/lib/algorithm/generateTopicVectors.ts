@@ -167,6 +167,8 @@ interface Attraction {
     budget: string[] | null;
 
     travel_companion: string[] | null;
+
+    topic_vector: number[] | string | null;
 }
 
 /* ==================================================
@@ -279,6 +281,29 @@ export function createTopicVector(
     return vector;
 }
 /* ==================================================
+   Existing vector handling
+   Default: skip a complete 22-dimensional binary vector.
+   --force: rebuild even when vector already exists.
+   Use --force after modifying category tags in Supabase.
+================================================== */
+
+const FORCE_REBUILD = process.argv.includes("--force");
+
+function hasValidTopicVector(value: unknown): boolean {
+    let vector: unknown = value;
+    if (typeof value === "string") {
+        try {
+            vector = JSON.parse(value);
+        } catch {
+            return false;
+        }
+    }
+    return Array.isArray(vector)
+        && vector.length === VECTOR_SIZE
+        && vector.every((value) => value === 0 || value === 1);
+}
+
+/* ==================================================
    Fetch ALL Attractions
 ================================================== */
 
@@ -309,7 +334,8 @@ async function fetchAttractions(): Promise<Attraction[]> {
                     activities,
                     atmosphere,
                     budget,
-                    travel_companion
+                    travel_companion,
+                    topic_vector
                 `)
                 .range(from, to);
 
@@ -443,11 +469,23 @@ async function generateTopicVectors() {
 
     let failed = 0;
 
+    let skipped = 0;
+
+    console.log(FORCE_REBUILD
+        ? '⚠️ --force: rebuilding all topic vectors, including existing ones.'
+        : '⏭️ Default mode: skipping existing valid 22-dimensional vectors.');
+
     for (
         const attraction of attractions
     ) {
 
         try {
+
+            if (!FORCE_REBUILD && hasValidTopicVector(attraction.topic_vector)) {
+                skipped++;
+                console.log(`⏭️ Skipped ${attraction.name_th ?? attraction.att_id} (topic_vector already exists)`);
+                continue;
+            }
 
             const vector =
                 createTopicVector(
@@ -498,6 +536,10 @@ async function generateTopicVectors() {
 
     console.log(
         `❌ Failed: ${failed}`
+    );
+
+    console.log(
+        `⏭️ Skipped (already valid): ${skipped}`
     );
 
     console.log(
