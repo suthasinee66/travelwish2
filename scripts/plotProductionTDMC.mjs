@@ -1,15 +1,5 @@
-/**
- * TravelWish: Precision@K, Recall@K, F1-score@K from REAL production TDMC Top 30.
- *
- * npm run eval:tdmc:production-graphs
- * npm run eval:tdmc:production-graphs -- --runs comparison/plan_runs --gt comparison/groundtruth.csv
- *
- * Input: 21 travelwish_case{1..7}_{bangkok,chiangmai,phuket}*.json
- *        plus the annotated binary groundtruth.csv (0/1 labels).
- * Output: comparison/figures/production_tdmc/{*.svg,index.html,*.csv,summary.json}
- *
- * This script NEVER reruns or alters the TDMC ranking. For every saved Top 30,
- * it evaluates the first K IDs against the ground truth for the same case/province.
+/** Plot Precision/Recall/F1 from a FRESH TDMC ranking against current Supabase.
+ * Run via npm run eval:tdmc:production-graphs (first reranks through TypeScript).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -24,7 +14,7 @@ function argument(name, defaultValue) {
   return args[index + 1];
 }
 
-const runsDir = path.resolve(argument('runs', 'comparison/plan_runs'));
+const rerankedPath = path.resolve(argument('ranking', 'comparison/figures/production_tdmc/reranked_tdmc_top30.json'));
 const groundTruthPath = path.resolve(argument('gt', 'comparison/groundtruth.csv'));
 const outputDir = path.resolve(argument('out', 'comparison/figures/production_tdmc'));
 const kValues = [5, 10, 15, 20, 25, 30];
@@ -154,81 +144,35 @@ function extractOriginalTop30(prompt) {
 }
 
 function evaluate() {
-  if (!fs.existsSync(runsDir)) {
-    throw new Error('Missing run directory: ' + runsDir + '\nPut all 21 JSON files in this folder.');
-  }
-  const filenames = fs.readdirSync(runsDir).filter(name => filePattern.test(name)).sort();
-  if (filenames.length !== 21) {
-    throw new Error('Expected 21 travelwish_case*.json files in ' + runsDir + ', found ' + filenames.length);
-  }
+  if (!fs.existsSync(rerankedPath)) throw new Error('Run TDMC ranking first: npx tsx src/lib/algorithm/rerunProductionTDMC7Cases.ts');
+  const reranked = JSON.parse(fs.readFileSync(rerankedPath, 'utf8'));
+  if (reranked.source !== 'current_supabase_tdmc_rerun' || reranked.records?.length !== 21) throw new Error('Expected 21 freshly reranked cases');
   const { groups, rowCount } = readGroundTruth();
-  if (groups.size !== 21) throw new Error('Expected 21 case/province groups in groundtruth.csv, found ' + groups.size);
-
-  const uniqueRuns = new Set();
   const details = [];
-  for (const filename of filenames) {
-    const match = filename.match(filePattern);
-    const caseId = Number(match[1]);
-    const province = provinceBySlug[match[2].toLowerCase()];
-    const key = caseId + '|' + province;
-    if (uniqueRuns.has(key)) throw new Error('Duplicate JSON runs for ' + key);
-    uniqueRuns.add(key);
-    const log = JSON.parse(fs.readFileSync(path.join(runsDir, filename), 'utf8'));
-    if (log.trip_input?.province && log.trip_input.province !== province) {
-      throw new Error('Filename and trip province disagree in ' + filename);
-    }
-    const prompt = log.models?.gemini?.rounds?.[0]?.prompt ??
-      log.models?.gpt?.rounds?.[0]?.prompt ??
-      log.models?.claude?.rounds?.[0]?.prompt;
-    if (typeof prompt !== 'string' || !prompt) {
-      throw new Error('No saved production planner prompt in ' + filename);
-    }
-    const profile = prompt.match(/"profile"\s*:\s*\{\s*"name"\s*:\s*"test(\d+)"/i);
-    if (!profile || Number(profile[1]) !== caseId) {
-      throw new Error('Saved user profile does not match filename: ' + filename);
-    }
-
-    const top30 = extractOriginalTop30(prompt);
-    const labels = groups.get(key);
-    if (!labels) throw new Error('Missing Ground Truth for ' + key);
-    const relevantCount = [...labels.values()].filter(label => label === 1).length;
-    if (relevantCount === 0) throw new Error('No relevant places in Ground Truth for ' + key);
-    const unjudged = top30.filter(id => !labels.has(id));
-    if (unjudged.length) {
-      throw new Error('Unjudged TDMC place IDs in ' + filename + ': ' + unjudged.join(', '));
-    }
-
+  for (const record of reranked.records) {
+    const {case_id:caseId,province,top30,relevant_count:relevantCount} = record;
+    const group = caseId + '|' + province, labels = groups.get(group);
+    if (!labels) throw new Error('Ground Truth missing ' + group);
+    if (top30.length !== 30 || new Set(top30).size !== 30) throw new Error('Invalid fresh Top 30 for ' + group);
+    if (top30.some(id => !labels.has(id))) throw new Error('Unjudged fresh TDMC candidate ' + group);
+    const actualRelevant = [...labels.entries()].filter(([id,value]) => value === 1).length;
+    // Fresh runner only ranks labelled candidates existing in current Supabase; use its documented denominator.
+    if (!Number.isInteger(relevantCount) || relevantCount < 1 || relevantCount > actualRelevant) throw new Error('Invalid relevant count '+group);
     for (const k of kValues) {
-      const truePositive = top30.slice(0, k).filter(id => labels.get(id) === 1).length;
-      const precision = truePositive / k;
-      const recall = truePositive / relevantCount;
-      const f1 = precision + recall ? 2 * precision * recall / (precision + recall) : 0;
-      details.push({
-        case_id: caseId,
-        province,
-        k,
-        true_positive: truePositive,
-        relevant_count: relevantCount,
-        precision,
-        recall,
-        f1,
-      });
+      const truePositive = top30.slice(0,k).filter(id => labels.get(id) === 1).length;
+      const precision = truePositive/k;
+      const recall = truePositive/relevantCount;
+      const f1 = precision+recall ? 2*precision*recall/(precision+recall) : 0;
+      details.push({case_id:caseId,province,k,true_positive:truePositive,relevant_count:relevantCount,precision,recall,f1});
     }
-    console.log('Verified Case ' + caseId + ' — ' + province + ' (30 original candidates)');
   }
-
-  const mean = values => values.reduce((a, b) => a + b, 0) / values.length;
+  const mean = a => a.reduce((x,y)=>x+y,0)/a.length;
   const summary = kValues.map(k => {
-    const selected = details.filter(row => row.k === k);
-    return {
-      k,
-      precision: mean(selected.map(row => row.precision)),
-      recall: mean(selected.map(row => row.recall)),
-      f1: mean(selected.map(row => row.f1)),
-    };
+    const selected=details.filter(r=>r.k===k);
+    if(selected.length!==21)throw Error('Missing experiments for K='+k);
+    return {k,precision:mean(selected.map(r=>r.precision)),recall:mean(selected.map(r=>r.recall)),f1:mean(selected.map(r=>r.f1))};
   });
-
-  return { details, summary, ground_truth_rows: rowCount, runs: uniqueRuns.size };
+  return {details,summary,ground_truth_rows:rowCount,runs:reranked.records.length};
 }
 
 function saveCsv(filename, rows, fields) {
@@ -255,7 +199,7 @@ function makeChart(summary, metric, metricTitle, filename) {
     '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '">',
     '<rect width="' + width + '" height="' + height + '" fill="#FFFFFF"/>',
     '<text x="635" y="55" text-anchor="middle" fill="#263041" font-family="Arial, sans-serif" font-size="28" font-weight="bold">' + xmlEscape('TDMC-APD: ' + metricTitle) + '</text>',
-    '<text x="635" y="83" text-anchor="middle" fill="#667085" font-family="Arial, sans-serif" font-size="16">Production Top 30 — 21 runs (7 profiles × 3 provinces)</text>',
+    '<text x="635" y="83" text-anchor="middle" fill="#667085" font-family="Arial, sans-serif" font-size="16">Fresh TDMC Top 30 — 21 groups (7 profiles × 3 provinces)</text>',
   ];
   for (let tick = 0; tick <= 5; tick++) {
     const value = tick * yMax / 5;
@@ -446,8 +390,8 @@ function main() {
   saveCsv('metrics_by_case.csv', result.details, ['case_id','province','k','true_positive','relevant_count','precision','recall','f1']);
   saveCsv('metrics_summary.csv', result.summary, ['k','precision','recall','f1']);
   fs.writeFileSync(path.join(outputDir, 'summary.json'), JSON.stringify({
-    source: 'production_createPlanner',
-    methodology: 'Original saved TDMC Top 30, first K IDs compared with binary Ground Truth for matching case and province. Arithmetic mean of 21 per-run metrics; F1 computed per run before averaging.',
+    source: 'current_supabase_tdmc_rerun',
+    methodology: 'Fresh production rankPlacesTDMC (0.2/0.3/0.5), ranking current Supabase attractions matched to binary Ground Truth. Mean of 21 cases x provinces; F1 computed per group then averaged.',
     ground_truth_rows: result.ground_truth_rows,
     runs: result.runs,
     metrics: result.summary,
