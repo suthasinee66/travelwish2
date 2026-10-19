@@ -5,7 +5,7 @@
  *
  * Run: npx tsx src/lib/algorithm/compareProductionWeights7Cases.ts
  * Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.
- * Ground truth: comparison/ground_truth_pool.csv (0/1/2, relevant=2).
+ * Ground truth: comparison/groundtruth.csv (binary 0/1, relevant=1).
  */
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
@@ -13,15 +13,16 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { rankPlacesTDMC, TDMC_EXPERIMENT_CONFIGS, type TDMCPlace } from "./tdmcAlgorithm";
 import { evaluateRecommendations } from "./evaluation";
-import { parseGroundTruthCsv, GROUND_TRUTH_SCORE_RELEVANT, groundTruthKey } from "./groundTruth";
+import { groundTruthKey } from "./groundTruth";
 import type { TripPlanInput } from "./types";
 
 type Profile = { id: string; name: string; trip: TripPlanInput; testProvinces: string[] };
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, "comparison", "production_weights_7cases");
 const PROFILES_PATH = process.env.TDMC_WEIGHT_PROFILES ?? path.join(ROOT, "comparison", "weight_profiles_7cases.json");
-const GROUND_TRUTH_PATH = process.env.TDMC_GROUND_TRUTH ?? path.join(ROOT, "comparison", "ground_truth_pool.csv");
+const GROUND_TRUTH_PATH = process.env.TDMC_GROUND_TRUTH ?? path.join(ROOT, "comparison", "groundtruth.csv");
 const K = 30;
+const RELEVANT_SCORE = 1;
 const INCLUDE_UNLABELED = process.env.TDMC_ALLOW_MISSING_GT === "1";
 
 function csv(rows: Record<string, string | number | null>[]) {
@@ -44,6 +45,46 @@ function svgChart(rows: any[]) {
   rows.forEach((r,i)=>{out+='<rect x="'+(left+areaW+20)+'" y="'+(top+i*28)+'" width="15" height="14" fill="'+colors[i%colors.length]+'"/><text x="'+(left+areaW+43)+'" y="'+(top+12+i*28)+'" font-size="12" font-family="Arial">'+String(r.name).replace(/[&<>]/g,"")+'</text>';});
   return out+'</svg>';
 }
+
+/** Read binary 0/1 annotations, supporting both profile_id and case_id CSV schemas. */
+function readBinaryGroundTruth(content: string) {
+  const text = content.replace(/^\uFEFF/, "");
+  const rows: string[][] = [];
+  let row: string[] = [], cell = "", quoted = false;
+  for (let i=0; i<text.length; i++) {
+    const ch=text[i];
+    if(ch==='"') {
+      if(quoted && text[i+1]==='"'){cell+='"';i++;} else quoted=!quoted;
+    } else if(ch==="," && !quoted){row.push(cell);cell="";}
+    else if((ch==="\r" || ch==="\n") && !quoted){
+      if(ch==="\r" && text[i+1]==="\n") i++;
+      row.push(cell);cell="";
+      if(row.some(x=>x.trim()!=="")) rows.push(row);
+      row=[];
+    } else cell+=ch;
+  }
+  if(quoted) throw new Error("Malformed Ground Truth CSV: unclosed quote");
+  if(cell || row.length){row.push(cell);rows.push(row);}
+  const header=(rows.shift()??[]).map(x=>x.trim());
+  const index=(keys:string[])=>keys.map(k=>header.indexOf(k)).find(n=>n>=0)??-1;
+  const pi=index(["profile_id","case_id","case","profile"]);
+  const vi=index(["province"]);
+  const ai=index(["att_id","place_id"]);
+  const si=index(["relevant_0_or_1","relevant_score","relevant","is_relevant"]);
+  if([pi,vi,ai,si].some(i=>i<0)) throw new Error(
+    "Ground Truth CSV must have profile_id/case_id, province, att_id and relevant_0_or_1/relevant_score. Found: "+header.join(", ")
+  );
+  const normalizeCase=(x:string)=>{
+    const m=x.trim().match(/^case[ _-]*(\d+)$/i);
+    return m ? "case"+Number(m[1]) : x.trim().toLowerCase();
+  };
+  return rows.map((cells,i)=>{
+    const raw=(cells[si]??"").trim();
+    if(raw!=="" && raw!=="0" && raw!=="1") throw new Error("Expected binary 0/1 Ground Truth; found "+JSON.stringify(raw)+" on CSV row "+(i+2));
+    return {profile_id:normalizeCase(cells[pi]??""), province:(cells[vi]??"").trim(),att_id:(cells[ai]??"").trim(),relevant_score:raw===""?null:Number(raw)};
+  });
+}
+
 async function loadAttractions(supabase: ReturnType<typeof createClient>, province: string):Promise<TDMCPlace[]> {
   const rows: TDMCPlace[] = [];
   const size=1000;
@@ -61,14 +102,15 @@ async function main(){
   if(!url || !key) throw new Error("Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env (never commit secrets).");
   const profiles=JSON.parse(await fs.readFile(PROFILES_PATH,"utf8")) as Profile[];
   if(profiles.length!==7 || new Set(profiles.map(p=>p.id)).size!==7 || profiles.some(p=>!p.id||!p.trip||!p.testProvinces?.length)) throw new Error("Profile config must contain exactly 7 distinct cases with trip and testProvinces.");
-  const groundTruthRows=parseGroundTruthCsv(await fs.readFile(GROUND_TRUTH_PATH,"utf8"));
+  const groundTruthRows=readBinaryGroundTruth(await fs.readFile(GROUND_TRUTH_PATH,"utf8"));
+  console.log("Loaded Ground Truth:",GROUND_TRUTH_PATH,"rows:",groundTruthRows.length);
   const gt=new Map<string,{relevant:Set<string>; labeled:Set<string>}>();
   for(const row of groundTruthRows) {
     if(row.relevant_score===null) continue;
     const key=groundTruthKey(row.profile_id,row.province);
     const entry=gt.get(key)??{relevant:new Set<string>(),labeled:new Set<string>()};
     entry.labeled.add(row.att_id);
-    if(row.relevant_score===GROUND_TRUTH_SCORE_RELEVANT) entry.relevant.add(row.att_id);
+    if(row.relevant_score===RELEVANT_SCORE) entry.relevant.add(row.att_id);
     gt.set(key,entry);
   }
   const supabase=createClient(url,key,{auth:{persistSession:false}});
@@ -82,7 +124,7 @@ async function main(){
       const data=byProvince.get(province)??[];
       const truth=gt.get(groundTruthKey(profile.id,province));
       if(data.length<K) throw new Error("Only "+data.length+" places for "+profile.id+" / "+province+"; cannot evaluate Top-"+K);
-      if((!truth || truth.relevant.size===0) && !INCLUDE_UNLABELED) throw new Error("Missing relevant Ground Truth (score=2) for "+profile.id+" / "+province+". Generate/label the pool or run with TDMC_ALLOW_MISSING_GT=1 for descriptive metrics only.");
+      if((!truth || truth.relevant.size===0) && !INCLUDE_UNLABELED) throw new Error("Missing binary Ground Truth relevant=1 for "+profile.id+" / "+province+" in "+GROUND_TRUTH_PATH+". Check case_id/profile_id, province, and annotations.");
       const trip={...profile.trip,province};
       for(const weight of configs) {
         // IMPORTANT: this is the EXACT production ranking entry point.
@@ -103,7 +145,7 @@ async function main(){
   await fs.mkdir(OUT,{recursive:true});
   await fs.writeFile(path.join(OUT,"per_case_province.csv"),csv(detailed));
   await fs.writeFile(path.join(OUT,"summary.csv"),csv(summary));
-  await fs.writeFile(path.join(OUT,"summary.json"),JSON.stringify({method:"rankPlacesTDMC (production)",K,groundTruthRelevantScore:GROUND_TRUTH_SCORE_RELEVANT,profiles:profiles.map(p=>p.id),summary},null,2));
+  await fs.writeFile(path.join(OUT,"summary.json"),JSON.stringify({method:"rankPlacesTDMC (production)",K,groundTruthRelevantScore:RELEVANT_SCORE,profiles:profiles.map(p=>p.id),summary},null,2));
   await fs.writeFile(path.join(OUT,"weight_comparison.svg"),svgChart(summary));
   console.table(summary.map(({name,precision,recall,f1,diversity,ground_truth_runs})=>({name,precision,recall,f1,diversity,ground_truth_runs})));
   console.log("Results:",OUT);
