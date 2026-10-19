@@ -1,0 +1,194 @@
+[
+  {
+    "id": "case1",
+    "name": "Case 1",
+    "gender": "หญิง",
+    "age": 21,
+    "testProvinces": [
+      "กรุงเทพมหานคร",
+      "เชียงใหม่",
+      "ภูเก็ต"
+    ],
+    "trip": {
+      "province": "",
+      "travelType": [
+        "วัฒนธรรม",
+        "คาเฟ่",
+        "เมือง"
+      ],
+      "activities": [
+        "ถ่ายรูป",
+        "อาหาร",
+        "ช้อปปิ้ง"
+      ],
+      "atmosphere": [
+        "คึกคัก"
+      ],
+      "budget": 3000,
+      "companion": "เพื่อน"
+    }
+  },
+  {
+    "id": "case2",
+    "name": "Case 2",
+    "gender": "ชาย",
+    "age": 32,
+    "testProvinces": [
+      "กรุงเทพมหานคร",
+      "เชียงใหม่",
+      "ภูเก็ต"
+    ],
+    "trip": {
+      "province": "",
+      "travelType": [
+        "ภูเขา",
+        "ธรรมชาติ"
+      ],
+      "activities": [
+        "เดินป่า",
+        "พักผ่อน"
+      ],
+      "atmosphere": [
+        "เงียบสงบ"
+      ],
+      "budget": 3000,
+      "companion": "คนเดียว"
+    }
+  },
+  {
+    "id": "case3",
+    "name": "Case 3",
+    "gender": "หญิง",
+    "age": 42,
+    "testProvinces": [
+      "กรุงเทพมหานคร",
+      "เชียงใหม่",
+      "ภูเก็ต"
+    ],
+    "trip": {
+      "province": "",
+      "travelType": [
+        "ทะเล",
+        "เมือง"
+      ],
+      "activities": [
+        "ช้อปปิ้ง",
+        "พักผ่อน",
+        "ถ่ายรูป"
+      ],
+      "atmosphere": [
+        "เงียบสงบ"
+      ],
+      "budget": 15000,
+      "companion": "ครอบครัว"
+    }
+  },
+  {
+    "id": "case4",
+    "name": "Case 4",
+    "gender": "ไม่ระบุ",
+    "age": 28,
+    "testProvinces": [
+      "กรุงเทพมหานคร",
+      "เชียงใหม่",
+      "ภูเก็ต"
+    ],
+    "trip": {
+      "province": "",
+      "travelType": [
+        "วัฒนธรรม"
+      ],
+      "activities": [
+        "ช้อปปิ้ง",
+        "ถ่ายรูป",
+        "อาหาร"
+      ],
+      "atmosphere": [
+        "เงียบสงบ"
+      ],
+      "budget": 5000,
+      "companion": "คนเดียว"
+    }
+  },
+  {
+    "id": "case5",
+    "name": "Case 5",
+    "gender": "ชาย",
+    "age": 57,
+    "testProvinces": [
+      "กรุงเทพมหานคร",
+      "เชียงใหม่",
+      "ภูเก็ต"
+    ],
+    "trip": {
+      "province": "",
+      "travelType": [
+        "ภูเขา",
+        "ธรรมชาติ"
+      ],
+      "activities": [
+        "พักผ่อน"
+      ],
+      "atmosphere": [
+        "เงียบสงบ"
+      ],
+      "budget": 15000,
+      "companion": "เพื่อน"
+    }
+  },
+  {
+    "id": "case6",
+    "name": "Case 6",
+    "gender": "หญิง",
+    "age": 35,
+    "testProvinces": [
+      "กรุงเทพมหานคร",
+      "เชียงใหม่",
+      "ภูเก็ต"
+    ],
+    "trip": {
+      "province": "",
+      "travelType": [
+        "ทะเล"
+      ],
+      "activities": [
+        "ถ่ายรูป",
+        "อาหาร",
+        "ช้อปปิ้ง"
+      ],
+      "atmosphere": [
+        "คึกคัก"
+      ],
+      "budget": 5000,
+      "companion": "คนเดียว"
+    }
+  },
+  {
+    "id": "case7",
+    "name": "Case 7",
+    "gender": "ชาย",
+    "age": 25,
+    "testProvinces": [
+      "กรุงเทพมหานคร",
+      "เชียงใหม่",
+      "ภูเก็ต"
+    ],
+    "trip": {
+      "province": "",
+      "travelType": [
+        "ธรรมชาติ",
+        "เมือง"
+      ],
+      "activities": [
+        "พักผ่อน",
+        "อาหาร",
+        "ถ่ายรูป"
+      ],
+      "atmosphere": [
+        "เงียบสงบ"
+      ],
+      "budget": 5000,
+      "companion": "คู่รัก"
+    }
+  }
+]
