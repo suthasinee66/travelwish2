@@ -1,5 +1,5 @@
 /**
- * Comparison: oldAlgorithm baseline vs TDMC Top-K RECORDED in production planner logs.
+ * Fresh paired comparison: oldAlgorithm baseline vs production rankPlacesTDMC, both re-ranked from current Supabase.
  * Exactly 7 cases x 3 provinces; Ground Truth binary 0/1.
  * npx tsx src/lib/algorithm/compareBaselineVsTDMC7Cases.ts
  */
@@ -8,7 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { runWeightedProfileMatchingBaseline } from "./oldAlgorithm";
-import type { TDMCPlace } from "./tdmcAlgorithm";
+import { rankPlacesTDMC, type TDMCPlace } from "./tdmcAlgorithm";
 import { evaluateRecommendations } from "./evaluation";
 import type { TripPlanInput } from "./types";
 
@@ -17,7 +17,7 @@ const PROFILE_PATH=process.env.TDMC_WEIGHT_PROFILES??path.join(ROOT,"comparison"
 const GT_PATH=process.env.TDMC_GROUND_TRUTH??path.join(ROOT,"comparison","groundtruth.csv");
 const OUT=path.join(ROOT,"comparison","baseline_vs_tdmc_7cases");
 const KS=[5,10,15,20,25,30] as const;
-const RECORDED_PATH=process.env.TDMC_RECORDED_TOPK??path.join(ROOT,"comparison","personalization","recorded_topk.csv");
+const WEIGHTS={alpha:0.2,beta:0.3,gamma:0.5};
 const PROVINCES=["กรุงเทพมหานคร","เชียงใหม่","ภูเก็ต"];
 type Profile={id:string;trip:TripPlanInput;testProvinces:string[]};
 type RecordRow={case:string;province:string;method:string;k:number;precision:number;recall:number;f1:number;diversity:number;candidate_count:number;relevant_count:number;selected_count:number};
@@ -47,35 +47,6 @@ function checkColumns(rows:Record<string,string>[],cols:string[],source:string){
  for(const col of cols)if(!(col in rows[0]))throw Error("Missing "+source+" column: "+col+". Available: "+Object.keys(rows[0]).join(", "));
 }
 /** Exact Top-K from historical output; never derive ranks from the current algorithm. */
-function recordedGroups(rows:Record<string,string>[]){
- checkColumns(rows,["case_id","province","k","rank","id"],"recorded_topk");
- const all=new Map<string,Map<number,Map<number,string>>>();
- for(const r of rows){
-  const group=key(r.case_id,r.province),k=Number(r.k),rank=Number(r.rank),id=r.id.trim();
-  if(!KS.includes(k as any))continue;
-  if(!Number.isInteger(rank)||rank<1||rank>k||!id)throw Error("Invalid recorded Top-K row for "+group+" K="+r.k+" rank="+r.rank);
-  const byK=all.get(group)??new Map<number,Map<number,string>>();
-  const ranks=byK.get(k)??new Map<number,string>();
-  if(ranks.has(rank)&&ranks.get(rank)!==id)throw Error("Conflicting recorded IDs: "+group+" K="+k+" rank="+rank);
-  ranks.set(rank,id);byK.set(k,ranks);all.set(group,byK);
- }
- const outputs=new Map<string,Map<number,string[]>>();
- for(const [group,byK] of all){
-  const lists=new Map<number,string[]>();
-  for(const k of KS){
-   const ranks=byK.get(k);
-   if(!ranks||ranks.size!==k)throw Error("Missing recorded Top-"+k+" for "+group+" (got "+(ranks?.size??0)+" ranks)");
-   const ids=Array.from({length:k},(_,i)=>{const id=ranks.get(i+1);if(!id)throw Error("Missing rank "+(i+1)+" for "+group+" K="+k);return id;});
-   if(new Set(ids).size!==ids.length)throw Error("Duplicate attraction IDs in "+group+" K="+k);
-   lists.set(k,ids);
-  }
-  const top30=lists.get(30)!;
-  for(const k of KS)if(lists.get(k)!.some((id,i)=>id!==top30[i]))throw Error("Inconsistent recorded Top-K prefix: "+group+" K="+k);
-  outputs.set(group,lists);
- }
- return outputs;
-}
-
 function toCSV(rows:RecordRow[]|Record<string,string|number>[]):string{
  if(!rows.length)return "";
  const keys=Object.keys(rows[0]);
@@ -104,7 +75,7 @@ function graph(rows:Array<{metric:string;k:number;baseline:number;tdmc:number}>)
   }
   svg+='<text class="axis" x="'+(originX+plotW/2)+'" y="'+(originY+plotH+42)+'" text-anchor="middle">Recommendation List Size (K)</text>';
  });
- svg+='<text x="610" y="840" text-anchor="middle" font-size="12">Mean of 21 case–province groups; historical TDMC ranks, current baseline &amp; labels</text></svg>';
+ svg+='<text x="610" y="840" text-anchor="middle" font-size="12">Mean of 21 paired case–province groups; both methods rerun against labelled Supabase pool</text></svg>';
  return svg;
 }
 async function loadAttractions(client:ReturnType<typeof createClient>,province:string):Promise<TDMCPlace[]>{
@@ -124,8 +95,7 @@ async function main(){
  if(profiles.length!==7||new Set(profiles.map(x=>normalizeCase(x.id))).size!==7)throw Error("Expected 7 distinct case profiles.");
  const csvRows=parseCSV(await fs.readFile(GT_PATH,"utf8"));
  checkColumns(csvRows,["case_id","province","att_id","relevant_0_or_1"],"Ground Truth");
- const recorded=recordedGroups(parseCSV(await fs.readFile(RECORDED_PATH,"utf8")));
- console.log("TDMC rankings from recorded production output:",RECORDED_PATH);
+ console.log("Fresh TDMC and Baseline rankings from current Supabase; weights:", WEIGHTS);
  const groundTruth=new Map<string,Map<string,number>>();
  for(const r of csvRows){
   if(r.relevant_0_or_1!=="0"&&r.relevant_0_or_1!=="1")throw Error("Expected labeled 0/1 value for "+r.case_id+" "+r.province+" "+r.att_id);
@@ -140,20 +110,15 @@ async function main(){
  for(const profile of profiles)for(const province of PROVINCES){
   const labels=groundTruth.get(key(profile.id,province));
   if(!labels?.size)throw Error("Missing Ground Truth: "+profile.id+" / "+province);
-  // Recorded TDMC lists were ranked against the production candidate pool.
-  // Use full current province dataset for Baseline; never re-rank recorded TDMC.
-  const dataset=provinceData.get(province)??[];
-  const byId=new Map(dataset.map(p=>[String(p.att_id??""),p]));
-  const relevant=new Set([...labels].filter(([id,value])=>value===1&&byId.has(id)).map(([id])=>id));
-  if(dataset.length<30||!relevant.size)throw Error("Not enough candidate/relevant data: "+profile.id+" / "+province);
-  const lists=recorded.get(key(profile.id,province));
-  if(!lists)throw Error("Missing production recorded Top-K: "+profile.id+" / "+province);
-  const missing=lists.get(30)!.filter(id=>!byId.has(id));
-  if(missing.length)throw Error("Recorded attraction IDs absent from current Supabase "+profile.id+" / "+province+": "+missing.join(", ")+". Restore matching attraction metadata to calculate Diversity without misleading zeros.");
+  // Fair paired evaluation: both methods rank the same labelled Supabase attractions.
+  // Unlabelled rows are excluded from both methods, not silently scored as irrelevant.
+  const dataset=(provinceData.get(province)??[]).filter(p=>labels.has(String(p.att_id??"")));
+  if(dataset.length<30)throw Error("Fewer than 30 labelled candidates: "+profile.id+" / "+province);
+  const relevant=new Set(dataset.filter(p=>labels.get(String(p.att_id))===1).map(p=>String(p.att_id)));
+  if(!relevant.size)throw Error("No relevant attraction IDs: "+profile.id+" / "+province);
   const trip={...profile.trip,province};
   const baseline=runWeightedProfileMatchingBaseline(dataset,trip,30);
-  const tdmc=lists.get(30)!.map(id=>byId.get(id)!);
-  // Preserve the recorded ranking. Do not filter it by Ground Truth labels.
+  const tdmc=rankPlacesTDMC(dataset,trip,{limit:30,weights:WEIGHTS}).recommendations;
   for(const k of KS)for(const [method,ranked] of [["Baseline",baseline],["TDMC-APD",tdmc]] as const){
    const selected=ranked.slice(0,k);if(selected.length!==k)throw Error(method+" returned fewer than "+k);
    const m=evaluateRecommendations(selected,dataset,relevant);
