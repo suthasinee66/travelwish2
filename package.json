@@ -19,7 +19,7 @@
     "eval:algorithms:graph": "node scripts/plotAlgorithmComparison.mjs",
     "eval:figures": "node scripts/plotThesisFigures.mjs",
     "eval:personalization": "npx tsx src/lib/algorithm/evaluatePersonalization.ts && node scripts/plotPersonalization.mjs",
-    "eval:tdmc:production-graphs": "node scripts/plotProductionTDMC.mjs"
+    "eval:tdmc:production-graphs": "npx tsx src/lib/algorithm/rerunProductionTDMC7Cases.ts && node scripts/plotProductionTDMC.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
