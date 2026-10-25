@@ -104,33 +104,32 @@ router.get(
           ? attraction.images
           : [];
 
-if (
-  existingImages.length > 0
-) {
+const forceRefresh =
+        req.query.refresh === "1" ||
+        req.query.refresh === "true";
 
+      if (
+        existingImages.length > 0 &&
+        !forceRefresh
+      ) {
         console.log(
           `♻️ ${attraction.name_th} ใช้รูปจาก Cache`
         );
 
-        console.log(
-          "🚫 ไม่เรียก Google Places API"
-        );
-
-
         return res.json({
           success: true,
-
           cached: true,
-
-          att_id:
-            attraction.att_id,
-
-          name_th:
-            attraction.name_th,
-
-          images:
-            existingImages.slice(0, 5),
+          refreshed: false,
+          att_id: attraction.att_id,
+          name_th: attraction.name_th,
+          images: existingImages.slice(0, 5),
         });
+      }
+
+      if (forceRefresh) {
+        console.log(
+          `🔄 ${attraction.name_th} ขอรูป Google Places ใหม่`
+        );
       }
 
 
@@ -270,10 +269,11 @@ if (
       // 6. รวมรูปเดิม + รูปใหม่
       // =====================================================
 
-      const images = [
-        ...existingImages,
-        ...googleImages,
-      ].slice(0, 5);
+      // เมื่อ refresh ให้แทนที่ URL เก่าที่อาจหมดอายุ
+      // ไม่รวม URL เดิมกลับเข้าไปใน cache
+      const images = forceRefresh
+        ? googleImages.slice(0, 5)
+        : [...existingImages, ...googleImages].slice(0, 5);
 
 
       // =====================================================
@@ -387,6 +387,8 @@ if (
         success: true,
 
         cached: false,
+
+        refreshed: forceRefresh,
 
         att_id:
           attraction.att_id,
