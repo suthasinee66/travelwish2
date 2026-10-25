@@ -949,6 +949,10 @@ export default function PlaceDetailDrawer({
   const detailOpenKeyRef =
     useRef<string | null>(null);
 
+  // ป้องกันการเรียก refresh ซ้ำไม่รู้จบเมื่อรูปใหม่ก็โหลดไม่สำเร็จ
+  const imageRefreshAttemptedRef =
+    useRef<Set<string>>(new Set());
+
   const detailOpenedAtRef =
     useRef<number | null>(null);
 
@@ -1764,6 +1768,60 @@ export default function PlaceDetailDrawer({
       )
     ];
 
+  const refreshBrokenAttractionImage = async () => {
+    if (
+      type !== "attraction" ||
+      !API_URL ||
+      !record?.att_id
+    ) {
+      return;
+    }
+
+    const refreshKey = String(record.att_id);
+
+    if (imageRefreshAttemptedRef.current.has(refreshKey)) {
+      return;
+    }
+
+    imageRefreshAttemptedRef.current.add(refreshKey);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/attraction-images?att_id=${encodeURIComponent(refreshKey)}&refresh=1`
+      );
+
+      if (!response.ok) {
+        console.error(
+          "รีเฟรชรูปสถานที่ไม่สำเร็จ:",
+          response.status,
+          await response.text()
+        );
+        return;
+      }
+
+      const result = await response.json();
+      const freshImages = getImages(result);
+
+      if (result?.success && freshImages.length > 0) {
+        setRecord((current: any) => ({
+          ...current,
+          images: freshImages,
+        }));
+        setMainImageIndex(0);
+      } else {
+        console.warn(
+          "Google Places ไม่ส่งรูปใหม่กลับมา:",
+          result
+        );
+      }
+    } catch (error) {
+      console.error(
+        "เกิดข้อผิดพลาดขณะรีเฟรชรูปสถานที่:",
+        error
+      );
+    }
+  };
+
   const tabs: Array<{
     id: DetailTab;
     label: string;
@@ -2431,6 +2489,9 @@ export default function PlaceDetailDrawer({
                       src={selectedImage}
                       alt={title}
                       draggable={false}
+                      onError={() => {
+                        void refreshBrokenAttractionImage();
+                      }}
                       className="h-full w-full select-none object-cover"
                     />
                   </div>
